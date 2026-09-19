@@ -176,7 +176,8 @@ create or replace function public.submit_practice_answer(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = pg_catalog, public
+set timezone = 'Asia/Manila'
 as $$
 declare
     question_row public.practice_questions%rowtype;
@@ -195,7 +196,20 @@ declare
     mission_correct integer;
     daily_total integer;
     review_interval interval;
+    -- p_day_started_at is retained only to keep the existing RPC signature
+    -- compatible. Calendar boundaries are calculated by the trusted server.
+    philippine_day_start timestamptz;
+    philippine_day_end timestamptz;
 begin
+    philippine_day_start := date_trunc(
+        'day',
+        statement_timestamp() at time zone 'Asia/Manila'
+    ) at time zone 'Asia/Manila';
+    philippine_day_end := (
+        date_trunc('day', statement_timestamp() at time zone 'Asia/Manila')
+        + interval '1 day'
+    ) at time zone 'Asia/Manila';
+
     if p_answer is null or btrim(p_answer) = '' then
         raise exception 'An answer is required';
     end if;
@@ -238,7 +252,8 @@ begin
           into daily_total
           from public.practice_questions
          where student_id = p_student_id
-           and answered_at >= coalesce(p_day_started_at, date_trunc('day', now()));
+           and answered_at >= philippine_day_start
+           and answered_at < philippine_day_end;
 
         return jsonb_build_object(
             'already_answered', true,
@@ -405,7 +420,8 @@ begin
       into daily_total
       from public.practice_questions
      where student_id = p_student_id
-       and answered_at >= coalesce(p_day_started_at, date_trunc('day', now()));
+       and answered_at >= philippine_day_start
+       and answered_at < philippine_day_end;
 
     return jsonb_build_object(
         'already_answered', false,

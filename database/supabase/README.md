@@ -2,6 +2,15 @@
 
 Run SQL files manually in the Supabase SQL Editor after backing up the database.
 
+## Philippine practice day and Learning Hub insights
+
+After the September 13 migrations, run
+`2026_09_19_philippine_practice_day_and_insights.sql`. This idempotent forward
+correction keeps stored timestamps in UTC while calculating student daily
+practice totals and teacher Insights buckets with `Asia/Manila` calendar-day
+boundaries. It also makes the answer-submission RPC independent of the database
+session timezone and of the legacy caller-supplied day boundary.
+
 ## Trash, account recovery and incident alerts
 
 Apply `2026_09_13_recovery_and_incident_alerts.sql` after every earlier forward
@@ -471,3 +480,4 @@ browser requirement.
 The VAPID private key stays only in Supabase secrets. Both private values stay
 out of browser JavaScript and Git, and `ADMIN_PUSH_SECRET` must never be shown
 to users or included in screenshots.
+

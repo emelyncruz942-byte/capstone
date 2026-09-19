@@ -54,6 +54,12 @@ Learning Hub analytics by Philippine calendar day and retires Fraction Photon
 without deleting its stored scores, sessions, or already-earned badges. Arcade
 Master now requires scores in all four remaining games.
 
+After that migration, apply
+`database/supabase/2026_09_19_philippine_practice_day_and_insights.sql`.
+This forward correction makes both the student daily-practice total and teacher
+Insights use the same Philippine calendar-day boundaries, even when the
+database session itself is set to UTC.
+
 Keep Supabase's database timezone at UTC. MathVerse converts timestamps and
 audit date-filter boundaries to/from `Asia/Manila`; do not manually shift
 stored registration dates.
@@ -161,3 +167,4 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
 </details>
+

@@ -18,6 +18,14 @@ class AutonomousLearningHubMigrationTest extends TestCase
         $this->assertStringContainsString('security definer', $sql);
         $this->assertStringContainsString('for update', $sql);
         $this->assertStringContainsString('answered_at is null', $sql);
+        $this->assertStringContainsString("set timezone = 'Asia/Manila'", $sql);
+        $this->assertStringContainsString("statement_timestamp() at time zone 'Asia/Manila'", $sql);
+        $this->assertStringContainsString('answered_at >= philippine_day_start', $sql);
+        $this->assertStringContainsString('answered_at < philippine_day_end', $sql);
+        $this->assertStringNotContainsString(
+            "coalesce(p_day_started_at, date_trunc('day', now()))",
+            $sql
+        );
     }
 
     public function test_topic_focus_sessions_are_scoped_by_curriculum_key(): void
@@ -33,3 +41,4 @@ class AutonomousLearningHubMigrationTest extends TestCase
         $this->assertStringContainsString('practice_sessions_one_active_path_grade_idx', $sql);
     }
 }
+
