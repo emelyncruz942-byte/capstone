@@ -1,0 +1,125 @@
+{
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff": {
+    "file": "assets/orbitron-latin-400-normal-DBk4Dmer.woff",
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff"
+  },
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff2": {
+    "file": "assets/orbitron-latin-400-normal-U6xZUhur.woff2",
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff2"
+  },
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff": {
+    "file": "assets/orbitron-latin-700-normal-DmYOh-W9.woff",
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff"
+  },
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff2": {
+    "file": "assets/orbitron-latin-700-normal-4jsRXGGJ.woff2",
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff2"
+  },
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff": {
+    "file": "assets/orbitron-latin-900-normal-BbJatbhp.woff",
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff"
+  },
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff2": {
+    "file": "assets/orbitron-latin-900-normal-DrIi7unX.woff2",
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff2"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff": {
+    "file": "assets/rajdhani-latin-500-normal-DfvNI-Td.woff",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2": {
+    "file": "assets/rajdhani-latin-500-normal-ByNUCHrt.woff2",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff": {
+    "file": "assets/rajdhani-latin-700-normal-e0Uj8ZlN.woff",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff"
+  },
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2": {
+    "file": "assets/rajdhani-latin-700-normal-BPDUZo87.woff2",
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2"
+  },
+  "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff": {
+    "file": "assets/share-tech-mono-latin-400-normal-15MgdvEM.woff",
+    "src": "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff"
+  },
+  "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2": {
+    "file": "assets/share-tech-mono-latin-400-normal-CCqdbj5z.woff2",
+    "src": "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2"
+  },
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-brands-400.ttf": {
+    "file": "assets/fa-brands-400-D7HcTrzQ.ttf",
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-brands-400.ttf"
+  },
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2": {
+    "file": "assets/fa-brands-400-C-jaCRNI.woff2",
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-brands-400.woff2"
+  },
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.ttf": {
+    "file": "assets/fa-regular-400-BSSd-Tma.ttf",
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.ttf"
+  },
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.woff2": {
+    "file": "assets/fa-regular-400-TCCU0xbi.woff2",
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.woff2"
+  },
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.ttf": {
+    "file": "assets/fa-solid-900-f4MajOib.ttf",
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.ttf"
+  },
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2": {
+    "file": "assets/fa-solid-900-tLH6XCuf.woff2",
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2"
+  },
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.ttf": {
+    "file": "assets/fa-v4compatibility-Ac5Ki1KR.ttf",
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.ttf"
+  },
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2": {
+    "file": "assets/fa-v4compatibility-BajFMAgw.woff2",
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-v4compatibility.woff2"
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-CjjiUuhJ.css",
+    "name": "app",
+    "names": [
+      "app.css"
+    ],
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "assets": [
+      "assets/fa-brands-400-C-jaCRNI.woff2",
+      "assets/fa-brands-400-D7HcTrzQ.ttf",
+      "assets/fa-regular-400-TCCU0xbi.woff2",
+      "assets/fa-regular-400-BSSd-Tma.ttf",
+      "assets/fa-solid-900-tLH6XCuf.woff2",
+      "assets/fa-solid-900-f4MajOib.ttf",
+      "assets/fa-v4compatibility-BajFMAgw.woff2",
+      "assets/fa-v4compatibility-Ac5Ki1KR.ttf",
+      "assets/orbitron-latin-400-normal-U6xZUhur.woff2",
+      "assets/orbitron-latin-400-normal-DBk4Dmer.woff",
+      "assets/orbitron-latin-700-normal-4jsRXGGJ.woff2",
+      "assets/orbitron-latin-700-normal-DmYOh-W9.woff",
+      "assets/orbitron-latin-900-normal-DrIi7unX.woff2",
+      "assets/orbitron-latin-900-normal-BbJatbhp.woff",
+      "assets/rajdhani-latin-500-normal-ByNUCHrt.woff2",
+      "assets/rajdhani-latin-500-normal-DfvNI-Td.woff",
+      "assets/rajdhani-latin-700-normal-BPDUZo87.woff2",
+      "assets/rajdhani-latin-700-normal-e0Uj8ZlN.woff",
+      "assets/share-tech-mono-latin-400-normal-CCqdbj5z.woff2",
+      "assets/share-tech-mono-latin-400-normal-15MgdvEM.woff"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-BvRk9kiK.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/chart.js": {
+    "file": "assets/chart-u81d6rAo.js",
+    "name": "chart",
+    "src": "resources/js/chart.js",
+    "isEntry": true
+  }
+}

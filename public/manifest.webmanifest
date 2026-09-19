@@ -1,0 +1,18 @@
+{
+  "name": "Math MetaVerse",
+  "short_name": "MathVerse",
+  "description": "MathVerse academic portal",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#05070d",
+  "theme_color": "#05070d",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "1563x1563",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

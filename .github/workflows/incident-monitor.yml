@@ -1,0 +1,26 @@
+name: Independent incident monitor
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: independent-incident-monitor
+  cancel-in-progress: false
+jobs:
+  monitor:
+    if: vars.INCIDENT_MONITOR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check incidents outside the Laravel scheduler
+        env:
+          INCIDENT_MONITOR_URL: ${{ secrets.INCIDENT_MONITOR_URL }}
+          INCIDENT_MONITOR_TOKEN: ${{ secrets.INCIDENT_MONITOR_TOKEN }}
+          INCIDENT_WEBHOOK_URL: ${{ secrets.INCIDENT_WEBHOOK_URL }}
+        run: node scripts/incident-monitor.mjs

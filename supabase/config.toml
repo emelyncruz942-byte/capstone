@@ -1,0 +1,34 @@
+project_id = "mathverse"
+
+[functions.send-admin-push]
+verify_jwt = false
+
+[auth]
+site_url = "https://mathmetaverse.space"
+additional_redirect_urls = [
+  "https://mathmetaverse.space",
+  "https://mathmetaverse.space/reset-password",
+  "https://mathmetaverse.space/auth/confirm"
+]
+
+[auth.email.template.confirmation]
+subject = "Confirm your Math MetaVerse account"
+content_path = "./supabase/email-templates/confirm-signup.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Math MetaVerse password"
+content_path = "./supabase/email-templates/reset-password.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new Math MetaVerse email"
+content_path = "./supabase/email-templates/change-email-address.html"
+
+[auth.email.notification.password_changed]
+enabled = true
+subject = "Your Math MetaVerse password was changed"
+content_path = "./supabase/email-templates/password-changed.html"
+
+[auth.email.notification.email_changed]
+enabled = true
+subject = "Your Math MetaVerse email was changed"
+content_path = "./supabase/email-templates/email-address-changed.html"
