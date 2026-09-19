@@ -26,4 +26,22 @@ class TeacherLearningHubController extends Controller
 
         return view('teacher.learning-hub.index', compact('user', 'analytics', 'activePage'));
     }
+
+    public function student(Request $request, string $studentId): View
+    {
+        $validated = $request->validate([
+            'class_id' => 'nullable|uuid',
+            'days' => 'nullable|integer|in:7,30,90,180',
+        ]);
+        $user = session('supabase_user');
+        $analytics = $this->analytics->studentDashboard(
+            $user,
+            $studentId,
+            $validated['class_id'] ?? null,
+            (int) ($validated['days'] ?? 30)
+        );
+        $activePage = 'learning-analytics';
+
+        return view('teacher.learning-hub.student', compact('user', 'analytics', 'activePage'));
+    }
 }

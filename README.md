@@ -60,6 +60,12 @@ This forward correction makes both the student daily-practice total and teacher
 Insights use the same Philippine calendar-day boundaries, even when the
 database session itself is set to UTC.
 
+Then apply
+`database/supabase/2026_09_19_teacher_student_learning_hub_insights.sql`
+before deploying the teacher Solo Stats page. The database checks teacher
+ownership and active class membership before returning one learner's detailed
+Learning Hub statistics.
+
 Keep Supabase's database timezone at UTC. MathVerse converts timestamps and
 audit date-filter boundaries to/from `Asia/Manila`; do not manually shift
 stored registration dates.
@@ -167,4 +173,3 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
 </details>
-
