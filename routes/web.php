@@ -95,6 +95,8 @@ Route::middleware(['throttle:authenticated', 'auth.supabase:teacher'])->group(fu
     Route::post('/teacher/trash/{kind}/{id}/restore', [RecoveryController::class, 'restoreItem'])->where('kind', 'class|quiz')->middleware('throttle:account-security');
     Route::get('/teacher/learning-hub', [TeacherLearningHubController::class, 'index'])
         ->middleware('throttle:reports');
+    Route::get('/teacher/learning-hub/students/{studentId}', [TeacherLearningHubController::class, 'student'])
+        ->middleware('throttle:reports');
 
     Route::get('/teacher/quizzes', [TeacherQuizController::class, 'index']);
     Route::get('/teacher/quiz-library', [TeacherQuizController::class, 'library']);

@@ -14,7 +14,7 @@
         <div>
             <p class="text-[9px] uppercase tracking-[0.3em] font-bold text-green-400">Adaptive practice evidence</p>
             <h2 class="font-orbitron font-black text-2xl md:text-3xl mt-2">Learning Hub <span class="text-cyan-400">Insights</span></h2>
-            <p class="text-sm text-slate-400 mt-3 max-w-2xl">See class mastery, weak curriculum topics, practice activity, hint use, and improvement without opening individual student accounts.</p>
+            <p class="text-sm text-slate-400 mt-3 max-w-2xl">See class-wide trends, then open secure solo statistics for any student enrolled in your active classes.</p>
         </div>
         <form method="GET" action="/teacher/learning-hub" class="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 w-full xl:w-auto" data-seamless-form>
             <label class="sr-only" for="learning-class-filter">Class</label>
@@ -65,11 +65,19 @@
 
     <section class="portal-frame !p-5 md:!p-6 mb-6" aria-labelledby="student-mastery-title">
         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-5"><div><p class="analytics-kicker text-purple-300">Up to 200 enrolled learners</p><h3 id="student-mastery-title" class="font-orbitron font-bold mt-1">Student Mastery and Activity</h3></div><p class="text-[10px] text-slate-500">Sorted by most recent practice</p></div>
-        <div class="overflow-x-auto"><table class="w-full text-left analytics-table"><thead><tr><th>Student</th><th>Class</th><th>Mastery</th><th>Accuracy</th><th>Answers</th><th>Hints</th><th>Change</th><th>Last practice</th></tr></thead><tbody>
+        <div class="overflow-x-auto"><table class="w-full text-left analytics-table"><thead><tr><th>Student</th><th>Class</th><th>Mastery</th><th>Accuracy</th><th>Answers</th><th>Hints</th><th>Change</th><th>Last practice</th><th>Solo stats</th></tr></thead><tbody>
             @forelse($analytics['students'] as $student)
-                <tr><td><strong>{{ $student['name'] ?: 'Student' }}</strong><small>Grade {{ $student['grade_level'] }}</small></td><td>{{ $student['classes'] ?: '—' }}</td><td>{{ number_format((float) ($student['mastery'] ?? 0), 1) }}%</td><td>{{ number_format((float) ($student['accuracy'] ?? 0), 1) }}%</td><td>{{ (int) ($student['answers'] ?? 0) }}</td><td>{{ (int) ($student['hints_used'] ?? 0) }} <small>({{ number_format((float) ($student['hint_usage_rate'] ?? 0), 1) }}%)</small></td><td class="{{ (float) ($student['improvement'] ?? 0) >= 0 ? 'text-green-300' : 'text-red-300' }}">{{ (float) ($student['improvement'] ?? 0) > 0 ? '+' : '' }}{{ number_format((float) ($student['improvement'] ?? 0), 1) }}</td><td>{{ !empty($student['last_practiced_at']) ? \App\Support\AppDate::relative($student['last_practiced_at']) : 'Not active' }}</td></tr>
+                @php
+                    $soloQuery = array_filter([
+                        'class_id' => $analytics['selected_class_id'] ?: null,
+                        'days' => (int) $analytics['period_days'],
+                    ]);
+                    $soloUrl = '/teacher/learning-hub/students/' . ($student['id'] ?? '');
+                    if ($soloQuery !== []) $soloUrl .= '?' . http_build_query($soloQuery);
+                @endphp
+                <tr><td><strong>{{ $student['name'] ?: 'Student' }}</strong><small>Grade {{ $student['grade_level'] }}</small></td><td>{{ $student['classes'] ?: '—' }}</td><td>{{ number_format((float) ($student['mastery'] ?? 0), 1) }}%</td><td>{{ number_format((float) ($student['accuracy'] ?? 0), 1) }}%</td><td>{{ (int) ($student['answers'] ?? 0) }}</td><td>{{ (int) ($student['hints_used'] ?? 0) }} <small>({{ number_format((float) ($student['hint_usage_rate'] ?? 0), 1) }}%)</small></td><td class="{{ (float) ($student['improvement'] ?? 0) >= 0 ? 'text-green-300' : 'text-red-300' }}">{{ (float) ($student['improvement'] ?? 0) > 0 ? '+' : '' }}{{ number_format((float) ($student['improvement'] ?? 0), 1) }}</td><td>{{ !empty($student['last_practiced_at']) ? \App\Support\AppDate::relative($student['last_practiced_at']) : 'Not active' }}</td><td><a class="solo-stats-link" href="{{ $soloUrl }}" aria-label="Open solo Learning Hub statistics for {{ $student['name'] ?: 'student' }}">Open</a></td></tr>
             @empty
-                <tr><td colspan="8" class="!py-10 text-center text-slate-500">No enrolled student practice data is available for this selection.</td></tr>
+                <tr><td colspan="9" class="!py-10 text-center text-slate-500">No enrolled student practice data is available for this selection.</td></tr>
             @endforelse
         </tbody></table></div>
     </section>
