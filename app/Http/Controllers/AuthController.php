@@ -331,9 +331,7 @@ class AuthController extends Controller
         }
 
         if ($account['data'] === []) {
-            return back()->withInput($request->only('email'))->withErrors([
-                'email' => 'Reset email sent if that email address is registered to a MathVerse account.',
-            ]);
+            return back()->withInput($request->only('email'))->with('success', 'Reset email sent if that email address is registered to a MathVerse account.');
         }
 
         try {
@@ -359,7 +357,7 @@ class AuthController extends Controller
             );
         }
 
-        return back()->with('success', 'Recovery link sent.');
+        return back()->with('success', 'Reset email sent if that email address is registered to a MathVerse account.');
     }
 
     public function confirmEmail(Request $request)

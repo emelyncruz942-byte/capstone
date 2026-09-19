@@ -31,7 +31,6 @@
 
                 <div class="text-center mb-6 bg-white/5 border border-white/10 rounded py-2">
                     <p class="text-[9px] text-slate-400 uppercase tracking-widest font-bold">
-                        <i class="fas fa-microchip text-red-500 mr-1"></i> Admin &nbsp;|&nbsp;
                         <i class="fas fa-chalkboard-teacher text-purple-400 mr-1"></i> Teacher &nbsp;|&nbsp;
                         <i class="fas fa-user-graduate text-cyan-400 mr-1"></i> Student
                     </p>
