@@ -27,7 +27,7 @@ class TrustedHostTest extends TestCase
     public function test_the_legacy_laravel_cloud_host_redirects_to_the_canonical_domain(): void
     {
         $response = $this->get(
-            'https://mathverse-production-luqbjt.laravel.cloud/reset-password?type=recovery'
+            'https://capstone-production-bgoexb.laravel.cloud/reset-password?type=recovery'
         );
 
         $response->assertRedirect(
