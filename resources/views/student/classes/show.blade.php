@@ -94,6 +94,11 @@
                     <div>
                         <p class="text-[9px] text-slate-500 uppercase tracking-widest">VR Quiz Code</p>
                         <code class="text-3xl text-cyan-400 font-black tracking-[0.22em]">{{ $session['room_code'] }}</code>
+                        @if(!empty($session['retake_mode']))
+                            <p class="text-[10px] text-cyan-200 mt-2 normal-case tracking-normal">
+                                Reuse this same code for your teacher-authorized retake.
+                            </p>
+                        @endif
                     </div>
                     <button type="button" data-action="copyToClipboard" data-action-args="{{ json_encode([$session['room_code']], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
                             class="w-11 h-11 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all"

@@ -26,7 +26,11 @@ class TeacherImmediateNotificationFlowTest extends TestCase
                     'class_id' => self::CLASS_ID,
                     'teacher_id' => self::TEACHER_ID,
                 ])
-                ->andReturn([['id' => self::SESSION_ID, 'status' => 'completed']]);
+                ->andReturn([[
+                    'id' => self::SESSION_ID,
+                    'status' => 'completed',
+                    'room_code' => '2468',
+                ]]);
             $mock->shouldReceive('adminRpc')
                 ->once()
                 ->withArgs(fn (string $function, array $arguments): bool =>
@@ -57,7 +61,9 @@ class TeacherImmediateNotificationFlowTest extends TestCase
         $response->assertOk()->assertJson([
             'success' => true,
             'email_sent' => true,
-            'message' => 'Retake granted. The student email was sent.',
+            'message' => 'Retake granted. The student email was sent. The student should reuse VR room code 2468 in the game.',
+            'room_code' => '2468',
+            'retake_due_at' => null,
         ]);
     }
 

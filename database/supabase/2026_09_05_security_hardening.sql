@@ -478,6 +478,7 @@ declare
         'freeze_completed_assignment_attempts',
         'finish_number_guess_game',
         'generate_upcoming_quiz_notifications',
+        'get_my_vr_quiz_score_slot',
         'get_vr_quiz_score_slot',
         'grant_quiz_retake',
         'handle_auth_security_change',
@@ -502,6 +503,7 @@ declare
         'prevent_student_membership_exit',
         'queue_notification_delivery',
         'quiz_management_url',
+        'register_my_vr_quiz_participant',
         'refresh_quiz_rating_summary',
         'refresh_source_quiz_usage',
         'request_immediate_quiz_receipt_delivery',
@@ -515,6 +517,7 @@ declare
         'start_number_guess_game',
         'submit_number_guess',
         'submit_practice_answer',
+        'submit_my_vr_quiz_score',
         'submit_vr_quiz_score'
     ];
 begin
@@ -542,7 +545,18 @@ begin
             function_record.function_name,
             function_record.identity_arguments
         );
-        if function_record.function_name in ('get_vr_quiz_score_slot', 'submit_vr_quiz_score') then
+        if function_record.function_name in (
+            'get_my_vr_quiz_score_slot',
+            'register_my_vr_quiz_participant',
+            'submit_my_vr_quiz_score'
+        ) then
+            execute format(
+                'grant execute on function %I.%I(%s) to authenticated',
+                function_record.schema_name,
+                function_record.function_name,
+                function_record.identity_arguments
+            );
+        elsif function_record.function_name in ('get_vr_quiz_score_slot', 'submit_vr_quiz_score') then
             execute format(
                 'grant execute on function %I.%I(%s) to anon, authenticated, service_role',
                 function_record.schema_name,

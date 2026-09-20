@@ -755,11 +755,18 @@ class TeacherClassController extends Controller
                 ? 'Retake granted, but the mail server did not accept the student email immediately. MathVerse will retry it automatically.'
                 : 'Retake granted, but the student email could not be sent or queued. Check the mail and database settings.');
 
+        $roomCode = trim((string) ($session['room_code'] ?? ''));
+        $message .= $roomCode !== ''
+            ? " The student should reuse VR room code {$roomCode} in the game."
+            : ' The student should reuse this quiz\'s existing VR room code in the game.';
+
         return response()->json([
             'success' => true,
             'message' => $message,
             'email_sent' => $retakeEmail['sent'],
             'email_queued' => $retakeEmail['queued'],
+            'room_code' => $roomCode !== '' ? $roomCode : null,
+            'retake_due_at' => $dueAt,
         ]);
     }
 

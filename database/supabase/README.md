@@ -512,10 +512,11 @@ of those quizzes retain their session data and have `source_quiz_id` set to
 
 ## Unity VR database access and score submission
 
-After all earlier forward migrations, run these two files in this exact order:
+After all earlier forward migrations, run these three files in this exact order:
 
 1. `2026_09_20_vr_legacy_access.sql`
 2. `2026_09_20_vr_score_submission.sql`
+3. `2026_09_20_vr_authenticated_client.sql`
 
 The first migration restores the narrowly scoped anonymous access required by
 the existing Unity client: lookup and status polling for waiting/active rooms,
@@ -529,7 +530,15 @@ teacher-granted retake. Direct anonymous access to `quiz_results` remains
 closed, previous scores remain immutable, and an accepted retake becomes the
 counted result even when its score is lower.
 
-Both migrations are idempotent and register themselves in
+The third migration is the production Unity boundary. It binds participant
+registration and score submission to the Supabase JWT's `auth.uid()`, exposes
+no caller-controlled student ID, and closes the older anonymous participant
+insert and score-RPC permissions. Room-code lookup and question loading remain
+narrow anonymous reads so the client can discover an active room before the
+authenticated registration call. A teacher-authorized retake reuses the
+original room code; it does not create a separate retake code.
+
+All three migrations are idempotent and register themselves in
 `mathverse_schema_migrations`. Reapply them in the same order after any future
 global security migration that revokes anonymous privileges or function
 execution. The Unity project must use the matching RPC-enabled
