@@ -37,7 +37,10 @@ begin
     if admin_suspended_at is not null or admin_deactivated_at is not null then
         raise exception 'The configured curriculum quiz author is not active';
     end if;
-    if encode(digest(lower(btrim(admin_email)), 'sha256'), 'hex')
+    if encode(
+           extensions.digest(lower(btrim(admin_email))::text, 'sha256'::text),
+           'hex'::text
+       )
        is distinct from '3c374b3d3b0505ffc8ef13e4d1accf7b9f857f52c35aa8fda91ae9a0b195545c' then
         raise exception 'The configured curriculum quiz author identity does not match';
     end if;

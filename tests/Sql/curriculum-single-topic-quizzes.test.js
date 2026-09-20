@@ -102,7 +102,7 @@ test('migration assigns the active admin without publishing the email address', 
     assert.equal(migration.includes(adminId), true);
     assert.match(migration, /admin_role is distinct from 'admin'/);
     assert.match(migration, /admin_suspended_at is not null or admin_deactivated_at is not null/);
-    assert.match(migration, /digest\(lower\(btrim\(admin_email\)\), 'sha256'\)/);
+    assert.match(migration, /extensions\.digest\(lower\(btrim\(admin_email\)\)::text, 'sha256'::text\)/);
     assert.match(migration, /'shared'/);
     assert.match(migration, /verified_at/);
     assert.match(migration, /verified_by/);
