@@ -10,6 +10,10 @@ use Illuminate\Http\Request;
 
 class TeacherQuizController extends Controller
 {
+    // Fifty UUIDs keep the generated in(...) value below the service's
+    // 2,000-character filter limit.
+    private const QUESTION_COUNT_BATCH_SIZE = 50;
+
     public function __construct(
         private SupabaseService $supabase,
         private AdminPushService $adminPush
@@ -1140,16 +1144,18 @@ class TeacherQuizController extends Controller
             return [];
         }
 
-        $questions = $this->supabase->adminSelect(
-            'quiz_questions',
-            'quiz_id',
-            ['quiz_id' => ['operator' => 'in', 'value' => '(' . implode(',', $quizIds) . ')']]
-        );
-
         $counts = [];
-        foreach ($questions as $question) {
-            $quizId = $question['quiz_id'];
-            $counts[$quizId] = ($counts[$quizId] ?? 0) + 1;
+        foreach (array_chunk($quizIds, self::QUESTION_COUNT_BATCH_SIZE) as $batch) {
+            $questions = $this->supabase->adminSelect(
+                'quiz_questions',
+                'quiz_id',
+                ['quiz_id' => ['operator' => 'in', 'value' => '(' . implode(',', $batch) . ')']]
+            );
+
+            foreach ($questions as $question) {
+                $quizId = $question['quiz_id'];
+                $counts[$quizId] = ($counts[$quizId] ?? 0) + 1;
+            }
         }
 
         return $counts;
