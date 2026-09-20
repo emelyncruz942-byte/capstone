@@ -487,3 +487,25 @@ browser requirement.
 The VAPID private key stays only in Supabase secrets. Both private values stay
 out of browser JavaScript and Git, and `ADMIN_PUSH_SECRET` must never be shown
 to users or included in screenshots.
+
+## Single-topic curriculum quiz library
+
+After the September 19 Learning Hub migrations, run
+`2026_09_20_curriculum_single_topic_quizzes.sql`. It creates one shared,
+administrator-verified reusable quiz for every current visible curriculum
+topic in Grades 1–6: 109 quizzes and 545 multiple-choice questions in total.
+Each quiz contains exactly five questions about one topic. The topic is the
+quiz title, while the grade is stored only in `grade_level`.
+
+The migration uses deterministic quiz IDs, so it can be reapplied without
+creating duplicates. It replaces questions only for its own active quizzes and
+does not revive a quiz intentionally moved to Trash. Before writing anything,
+it verifies that the configured author UUID belongs to the expected active
+administrator; the expected email is checked by SHA-256 digest and is not
+stored in the repository.
+
+Use `2026_09_20_curriculum_single_topic_quizzes_rollback.sql` only when the
+seed must be removed. The rollback deletes only the deterministic quiz IDs
+owned by the configured administrator. Existing sessions that referenced one
+of those quizzes retain their session data and have `source_quiz_id` set to
+`NULL` by the existing foreign key.
