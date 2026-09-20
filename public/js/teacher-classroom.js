@@ -53,7 +53,7 @@ function closeLobby() {
 
 async function openResults(classId, sessionId, topic) {
     currentResultsContext = { classId, sessionId, topic };
-    document.getElementById('results-modal-title').textContent = `${topic} - Analytics`;
+    document.getElementById('results-modal-title').textContent = `${topic} - Results`;
     const body = document.getElementById('results-tbody');
     body.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-500"><i class="fas fa-circle-notch fa-spin text-2xl"></i></td></tr>';
     openModal('viewResultsModal');
@@ -63,7 +63,7 @@ async function openResults(classId, sessionId, topic) {
             cache: 'no-store',
             headers: { 'Accept': 'application/json' },
         });
-        if (!response.ok) throw new Error('Quiz analytics could not be loaded.');
+        if (!response.ok) throw new Error('Quiz results could not be loaded.');
         const results = await response.json();
 
         if (!results.length) {

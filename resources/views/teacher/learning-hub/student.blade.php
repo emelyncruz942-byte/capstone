@@ -110,7 +110,6 @@
                     $dailyAnswerCounts = array_map(fn($day) => (int) ($day['answers'] ?? 0), $analytics['daily_activity']);
                     $maxDailyAnswers = max([1, ...$dailyAnswerCounts]);
                 @endphp
-                <p class="text-[10px] text-slate-500 mb-3">Calendar days in {{ $analytics['timezone'] }}.</p>
                 <div class="analytics-days">
                     @forelse($analytics['daily_activity'] as $day)
                         @php $answers = (int) ($day['answers'] ?? 0); @endphp
@@ -125,7 +124,7 @@
                 <div class="flex items-center justify-between gap-3 mb-5"><div><p class="analytics-kicker text-purple-300">Latest attempts</p><h3 id="solo-recent-title" class="font-orbitron font-bold mt-1">Recent Practice</h3></div><i class="fas fa-clock-rotate-left text-purple-400"></i></div>
                 <div class="space-y-3">
                     @forelse($analytics['recent_activity'] as $activity)
-                        <article class="analytics-compact-row"><div class="min-w-0"><strong class="truncate block">{{ $activity['topic_title'] }}</strong><p>Difficulty {{ (int) ($activity['difficulty'] ?? 1) }} · {{ (int) ($activity['hints_used'] ?? 0) }} hints</p></div><div class="text-right shrink-0"><span class="{{ $activity['is_correct'] ? 'text-green-300' : 'text-red-300' }}">{{ $activity['is_correct'] ? 'Correct' : 'Review' }}</span><p>{{ \App\Support\AppDate::relative($activity['answered_at']) }}</p></div></article>
+                        <article class="analytics-compact-row"><div class="min-w-0"><strong class="truncate block">{{ $activity['topic_title'] }}</strong><p>Difficulty {{ (int) ($activity['difficulty'] ?? 1) }} · {{ (int) ($activity['hints_used'] ?? 0) }} hint(s)</p></div><div class="text-right shrink-0"><span class="{{ $activity['is_correct'] ? 'text-green-300' : 'text-red-300' }}">{{ $activity['is_correct'] ? 'Correct' : 'Incorrect' }}</span><p>{{ \App\Support\AppDate::relative($activity['answered_at']) }}</p></div></article>
                     @empty
                         <p class="analytics-empty">No recent practice activity.</p>
                     @endforelse

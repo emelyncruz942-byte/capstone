@@ -163,7 +163,7 @@
                         </button>
                         <button type="button" data-action="openResults" data-action-args="{{ json_encode([$class['id'], $session['id'], $session['topic']], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
                                 class="btn-rect-secondary !py-2 !px-3 !text-[9px] !border-cyan-500/30 text-cyan-400">
-                            <i class="fas fa-chart-bar mr-1"></i> Analytics
+                            <i class="fas fa-chart-bar mr-1"></i> Results
                         </button>
                         <button type="button" data-action="openSessionReport" data-action-args="{{ json_encode([$session['id'], $session['topic']], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
                                 class="btn-rect-secondary !py-2 !px-3 !text-[9px] !border-blue-500/30 text-blue-400">
@@ -201,7 +201,7 @@
                 <div class="grid grid-cols-2 gap-2 w-full lg:w-auto">
                     <button type="button" data-action="openResults" data-action-args="{{ json_encode([$class['id'], $session['id'], $session['topic']], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
                             class="btn-rect-secondary !py-2 !px-4 !text-[9px] text-cyan-400">
-                        <i class="fas fa-chart-bar mr-1"></i> Analytics
+                        <i class="fas fa-chart-bar mr-1"></i> Results
                     </button>
                     <button type="button" data-action="openSessionReport" data-action-args="{{ json_encode([$session['id'], $session['topic']], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
                             class="btn-rect-secondary !py-2 !px-4 !text-[9px] text-blue-400">
@@ -390,7 +390,6 @@
         <p id="delete-assignment-topic" class="text-sm text-white font-bold mt-3"></p>
         <p class="text-xs text-slate-400 mt-3 mb-7 leading-relaxed">
             This permanently removes the waiting or active assignment, including its attempts and results.
-            A shared-library quiz loses one Class Use; your own VR quiz does not.
         </p>
         <form id="deleteAssignmentForm" method="POST">
             @csrf
