@@ -32,11 +32,12 @@ service key.
   browser response. Rotation is required even after the value is deleted.
 - Run `composer install --no-dev --classmap-authoritative` and `npm ci && npm
   run build` from the committed lock files.
-- Apply every SQL migration in `database/supabase` in date order, ending with
-  `2026_09_13_recovery_and_incident_alerts.sql`. The September migrations retain
-  the service-role-only function grant established by the hardening migration,
-  route assignment/availability alerts to Web Push, and enable the protected
-  immediate quiz-receipt callback.
+- Apply every forward SQL migration in `database/supabase` in filename order,
+  ending with `2026_09_20_vr_score_submission.sql`. Run
+  `2026_09_20_vr_legacy_access.sql` immediately before it. These final two
+  migrations restore only the anonymous room operations needed by the legacy
+  Unity client and expose controlled score-submission RPCs without opening
+  direct result-table access.
 - Keep public registration limited to `student` and `pending_teacher`; never
   authorize from editable Auth user metadata. The final hardening migration
   enforces this again at the profile-table boundary and removes direct profile

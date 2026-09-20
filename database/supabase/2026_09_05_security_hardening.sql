@@ -428,9 +428,10 @@ end;
 $$;
 
 -- Restrict every privileged function installed by MathVerse. Trigger
--- functions do not need client execution, while server RPC calls use the
--- service_role key. An explicit pg_catalog-first search path prevents object
--- shadowing inside SECURITY DEFINER code.
+-- functions do not need client execution, while most server RPC calls use the
+-- service_role key. Account recovery and the legacy Unity VR RPCs retain their
+-- deliberately narrower client grants. An explicit pg_catalog-first search
+-- path prevents object shadowing inside SECURITY DEFINER code.
 do $hardening$
 declare
     function_record record;
@@ -477,6 +478,7 @@ declare
         'freeze_completed_assignment_attempts',
         'finish_number_guess_game',
         'generate_upcoming_quiz_notifications',
+        'get_vr_quiz_score_slot',
         'grant_quiz_retake',
         'handle_auth_security_change',
         'ignore_repeat_quiz_result',
@@ -512,7 +514,8 @@ declare
         'snapshot_quiz_report_context',
         'start_number_guess_game',
         'submit_number_guess',
-        'submit_practice_answer'
+        'submit_practice_answer',
+        'submit_vr_quiz_score'
     ];
 begin
     for function_record in
@@ -539,13 +542,22 @@ begin
             function_record.function_name,
             function_record.identity_arguments
         );
-        execute format(
-            'grant execute on function %I.%I(%s) to %I',
-            function_record.schema_name,
-            function_record.function_name,
-            function_record.identity_arguments,
-            case when function_record.function_name = 'recovery_account_active' then 'authenticated' else 'service_role' end
-        );
+        if function_record.function_name in ('get_vr_quiz_score_slot', 'submit_vr_quiz_score') then
+            execute format(
+                'grant execute on function %I.%I(%s) to anon, authenticated, service_role',
+                function_record.schema_name,
+                function_record.function_name,
+                function_record.identity_arguments
+            );
+        else
+            execute format(
+                'grant execute on function %I.%I(%s) to %I',
+                function_record.schema_name,
+                function_record.function_name,
+                function_record.identity_arguments,
+                case when function_record.function_name = 'recovery_account_active' then 'authenticated' else 'service_role' end
+            );
+        end if;
     end loop;
 end
 $hardening$;

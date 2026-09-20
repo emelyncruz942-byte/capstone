@@ -509,3 +509,28 @@ seed must be removed. The rollback deletes only the deterministic quiz IDs
 owned by the configured administrator. Existing sessions that referenced one
 of those quizzes retain their session data and have `source_quiz_id` set to
 `NULL` by the existing foreign key.
+
+## Unity VR database access and score submission
+
+After all earlier forward migrations, run these two files in this exact order:
+
+1. `2026_09_20_vr_legacy_access.sql`
+2. `2026_09_20_vr_score_submission.sql`
+
+The first migration restores the narrowly scoped anonymous access required by
+the existing Unity client: lookup and status polling for waiting/active rooms,
+question loading, and participant registration. It keeps RLS enabled and does
+not expose profiles, class membership, results, statistics, audit data, or
+leaderboards.
+
+The second migration installs the two controlled score RPCs. It records the
+first attempt once and permits one additional recorded score for each active
+teacher-granted retake. Direct anonymous access to `quiz_results` remains
+closed, previous scores remain immutable, and an accepted retake becomes the
+counted result even when its score is lower.
+
+Both migrations are idempotent and register themselves in
+`mathverse_schema_migrations`. Reapply them in the same order after any future
+global security migration that revokes anonymous privileges or function
+execution. The Unity project must use the matching RPC-enabled
+`QuizManager.cs`; these database migrations do not modify Unity files.
