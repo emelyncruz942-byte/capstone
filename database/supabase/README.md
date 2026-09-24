@@ -512,11 +512,13 @@ of those quizzes retain their session data and have `source_quiz_id` set to
 
 ## Unity VR database access and score submission
 
-After all earlier forward migrations, run these three files in this exact order:
+After all earlier forward migrations, run these five files in this exact order:
 
 1. `2026_09_20_vr_legacy_access.sql`
 2. `2026_09_20_vr_score_submission.sql`
 3. `2026_09_20_vr_authenticated_client.sql`
+4. `2026_09_23_vr_retake_score_repair.sql`
+5. `2026_09_24_quiz_lifecycle_and_active_retakes.sql`
 
 The first migration restores the narrowly scoped anonymous access required by
 the existing Unity client: lookup and status polling for waiting/active rooms,
@@ -538,8 +540,24 @@ narrow anonymous reads so the client can discover an active room before the
 authenticated registration call. A teacher-authorized retake reuses the
 original room code; it does not create a separate retake code.
 
-All three migrations are idempotent and register themselves in
+The fourth migration is a forward-only repair for databases that retained an
+older one-result-per-student uniqueness constraint or index under an unexpected
+name. It removes only unconditional uniqueness on `(session_id, student_id)`,
+rebuilds the retake-aware indexes, guards, RPCs, authenticated wrappers, and
+their narrow grants, and leaves all saved attempts intact.
+
+The fifth migration moves manual quiz start/end into an ownership-scoped,
+idempotent database transaction and allows a teacher to grant one retake to a
+student who already finished while the original quiz remains active. It keeps
+`retake_mode` off in that case so classmates can still complete their first
+attempt, and only turns it on when an ended assignment is reopened.
+
+All five migrations are idempotent and register themselves in
 `mathverse_schema_migrations`. Reapply them in the same order after any future
 global security migration that revokes anonymous privileges or function
 execution. The Unity project must use the matching RPC-enabled
 `QuizManager.cs`; these database migrations do not modify Unity files.
+
+Apply steps 4 and 5 before deploying the website version that calls
+`transition_quiz_session`; otherwise manual Start and End fail closed until the
+database function is installed.

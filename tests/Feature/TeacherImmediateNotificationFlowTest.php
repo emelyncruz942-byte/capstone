@@ -10,8 +10,11 @@ use Tests\TestCase;
 class TeacherImmediateNotificationFlowTest extends TestCase
 {
     private const TEACHER_ID = '110e8400-e29b-41d4-a716-446655440000';
+
     private const STUDENT_ID = '220e8400-e29b-41d4-a716-446655440000';
+
     private const CLASS_ID = '330e8400-e29b-41d4-a716-446655440000';
+
     private const SESSION_ID = '440e8400-e29b-41d4-a716-446655440000';
 
     public function test_granting_a_retake_sends_the_student_email_during_the_request(): void
@@ -19,25 +22,32 @@ class TeacherImmediateNotificationFlowTest extends TestCase
         $this->withoutMiddleware();
 
         $this->mock(SupabaseService::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('adminSelect')
+            $mock->shouldReceive('adminSelectResult')
                 ->once()
                 ->with('quiz_sessions', '*', [
                     'id' => self::SESSION_ID,
                     'class_id' => self::CLASS_ID,
                     'teacher_id' => self::TEACHER_ID,
                 ])
-                ->andReturn([[
-                    'id' => self::SESSION_ID,
-                    'status' => 'completed',
-                    'room_code' => '2468',
-                ]]);
-            $mock->shouldReceive('adminRpc')
+                ->andReturn([
+                    'data' => [[
+                        'id' => self::SESSION_ID,
+                        'status' => 'completed',
+                        'room_code' => '2468',
+                    ]],
+                    'error' => null,
+                    'status' => 200,
+                ]);
+            $mock->shouldReceive('adminRpcResult')
                 ->once()
-                ->withArgs(fn (string $function, array $arguments): bool =>
-                    $function === 'grant_quiz_retake'
+                ->withArgs(fn (string $function, array $arguments): bool => $function === 'grant_quiz_retake'
                     && ($arguments['p_student_id'] ?? null) === self::STUDENT_ID
                 )
-                ->andReturn([['new_allowed_attempts' => 2, 'retake_due_at' => null]]);
+                ->andReturn([
+                    'data' => [['new_allowed_attempts' => 2, 'retake_due_at' => null]],
+                    'error' => null,
+                    'status' => 200,
+                ]);
             $mock->shouldReceive('audit')->once()->andReturn(true);
         });
         $this->mock(NotificationDeliveryService::class, function (MockInterface $mock): void {
@@ -46,15 +56,15 @@ class TeacherImmediateNotificationFlowTest extends TestCase
                 ->with(
                     self::STUDENT_ID,
                     'quiz_retake_granted',
-                    'quiz-retake:' . self::SESSION_ID . ':' . self::STUDENT_ID . ':2',
+                    'quiz-retake:'.self::SESSION_ID.':'.self::STUDENT_ID.':2',
                 )
                 ->andReturn(['sent' => true, 'queued' => true]);
         });
 
         $response = $this->withSession(['supabase_user' => $this->teacher()])
             ->postJson(
-                '/teacher/classes/' . self::CLASS_ID . '/quizzes/' . self::SESSION_ID
-                    . '/students/' . self::STUDENT_ID . '/retake',
+                '/teacher/classes/'.self::CLASS_ID.'/quizzes/'.self::SESSION_ID
+                    .'/students/'.self::STUDENT_ID.'/retake',
                 ['reason' => 'Connection failed.'],
             );
 
@@ -64,6 +74,145 @@ class TeacherImmediateNotificationFlowTest extends TestCase
             'message' => 'Retake granted. The student email was sent. The student should reuse VR room code 2468 in the game.',
             'room_code' => '2468',
             'retake_due_at' => null,
+        ]);
+    }
+
+    public function test_finished_student_can_receive_a_retake_while_the_original_quiz_is_active(): void
+    {
+        $this->withoutMiddleware();
+
+        $this->mock(SupabaseService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('adminSelectResult')->twice()->andReturnUsing(
+                fn (string $table): array => $table === 'quiz_sessions'
+                    ? [
+                        'data' => [[
+                            'id' => self::SESSION_ID,
+                            'status' => 'active',
+                            'retake_mode' => false,
+                            'room_code' => '2468',
+                        ]],
+                        'error' => null,
+                        'status' => 200,
+                    ]
+                    : [
+                        'data' => [['id' => '550e8400-e29b-41d4-a716-446655440000']],
+                        'error' => null,
+                        'status' => 200,
+                    ],
+            );
+            $mock->shouldReceive('adminRpcResult')
+                ->once()
+                ->withArgs(fn (string $function, array $arguments): bool => $function === 'grant_quiz_retake'
+                    && ($arguments['p_session_id'] ?? null) === self::SESSION_ID
+                    && ($arguments['p_student_id'] ?? null) === self::STUDENT_ID
+                    && ($arguments['p_teacher_id'] ?? null) === self::TEACHER_ID
+                )
+                ->andReturn([
+                    'data' => [[
+                        'new_allowed_attempts' => 2,
+                        'retake_due_at' => '2026-09-25T00:00:00+00:00',
+                    ]],
+                    'error' => null,
+                    'status' => 200,
+                ]);
+            $mock->shouldReceive('audit')->once()->andReturn(true);
+        });
+        $this->mock(NotificationDeliveryService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('deliverNotificationEmailNow')
+                ->once()
+                ->andReturn(['sent' => true, 'queued' => true]);
+        });
+
+        $response = $this->withSession(['supabase_user' => $this->teacher()])
+            ->postJson(
+                '/teacher/classes/'.self::CLASS_ID.'/quizzes/'.self::SESSION_ID
+                    .'/students/'.self::STUDENT_ID.'/retake',
+                ['reason' => 'The student had a connection interruption.'],
+            );
+
+        $response->assertOk()->assertJson([
+            'success' => true,
+            'email_sent' => true,
+            'room_code' => '2468',
+        ]);
+    }
+
+    public function test_unfinished_student_cannot_receive_a_retake_while_the_quiz_is_active(): void
+    {
+        $this->withoutMiddleware();
+
+        $this->mock(SupabaseService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('adminSelectResult')->twice()->andReturnUsing(
+                fn (string $table): array => $table === 'quiz_sessions'
+                    ? [
+                        'data' => [[
+                            'id' => self::SESSION_ID,
+                            'status' => 'active',
+                            'retake_mode' => false,
+                        ]],
+                        'error' => null,
+                        'status' => 200,
+                    ]
+                    : ['data' => [], 'error' => null, 'status' => 200],
+            );
+            $mock->shouldNotReceive('adminRpcResult');
+            $mock->shouldNotReceive('audit');
+        });
+        $this->mock(NotificationDeliveryService::class, function (MockInterface $mock): void {
+            $mock->shouldNotReceive('deliverNotificationEmailNow');
+        });
+
+        $response = $this->withSession(['supabase_user' => $this->teacher()])
+            ->postJson(
+                '/teacher/classes/'.self::CLASS_ID.'/quizzes/'.self::SESSION_ID
+                    .'/students/'.self::STUDENT_ID.'/retake',
+                ['reason' => 'Requested too early.'],
+            );
+
+        $response->assertStatus(422)->assertJson([
+            'message' => 'This student must finish the active quiz before receiving a retake.',
+        ]);
+    }
+
+    public function test_archived_class_retake_rejection_is_reported_as_validation_failure(): void
+    {
+        $this->withoutMiddleware();
+
+        $this->mock(SupabaseService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('adminSelectResult')
+                ->once()
+                ->andReturn([
+                    'data' => [[
+                        'id' => self::SESSION_ID,
+                        'status' => 'completed',
+                        'retake_mode' => false,
+                    ]],
+                    'error' => null,
+                    'status' => 200,
+                ]);
+            $mock->shouldReceive('adminRpcResult')
+                ->once()
+                ->withArgs(fn (string $function): bool => $function === 'grant_quiz_retake')
+                ->andReturn([
+                    'data' => [],
+                    'error' => 'A quiz in an archived or trashed class cannot grant retakes',
+                    'status' => 400,
+                ]);
+            $mock->shouldNotReceive('audit');
+        });
+        $this->mock(NotificationDeliveryService::class, function (MockInterface $mock): void {
+            $mock->shouldNotReceive('deliverNotificationEmailNow');
+        });
+
+        $response = $this->withSession(['supabase_user' => $this->teacher()])
+            ->postJson(
+                '/teacher/classes/'.self::CLASS_ID.'/quizzes/'.self::SESSION_ID
+                    .'/students/'.self::STUDENT_ID.'/retake',
+                ['reason' => 'Attempted after archiving the class.'],
+            );
+
+        $response->assertStatus(422)->assertJson([
+            'message' => 'A quiz in an archived or deleted class cannot receive retakes.',
         ]);
     }
 
@@ -88,15 +237,15 @@ class TeacherImmediateNotificationFlowTest extends TestCase
                 ->with(
                     self::STUDENT_ID,
                     'quiz_excused',
-                    'quiz-excused:' . self::SESSION_ID . ':' . self::STUDENT_ID,
+                    'quiz-excused:'.self::SESSION_ID.':'.self::STUDENT_ID,
                 )
                 ->andReturn(['sent' => true, 'queued' => true]);
         });
 
         $response = $this->withSession(['supabase_user' => $this->teacher()])
             ->postJson(
-                '/teacher/classes/' . self::CLASS_ID . '/quizzes/' . self::SESSION_ID
-                    . '/students/' . self::STUDENT_ID . '/excuse',
+                '/teacher/classes/'.self::CLASS_ID.'/quizzes/'.self::SESSION_ID
+                    .'/students/'.self::STUDENT_ID.'/excuse',
                 ['reason' => 'Approved absence.'],
             );
 
@@ -142,9 +291,9 @@ class TeacherImmediateNotificationFlowTest extends TestCase
         });
 
         $response = $this->withSession(['supabase_user' => $this->teacher()])
-            ->delete('/teacher/classes/' . self::CLASS_ID . '/students/' . self::STUDENT_ID);
+            ->delete('/teacher/classes/'.self::CLASS_ID.'/students/'.self::STUDENT_ID);
 
-        $response->assertRedirect('/teacher/classes/' . self::CLASS_ID)
+        $response->assertRedirect('/teacher/classes/'.self::CLASS_ID)
             ->assertSessionHas(
                 'success',
                 'Student removed from the class. The removal email was sent.'

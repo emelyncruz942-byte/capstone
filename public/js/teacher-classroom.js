@@ -219,20 +219,16 @@ function initializeQuizActionButton() {
         button.classList.add('opacity-50');
 
         try {
-            const response = await fetch(`/teacher/classes/${classId}/quizzes/${sessionId}/${action}`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken(),
-                    'Accept': 'application/json',
-                },
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message ?? 'The quiz status could not be changed.');
+            const data = await submitQuizAction(classId, sessionId, action);
             document.dispatchEvent(new CustomEvent('mathverse:data-changed'));
             closeModal('quizActionModal');
-            showToast(action === 'end' ? 'Quiz ended.' : 'Quiz started.');
+            showToast(data.message ?? (action === 'end' ? 'Quiz ended.' : 'Quiz started.'));
             if (window.MathVerseNavigation) {
-                await window.MathVerseNavigation.refresh();
+                try {
+                    await window.MathVerseNavigation.refresh();
+                } catch (_) {
+                    window.location.assign(window.location.href);
+                }
             } else {
                 window.location.assign(window.location.href);
             }
@@ -243,6 +239,44 @@ function initializeQuizActionButton() {
             closeModal('quizActionModal');
         }
     });
+}
+
+async function submitQuizAction(classId, sessionId, action) {
+    const url = `/teacher/classes/${classId}/quizzes/${sessionId}/${action}`;
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'Accept': 'application/json',
+                },
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok) return data;
+
+            const error = new Error(data.message ?? 'The quiz status could not be changed.');
+            error.status = response.status;
+            if (attempt === 0 && [502, 503, 504].includes(response.status)) {
+                lastError = error;
+                await new Promise((resolve) => setTimeout(resolve, 300));
+                continue;
+            }
+            throw error;
+        } catch (error) {
+            lastError = error;
+            const isNetworkFailure = typeof error?.status !== 'number';
+            if (attempt === 0 && isNetworkFailure) {
+                await new Promise((resolve) => setTimeout(resolve, 300));
+                continue;
+            }
+            throw error;
+        }
+    }
+
+    throw lastError ?? new Error('The quiz status could not be changed.');
 }
 
 function openSessionReport(sessionId, topic) {

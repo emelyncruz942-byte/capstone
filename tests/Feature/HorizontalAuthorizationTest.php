@@ -4,13 +4,14 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\SupabaseAuth;
 use App\Services\SupabaseService;
-use Mockery;
 use Tests\TestCase;
 
 class HorizontalAuthorizationTest extends TestCase
 {
     private const ACTOR_ID = '11111111-1111-4111-8111-111111111111';
+
     private const TARGET_ID = '22222222-2222-4222-8222-222222222222';
+
     private const SESSION_ID = '33333333-3333-4333-8333-333333333333';
 
     public function test_teacher_cannot_open_another_teachers_class(): void
@@ -26,7 +27,7 @@ class HorizontalAuthorizationTest extends TestCase
             ->andReturn([]);
 
         $response = $this->withSession(['supabase_user' => $this->teacher()])
-            ->get('/teacher/classes/' . self::TARGET_ID);
+            ->get('/teacher/classes/'.self::TARGET_ID);
 
         $response->assertRedirect('/teacher/dashboard?section=classes');
         $response->assertSessionHas('error', 'Class not found.');
@@ -61,7 +62,7 @@ class HorizontalAuthorizationTest extends TestCase
         $supabase->shouldNotReceive('audit'); // the mutation and audit commit together in SQL
 
         $response = $this->withSession(['supabase_user' => $this->teacher()])
-            ->delete('/teacher/classes/' . self::TARGET_ID, ['delete_class_id' => self::TARGET_ID]);
+            ->delete('/teacher/classes/'.self::TARGET_ID, ['delete_class_id' => self::TARGET_ID]);
 
         $response->assertRedirect('/teacher/trash');
         $response->assertSessionHas('success', 'Class moved to Trash. Students, assignments and results are preserved.');
@@ -81,8 +82,8 @@ class HorizontalAuthorizationTest extends TestCase
 
         foreach ([[], ['delete_class_id' => self::ACTOR_ID]] as $fields) {
             $this->withSession(['supabase_user' => $this->teacher()])
-                ->post('/teacher/classes/' . self::TARGET_ID, ['_method' => 'DELETE'] + $fields)
-                ->assertRedirect('/teacher/classes/' . self::TARGET_ID . '/settings')
+                ->post('/teacher/classes/'.self::TARGET_ID, ['_method' => 'DELETE'] + $fields)
+                ->assertRedirect('/teacher/classes/'.self::TARGET_ID.'/settings')
                 ->assertSessionHas('error', 'Class deletion was not confirmed. No class data was removed.');
         }
     }
@@ -107,8 +108,8 @@ class HorizontalAuthorizationTest extends TestCase
         $supabase->shouldReceive('audit')->once();
 
         $this->withSession(['supabase_user' => $this->teacher()])
-            ->post('/teacher/classes/' . self::TARGET_ID . '/quizzes/' . self::SESSION_ID, ['_method' => 'DELETE'])
-            ->assertRedirect('/teacher/classes/' . self::TARGET_ID)
+            ->post('/teacher/classes/'.self::TARGET_ID.'/quizzes/'.self::SESSION_ID, ['_method' => 'DELETE'])
+            ->assertRedirect('/teacher/classes/'.self::TARGET_ID)
             ->assertSessionHas('success', "Assignment deleted. Your quiz's Class Uses were not changed.");
     }
 
@@ -125,7 +126,7 @@ class HorizontalAuthorizationTest extends TestCase
         $supabase->shouldNotReceive('audit');
 
         $this->withSession(['supabase_user' => $this->teacher()])
-            ->delete('/teacher/classes/' . self::TARGET_ID . '/quizzes/' . self::SESSION_ID)
+            ->delete('/teacher/classes/'.self::TARGET_ID.'/quizzes/'.self::SESSION_ID)
             ->assertRedirect('/teacher/dashboard?section=classes')
             ->assertSessionHas('error', 'Quiz assignment not found.');
     }
@@ -143,7 +144,7 @@ class HorizontalAuthorizationTest extends TestCase
             ->andReturn([]);
 
         $response = $this->withSession(['supabase_user' => $this->teacher()])
-            ->getJson('/teacher/quizzes/' . self::TARGET_ID);
+            ->getJson('/teacher/quizzes/'.self::TARGET_ID);
 
         $response->assertNotFound()->assertJson([
             'message' => 'Quiz not found.',
@@ -179,66 +180,44 @@ class HorizontalAuthorizationTest extends TestCase
             'supabase_user' => $this->teacher(),
             'supabase_token' => 'access-token',
         ])
-            ->delete('/teacher/quizzes/' . self::TARGET_ID);
+            ->delete('/teacher/quizzes/'.self::TARGET_ID);
 
         $response->assertRedirect('/teacher/trash');
         $response->assertSessionHas('success');
     }
 
-    public function test_starting_a_quiz_rechecks_owner_class_and_waiting_state_in_the_write(): void
+    public function test_starting_a_quiz_uses_the_owner_scoped_database_transition(): void
     {
         $this->withoutMiddleware(SupabaseAuth::class);
         $supabase = $this->mock(SupabaseService::class);
-        $supabase->shouldReceive('adminSelect')
+        $supabase->shouldReceive('adminRpcResult')
             ->once()
-            ->with('quiz_sessions', '*', [
-                'id' => self::SESSION_ID,
-                'class_id' => self::TARGET_ID,
-                'teacher_id' => self::ACTOR_ID,
+            ->with('transition_quiz_session', [
+                'p_session_id' => self::SESSION_ID,
+                'p_class_id' => self::TARGET_ID,
+                'p_teacher_id' => self::ACTOR_ID,
+                'p_action' => 'start',
             ])
-            ->andReturn([[
-                'id' => self::SESSION_ID,
-                'class_id' => self::TARGET_ID,
-                'teacher_id' => self::ACTOR_ID,
-                'status' => 'waiting',
-                'available_at' => null,
-                'due_at' => null,
-                'topic' => 'Fractions',
-            ]]);
-        $supabase->shouldReceive('adminSelect')
-            ->once()
-            ->with('classes', '*', [
-                'id' => self::TARGET_ID,
-                'teacher_id' => self::ACTOR_ID,
-            ])
-            ->andReturn([[
-                'id' => self::TARGET_ID,
-                'teacher_id' => self::ACTOR_ID,
-                'archived_at' => null,
-            ]]);
-        $supabase->shouldReceive('update')
-            ->once()
-            ->with(
-                'quiz_sessions',
-                Mockery::on(fn (array $data): bool => ($data['status'] ?? null) === 'active'
-                    && ($data['is_active'] ?? null) === true
-                    && isset($data['available_at'], $data['started_at'])),
-                [
-                    'id' => self::SESSION_ID,
-                    'class_id' => self::TARGET_ID,
-                    'teacher_id' => self::ACTOR_ID,
-                    'status' => 'waiting',
-                ],
-                'access-token'
-            )
-            ->andReturn([['id' => self::SESSION_ID]]);
+            ->andReturn([
+                'data' => [[
+                    'outcome_code' => 'started',
+                    'changed' => true,
+                    'session_status' => 'active',
+                    'quiz_topic' => 'Fractions',
+                    'started_early' => false,
+                ]],
+                'error' => null,
+                'status' => 200,
+            ]);
+        $supabase->shouldNotReceive('adminSelect');
+        $supabase->shouldNotReceive('update');
         $supabase->shouldReceive('audit')->once();
 
         $response = $this->withSession([
             'supabase_user' => $this->teacher(),
             'supabase_token' => 'access-token',
         ])->postJson(
-            '/teacher/classes/' . self::TARGET_ID . '/quizzes/' . self::SESSION_ID . '/start'
+            '/teacher/classes/'.self::TARGET_ID.'/quizzes/'.self::SESSION_ID.'/start'
         );
 
         $response->assertOk()->assertJson(['success' => true]);
@@ -257,7 +236,7 @@ class HorizontalAuthorizationTest extends TestCase
             ->andReturn([]);
 
         $response = $this->withSession(['supabase_user' => $this->student()])
-            ->get('/student/classes/' . self::TARGET_ID);
+            ->get('/student/classes/'.self::TARGET_ID);
 
         $response->assertRedirect('/student/dashboard?section=class');
         $response->assertSessionHas('error', 'You do not have access to that class.');
@@ -278,7 +257,7 @@ class HorizontalAuthorizationTest extends TestCase
 
         $response = $this->withSession(['supabase_user' => $this->student()])
             ->from('/student/dashboard')
-            ->post('/notifications/' . self::TARGET_ID . '/read');
+            ->post('/notifications/'.self::TARGET_ID.'/read');
 
         $response->assertRedirect('/student/dashboard');
         $response->assertSessionHas('error', 'That notification is no longer available.');

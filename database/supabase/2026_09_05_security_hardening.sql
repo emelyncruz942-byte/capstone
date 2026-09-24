@@ -462,6 +462,7 @@ declare
         'sync_incident_signal',
         'teacher_learning_hub_analytics',
         'teacher_learning_hub_student_analytics',
+        'transition_quiz_session',
         'add_member_to_open_quiz_sessions',
         'advance_quiz_session_schedule',
         'assign_shared_quiz_to_classes',
