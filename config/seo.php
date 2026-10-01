@@ -9,11 +9,11 @@ return [
     ),
 
     // Keep this path public and absolute-from-root so social crawlers can fetch it.
-    'image' => env('SEO_IMAGE', '/og-image.png'),
+    'image' => env('SEO_IMAGE', '/og-image-1200x630.jpg'),
     'image_alt' => env('SEO_IMAGE_ALT', 'MathVerse interactive mathematics learning platform'),
-    'image_width' => 1733,
-    'image_height' => 908,
-    'image_type' => 'image/png',
+    'image_width' => 1200,
+    'image_height' => 630,
+    'image_type' => 'image/jpeg',
 
     'locale' => env('SEO_LOCALE', 'en_PH'),
     'twitter_card' => 'summary_large_image',

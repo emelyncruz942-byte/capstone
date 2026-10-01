@@ -31,6 +31,8 @@ Route::pattern('version', '[1-9][0-9]{0,8}');
 
 // Auth routes
 Route::get('/',       [AuthController::class, 'showLogin'])->name('login');
+Route::view('/privacy-policy', 'legal.privacy-policy')->name('privacy-policy');
+Route::view('/terms-and-conditions', 'legal.terms-and-conditions')->name('terms-and-conditions');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:password-recovery');

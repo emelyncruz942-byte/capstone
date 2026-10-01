@@ -24,12 +24,14 @@
             Return to Login
         </a>
     </div>
+
+    @include('partials.public-footer')
 </main>
 @endsection
 
 @push('scripts')
 <script nonce="{{ request()->attributes->get('csp_nonce') }}">
-    (() => {
+    document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         const queryParams = new URLSearchParams(window.location.search);
         const token = params.get('token_hash') || queryParams.get('token_hash');
@@ -52,6 +54,6 @@
         document.getElementById('confirmation-token').value = token;
         document.getElementById('confirmation-type').value = type;
         form.submit();
-    })();
+    }, { once: true });
 </script>
 @endpush

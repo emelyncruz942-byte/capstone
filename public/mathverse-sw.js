@@ -9,8 +9,8 @@ self.addEventListener('push', event => {
     const title = payload.title || 'MathVerse Notification';
     const options = {
         body: payload.body || 'A new item needs your attention.',
-        icon: '/logo.png',
-        badge: '/logo.png',
+        icon: '/logo-192.png',
+        badge: '/logo-192.png',
         tag: payload.tag || 'mathverse-notification',
         renotify: true,
         data: { url: payload.url || '/' },

@@ -115,7 +115,10 @@
                             {{-- Preview circle --}}
                             <div class="w-16 h-16 rounded-full border-2 border-white/10 bg-white/5 flex items-center justify-center overflow-hidden shrink-0" id="avatar-preview-wrap" data-avatar-preview-wrap>
                                 <i class="fas fa-user text-2xl text-slate-600" id="avatar-placeholder" data-avatar-placeholder aria-hidden="true"></i>
-                                <img id="avatar-preview" data-avatar-preview hidden alt="Selected profile picture" class="w-full h-full object-cover">
+                                <img id="avatar-preview" data-avatar-preview hidden
+                                     alt="Selected profile picture" width="64" height="64"
+                                     loading="lazy" decoding="async"
+                                     class="w-full h-full object-cover">
                             </div>
                             <div class="flex-1">
                                 <label for="avatar-input"
@@ -201,6 +204,13 @@
                         </div>
                     </div>
 
+                    <p class="text-[10px] leading-5 text-slate-500">
+                        By creating an account, you acknowledge the
+                        <a href="{{ route('terms-and-conditions') }}" class="text-cyan-400 underline underline-offset-2 hover:text-white">Terms and Conditions</a>
+                        and have read the
+                        <a href="{{ route('privacy-policy') }}" class="text-cyan-400 underline underline-offset-2 hover:text-white">Privacy Policy</a>.
+                    </p>
+
                     <button type="submit" class="btn-mobile-ultra mt-2">Register</button>
                 </form>
 
@@ -212,6 +222,8 @@
 
         </div>
     </div>
+
+    @include('partials.public-footer')
 </div>
 
 {{-- Forgot Password Modal --}}
@@ -241,5 +253,5 @@
 @endsection
 
 @push('scripts')
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/auth.js') }}"></script>
+<script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/auth.js') }}?v={{ filemtime(public_path('js/auth.js')) }}"></script>
 @endpush

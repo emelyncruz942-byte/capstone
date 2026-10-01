@@ -79,10 +79,12 @@
 
         </div>
     </div>
+
+    @include('partials.public-footer')
 </div>
 
 @endsection
 
 @push('scripts')
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/password-reset.js') }}?v={{ filemtime(public_path('js/password-reset.js')) }}"></script>
+<script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/password-reset.js') }}?v={{ filemtime(public_path('js/password-reset.js')) }}"></script>
 @endpush

@@ -61,24 +61,24 @@
 @endsection
 
 @push('scripts')
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/dashboard.js') }}?v={{ filemtime(public_path('js/dashboard.js')) }}"></script>
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/notifications.js') }}?v={{ filemtime(public_path('js/notifications.js')) }}"></script>
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/admin-push.js') }}?v={{ filemtime(public_path('js/admin-push.js')) }}"></script>
+<script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/dashboard.js') }}?v={{ filemtime(public_path('js/dashboard.js')) }}"></script>
+<script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/notifications.js') }}?v={{ filemtime(public_path('js/notifications.js')) }}"></script>
+<script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/admin-push.js') }}?v={{ filemtime(public_path('js/admin-push.js')) }}"></script>
 @if(in_array($user['role'] ?? '', ['teacher', 'admin'], true))
     @vite('resources/js/chart.js')
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/charts.js') }}?v={{ filemtime(public_path('js/charts.js')) }}"></script>
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/teacher-quizzes.js') }}?v={{ filemtime(public_path('js/teacher-quizzes.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/charts.js') }}?v={{ filemtime(public_path('js/charts.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/teacher-quizzes.js') }}?v={{ filemtime(public_path('js/teacher-quizzes.js')) }}"></script>
 @endif
 @if(($user['role'] ?? '') === 'admin')
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
 @elseif(($user['role'] ?? '') === 'teacher')
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/teacher.js') }}?v={{ filemtime(public_path('js/teacher.js')) }}"></script>
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/shared-quiz-review.js') }}?v={{ filemtime(public_path('js/shared-quiz-review.js')) }}"></script>
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/teacher-classroom.js') }}?v={{ filemtime(public_path('js/teacher-classroom.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/teacher.js') }}?v={{ filemtime(public_path('js/teacher.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/shared-quiz-review.js') }}?v={{ filemtime(public_path('js/shared-quiz-review.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/teacher-classroom.js') }}?v={{ filemtime(public_path('js/teacher-classroom.js')) }}"></script>
 @elseif(($user['role'] ?? '') === 'student')
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/learning-hub.js') }}?v={{ filemtime(public_path('js/learning-hub.js')) }}"></script>
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/number-guess.js') }}?v={{ filemtime(public_path('js/number-guess.js')) }}"></script>
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/math-arcade.js') }}?v={{ filemtime(public_path('js/math-arcade.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/learning-hub.js') }}?v={{ filemtime(public_path('js/learning-hub.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/number-guess.js') }}?v={{ filemtime(public_path('js/number-guess.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/math-arcade.js') }}?v={{ filemtime(public_path('js/math-arcade.js')) }}"></script>
 @endif
-<script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/seamless-navigation.js') }}?v={{ filemtime(public_path('js/seamless-navigation.js')) }}"></script>
+<script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/seamless-navigation.js') }}?v={{ filemtime(public_path('js/seamless-navigation.js')) }}"></script>
 @endpush

@@ -19,8 +19,8 @@
     @include('partials.seo')
 
     @vite('resources/css/app.css')
-    <link rel="icon" href="{{ asset('logo.png') }}" type="image/png">
-    <link rel="apple-touch-icon" href="{{ asset('logo.png') }}">
+    <link rel="icon" href="{{ asset('logo-32.png') }}" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="{{ asset('logo-180.png') }}" sizes="180x180">
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}">
 
@@ -82,8 +82,8 @@
         <i class="fas fa-arrow-up" aria-hidden="true"></i>
     </button>
 
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/shared.js') }}?v={{ filemtime(public_path('js/shared.js')) }}"></script>
-    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/back-to-top.js') }}?v={{ filemtime(public_path('js/back-to-top.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/shared.js') }}?v={{ filemtime(public_path('js/shared.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/back-to-top.js') }}?v={{ filemtime(public_path('js/back-to-top.js')) }}"></script>
 
     @stack('scripts')
 </body>

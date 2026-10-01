@@ -22,14 +22,68 @@
         ? $seoImagePath
         : $seoBaseUrl . '/' . ltrim($seoImagePath, '/');
 
-    // The login gateway is the site's only public landing page. Account,
-    // dashboard, recovery, and report pages must not enter search results.
-    $seoIndexable = request()->isMethod('GET') && request()->routeIs('login');
+    // Only intentional public pages may enter search results. Account,
+    // dashboard, recovery, report, error, and service-health pages stay out.
+    $seoIndexable = request()->isMethod('GET')
+        && request()->routeIs(['login', 'privacy-policy', 'terms-and-conditions']);
     $seoDefaultRobots = $seoIndexable
         ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
         : 'noindex, nofollow, noarchive';
     $seoRobots = trim($__env->yieldContent('robots', $seoDefaultRobots));
     $seoOgType = trim($__env->yieldContent('og_type', 'website'));
+
+    // Build Schema.org keys without literal Blade-style @ directives. Keeping
+    // the data in one graph makes each public page describe itself while
+    // retaining a stable relationship to the website and web application.
+    $schemaKey = static fn (string $name): string => chr(64) . $name;
+    $seoWebsiteId = $seoBaseUrl . '/#website';
+    $seoApplicationId = $seoBaseUrl . '/#application';
+    $seoWebPageId = $seoCanonicalUrl . '#webpage';
+    $seoSchemaGraph = [
+        [
+            $schemaKey('type') => 'WebSite',
+            $schemaKey('id') => $seoWebsiteId,
+            'name' => $seoSiteName,
+            'alternateName' => 'Math MetaVerse',
+            'url' => $seoBaseUrl . '/',
+            'description' => (string) config('seo.description', $seoDescription),
+            'inLanguage' => str_replace('_', '-', (string) config('seo.locale', 'en_PH')),
+        ],
+        [
+            $schemaKey('type') => 'WebPage',
+            $schemaKey('id') => $seoWebPageId,
+            'url' => $seoCanonicalUrl,
+            'name' => $seoTitle,
+            'description' => $seoDescription,
+            'inLanguage' => str_replace('_', '-', (string) config('seo.locale', 'en_PH')),
+            'isPartOf' => [$schemaKey('id') => $seoWebsiteId],
+            'primaryImageOfPage' => [
+                $schemaKey('type') => 'ImageObject',
+                'url' => $seoImageUrl,
+                'width' => (int) config('seo.image_width', 1200),
+                'height' => (int) config('seo.image_height', 630),
+            ],
+        ],
+    ];
+
+    if (request()->routeIs('login')) {
+        $seoSchemaGraph[] = [
+            $schemaKey('type') => 'WebApplication',
+            $schemaKey('id') => $seoApplicationId,
+            'name' => $seoSiteName,
+            'url' => $seoBaseUrl . '/',
+            'description' => (string) config('seo.description', $seoDescription),
+            'applicationCategory' => 'EducationalApplication',
+            'operatingSystem' => 'Any modern web browser',
+            'isPartOf' => [$schemaKey('id') => $seoWebsiteId],
+        ];
+        $seoSchemaGraph[1]['mainEntity'] = [$schemaKey('id') => $seoApplicationId];
+    }
+
+    $seoSchema = [
+        $schemaKey('context') => 'https://schema.org',
+        $schemaKey('graph') => $seoSchemaGraph,
+    ];
 @endphp
 <title>{{ $seoTitle }}</title>
 <meta name="description" content="{{ $seoDescription }}">
@@ -57,14 +111,5 @@
 <meta name="twitter:image:alt" content="{{ config('seo.image_alt', $seoSiteName) }}">
 
 @if($seoIndexable)
-<script type="application/ld+json" nonce="{{ request()->attributes->get('csp_nonce') }}">{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type' => 'WebSite',
-    'name' => $seoSiteName,
-    'alternateName' => 'Math MetaVerse',
-    'url' => $seoBaseUrl . '/',
-    'description' => $seoDescription,
-    'inLanguage' => str_replace('_', '-', (string) config('seo.locale', 'en_PH')),
-    'image' => $seoImageUrl,
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+<script type="application/ld+json" nonce="{{ request()->attributes->get('csp_nonce') }}">{!! json_encode($seoSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
 @endif

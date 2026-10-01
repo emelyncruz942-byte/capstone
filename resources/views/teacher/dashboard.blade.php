@@ -220,7 +220,11 @@
                 <label class="input-label">Profile Picture</label>
                 <div class="flex items-center gap-4">
                     <div class="w-16 h-16 rounded-full border-2 border-white/10 bg-white/5 overflow-hidden shrink-0" data-avatar-preview-wrap>
-                        <img id="avatar-preview" data-avatar-preview src="{{ $user['avatar_url'] ?: asset('default.png') }}" class="w-full h-full object-cover">
+                        <img id="avatar-preview" data-avatar-preview
+                             src="{{ $user['avatar_url'] ?: asset('default.png') }}"
+                             alt="Current profile picture" width="64" height="64"
+                             loading="lazy" decoding="async"
+                             class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1">
                         <label for="avatar-input" class="cursor-pointer block w-full text-center border border-white/10 bg-white/5 hover:bg-white/10 rounded px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white">

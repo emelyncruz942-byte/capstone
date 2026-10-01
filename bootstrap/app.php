@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // host rather than the proxy's internal Host header.
         $middleware->append(\App\Http\Middleware\TrustedHost::class);
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append(\App\Http\Middleware\SearchEngineDirectives::class);
         $middleware->web(append: [\App\Http\Middleware\IncidentContext::class]);
         $middleware->alias([
             'auth.supabase' => \App\Http\Middleware\SupabaseAuth::class,
