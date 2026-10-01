@@ -31,12 +31,12 @@
     ];
 @endphp
 
-<div class="notification-root relative shrink-0" data-notification-root>
+<div class="notification-root relative shrink-0" data-notification-root data-unread-count="{{ $notificationUnread }}">
     <button type="button" data-notification-toggle aria-expanded="false" aria-haspopup="dialog" aria-label="Open notifications"
             class="notification-toggle relative w-11 h-11 rounded border border-white/10 bg-black/70 hover:border-cyan-400/50 hover:bg-white/5 transition-colors flex items-center justify-center">
         <i class="fas fa-bell text-slate-300"></i>
         @if($notificationUnread > 0)
-            <span class="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center border-2 border-black">
+            <span data-notification-badge class="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center border-2 border-black">
                 {{ $notificationUnread > 99 ? '99+' : $notificationUnread }}
             </span>
         @endif
@@ -47,14 +47,16 @@
         <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10">
             <div>
                 <p class="font-orbitron text-xs font-bold uppercase">Notifications</p>
-                <p class="text-[9px] text-slate-500 mt-1">{{ $notificationUnread }} unread</p>
+                <p data-notification-unread-label class="text-[9px] text-slate-500 mt-1">
+                    {{ $notificationUnread > 0 ? $notificationUnread . ' unread · opening marks all read' : 'All caught up' }}
+                </p>
             </div>
             @if($notificationUnread > 0)
-                <form method="POST" action="/notifications/read-all">
+                <form method="POST" action="/notifications/read-all" data-notification-read-all class="hidden" aria-hidden="true">
                     @csrf
-                    <button type="submit" class="text-[9px] font-bold uppercase text-cyan-400 hover:text-white">Mark all read</button>
                 </form>
             @endif
+            <span class="text-[9px] font-bold uppercase tracking-wider text-cyan-400">Recent activity</span>
         </div>
 
         <div class="notification-list max-h-[58vh] overflow-y-auto overscroll-contain">
@@ -62,9 +64,13 @@
                 @php
                     [$notificationIcon, $notificationColor] = $notificationIcons[$notification['type'] ?? '']
                         ?? ['fa-bell', 'text-cyan-400'];
-                    $isUnread = empty($notification['read_at']);
+                    $groupCount = max(1, (int) ($notification['group_count'] ?? 1));
+                    $groupUnread = max(0, (int) ($notification['group_unread_count'] ?? (empty($notification['read_at']) ? 1 : 0)));
+                    $isUnread = $groupUnread > 0;
                 @endphp
-                <form method="POST" action="/notifications/{{ $notification['id'] }}/read" class="border-b border-white/5 last:border-0">
+                <form method="POST" action="/notifications/{{ $notification['id'] }}/read"
+                      data-notification-item data-unread="{{ $isUnread ? 'true' : 'false' }}"
+                      class="border-b border-white/5 last:border-0">
                     @csrf
                     <input type="hidden" name="follow" value="1">
                     <button type="submit"
@@ -75,9 +81,17 @@
                         <span class="min-w-0 flex-1">
                             <span class="flex items-start gap-2">
                                 <span class="min-w-0 break-words text-xs font-bold text-white leading-5">{{ $notification['title'] }}</span>
-                                @if($isUnread)<span class="w-2 h-2 mt-1 rounded-full bg-cyan-400 shrink-0"></span>@endif
+                                @if($groupCount > 1)
+                                    <span class="notification-group-count shrink-0" aria-label="{{ $groupCount }} similar notifications">×{{ $groupCount }}</span>
+                                @endif
+                                @if($isUnread)<span data-notification-unread-dot class="w-2 h-2 mt-1 rounded-full bg-cyan-400 shrink-0"></span>@endif
                             </span>
                             <span class="block break-words text-[10px] text-slate-400 leading-4 mt-1">{{ $notification['message'] }}</span>
+                            @if($groupCount > 1)
+                                <span class="block text-[9px] text-cyan-500/80 mt-1">
+                                    Latest update · {{ $groupCount - 1 }} more similar {{ $groupCount === 2 ? 'notification' : 'notifications' }} grouped
+                                </span>
+                            @endif
                             <span class="block text-[9px] text-slate-600 mt-2">
                                 {{ \App\Support\AppDate::relative($notification['created_at']) }}
                             </span>

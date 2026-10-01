@@ -54,11 +54,20 @@ class SecuritySourceTest extends TestCase
     public function test_dynamic_layout_titles_are_escaped(): void
     {
         $appLayout = $this->projectPath('resources/views/layouts/app.blade.php');
+        $seoPartial = $this->projectPath('resources/views/partials/seo.blade.php');
         $dashboardLayout = $this->projectPath('resources/views/layouts/dashboard.blade.php');
 
         $this->assertStringContainsString(
-            "{{ trim(\$__env->yieldContent('title', 'Academic Portal')) }}",
+            "@include('partials.seo')",
             (string) file_get_contents($appLayout)
+        );
+        $this->assertStringContainsString(
+            '{{ $seoTitle }}',
+            (string) file_get_contents($seoPartial)
+        );
+        $this->assertStringNotContainsString(
+            '{!! $seoTitle !!}',
+            (string) file_get_contents($seoPartial)
         );
         $this->assertStringContainsString(
             "{{ trim(\$__env->yieldContent('mobile-title')) }}",

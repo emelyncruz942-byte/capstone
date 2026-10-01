@@ -2,6 +2,7 @@
     const fallbackPollMs = 120000;
     let lastRefreshAt = Date.now();
     let refreshPromise = null;
+    let markAllReadPromise = null;
     let pollTimer = null;
 
     function roots() {
@@ -25,6 +26,55 @@
 
         roots().forEach(root => root.replaceWith(replacement.cloneNode(true)));
         return true;
+    }
+
+    function showAllAsRead() {
+        roots().forEach(root => {
+            root.dataset.unreadCount = '0';
+            root.querySelector('[data-notification-badge]')?.remove();
+
+            const label = root.querySelector('[data-notification-unread-label]');
+            if (label) label.textContent = 'All caught up';
+
+            root.querySelectorAll('[data-notification-item]').forEach(item => {
+                item.dataset.unread = 'false';
+                item.querySelector('button')?.classList.remove('bg-cyan-400/[0.04]');
+                item.querySelector('[data-notification-unread-dot]')?.remove();
+            });
+        });
+    }
+
+    async function markAllRead(root) {
+        if (Number(root?.dataset.unreadCount || 0) < 1) return true;
+        if (markAllReadPromise) return markAllReadPromise;
+
+        const form = root.querySelector('[data-notification-read-all]');
+        if (!form) return false;
+
+        markAllReadPromise = (async () => {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: new FormData(form),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.message || 'Notifications could not be marked as read.');
+
+            showAllAsRead();
+            lastRefreshAt = Date.now();
+            return true;
+        })().catch(error => {
+            showToast(error.message || 'Notifications could not be marked as read.', true);
+            return false;
+        }).finally(() => {
+            markAllReadPromise = null;
+        });
+
+        return markAllReadPromise;
     }
 
     async function refresh(force = false) {
@@ -80,7 +130,11 @@
                 document.dispatchEvent(new CustomEvent('mathverse:header-menu-open', {
                     detail: { kind: 'notifications' },
                 }));
-                void refresh();
+                if (Number(root.dataset.unreadCount || 0) > 0) {
+                    void markAllRead(root);
+                } else {
+                    void refresh();
+                }
             }
             return;
         }
@@ -155,6 +209,7 @@
 
     window.MathVerseNotifications = {
         refresh,
+        markAllRead,
         markFresh() {
             lastRefreshAt = Date.now();
         },

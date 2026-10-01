@@ -16,7 +16,7 @@
     <meta name="theme-color" content="#05070d">
     <meta name="color-scheme" content="dark">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>MathVerse | {{ trim($__env->yieldContent('title', 'Academic Portal')) }}</title>
+    @include('partials.seo')
 
     @vite('resources/css/app.css')
     <link rel="icon" href="{{ asset('logo.png') }}" type="image/png">
@@ -77,7 +77,13 @@
         </button>
     </div>
 
+    <button type="button" data-back-to-top class="back-to-top" hidden
+            aria-label="Back to top" aria-hidden="true" tabindex="-1" title="Back to top">
+        <i class="fas fa-arrow-up" aria-hidden="true"></i>
+    </button>
+
     <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/shared.js') }}?v={{ filemtime(public_path('js/shared.js')) }}"></script>
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/back-to-top.js') }}?v={{ filemtime(public_path('js/back-to-top.js')) }}"></script>
 
     @stack('scripts')
 </body>

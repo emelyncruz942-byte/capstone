@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Academic Portal')
+@section('description', 'Learn mathematics through immersive VR quiz bees, classroom challenges, practice activities, and progress tracking in MathVerse.')
 
 @section('content')
 <div class="w-full max-w-sm z-20 transition-all duration-500" id="main-content">

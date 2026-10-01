@@ -1,2 +1,8 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /student/
+Disallow: /notifications/
+
+Sitemap: https://mathmetaverse.space/sitemap.xml

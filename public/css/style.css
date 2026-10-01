@@ -1194,6 +1194,52 @@ fieldset {
     opacity: 1;
 }
 
+.back-to-top {
+    position: fixed;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.75rem));
+    z-index: 9000;
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid rgba(34, 211, 238, 0.45);
+    border-radius: 9999px;
+    background: rgba(2, 6, 23, 0.94);
+    color: #67e8f9;
+    box-shadow: 0 0 24px rgba(34, 211, 238, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(0.75rem);
+    transition: opacity 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+
+.back-to-top.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.back-to-top:hover,
+.back-to-top:focus-visible {
+    border-color: #67e8f9;
+    color: #ffffff;
+}
+
+.notification-group-count {
+    display: inline-flex;
+    min-width: 1.75rem;
+    min-height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.35rem;
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    border-radius: 9999px;
+    background: rgba(34, 211, 238, 0.08);
+    color: #67e8f9;
+    font-size: 0.5625rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
 .browser-alert-button {
     max-width: 100%;
     min-height: 44px;
@@ -1292,6 +1338,11 @@ body.mathverse-navigating #dashboard-content {
         max-width: none;
     }
 
+    .back-to-top {
+        right: max(0.75rem, env(safe-area-inset-right));
+        bottom: max(0.75rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+    }
+
     .modal-overlay {
         align-items: flex-start;
         overflow-y: auto;
@@ -1368,6 +1419,10 @@ body.mathverse-navigating #dashboard-content {
     }
 
     #dashboard-content {
+        transition: none;
+    }
+
+    .back-to-top {
         transition: none;
     }
 }

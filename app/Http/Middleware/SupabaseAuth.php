@@ -168,7 +168,9 @@ class SupabaseAuth
                     [
                         'user_id' => $user['id'],
                         'order' => 'created_at.desc',
-                        'limit' => 12,
+                        // Keep the query bounded, then collapse bursts from the
+                        // same quiz/class into a short notification digest.
+                        'limit' => 60,
                     ]
                 );
                 $unreadNotificationCount = $this->supabase->adminCount('notifications', [
@@ -184,7 +186,7 @@ class SupabaseAuth
             }
         }
         view()->share([
-            'notifications' => $notifications,
+            'notifications' => \App\Support\NotificationDigest::group($notifications, 10),
             'unreadNotificationCount' => $unreadNotificationCount,
             'dashboardChromeFresh' => $dashboardChromeFresh,
         ]);
