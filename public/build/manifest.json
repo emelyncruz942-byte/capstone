@@ -1,59 +1,59 @@
 {
-  "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff": {
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff": {
     "file": "assets/orbitron-latin-400-normal-DBk4Dmer.woff",
-    "src": "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff"
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff"
   },
-  "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff2": {
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff2": {
     "file": "assets/orbitron-latin-400-normal-U6xZUhur.woff2",
-    "src": "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff2"
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff2"
   },
-  "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff": {
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff": {
     "file": "assets/orbitron-latin-700-normal-DmYOh-W9.woff",
-    "src": "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff"
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff"
   },
-  "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff2": {
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff2": {
     "file": "assets/orbitron-latin-700-normal-4jsRXGGJ.woff2",
-    "src": "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff2"
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff2"
   },
-  "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff": {
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff": {
     "file": "assets/orbitron-latin-900-normal-BbJatbhp.woff",
-    "src": "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff"
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff"
   },
-  "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff2": {
+  "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff2": {
     "file": "assets/orbitron-latin-900-normal-DrIi7unX.woff2",
-    "src": "node_modules/.pnpm/@fontsource+orbitron@5.3.0/node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff2"
+    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff2"
   },
-  "node_modules/.pnpm/@fontsource+rajdhani@5.3.0/node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff": {
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff": {
     "file": "assets/rajdhani-latin-500-normal-DfvNI-Td.woff",
-    "src": "node_modules/.pnpm/@fontsource+rajdhani@5.3.0/node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff"
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff"
   },
-  "node_modules/.pnpm/@fontsource+rajdhani@5.3.0/node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2": {
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2": {
     "file": "assets/rajdhani-latin-500-normal-ByNUCHrt.woff2",
-    "src": "node_modules/.pnpm/@fontsource+rajdhani@5.3.0/node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2"
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2"
   },
-  "node_modules/.pnpm/@fontsource+rajdhani@5.3.0/node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff": {
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff": {
     "file": "assets/rajdhani-latin-700-normal-e0Uj8ZlN.woff",
-    "src": "node_modules/.pnpm/@fontsource+rajdhani@5.3.0/node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff"
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff"
   },
-  "node_modules/.pnpm/@fontsource+rajdhani@5.3.0/node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2": {
+  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2": {
     "file": "assets/rajdhani-latin-700-normal-BPDUZo87.woff2",
-    "src": "node_modules/.pnpm/@fontsource+rajdhani@5.3.0/node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2"
+    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2"
   },
-  "node_modules/.pnpm/@fontsource+share-tech-mono@5.3.0/node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff": {
+  "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff": {
     "file": "assets/share-tech-mono-latin-400-normal-15MgdvEM.woff",
-    "src": "node_modules/.pnpm/@fontsource+share-tech-mono@5.3.0/node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff"
+    "src": "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff"
   },
-  "node_modules/.pnpm/@fontsource+share-tech-mono@5.3.0/node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2": {
+  "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2": {
     "file": "assets/share-tech-mono-latin-400-normal-CCqdbj5z.woff2",
-    "src": "node_modules/.pnpm/@fontsource+share-tech-mono@5.3.0/node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2"
+    "src": "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2"
   },
-  "node_modules/.pnpm/@fortawesome+fontawesome-free@6.4.0/node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.woff2": {
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.woff2": {
     "file": "assets/fa-regular-400-TCCU0xbi.woff2",
-    "src": "node_modules/.pnpm/@fortawesome+fontawesome-free@6.4.0/node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.woff2"
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.woff2"
   },
-  "node_modules/.pnpm/@fortawesome+fontawesome-free@6.4.0/node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2": {
+  "node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2": {
     "file": "assets/fa-solid-900-tLH6XCuf.woff2",
-    "src": "node_modules/.pnpm/@fortawesome+fontawesome-free@6.4.0/node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2"
+    "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2"
   },
   "resources/css/app.css": {
     "file": "assets/app-CKNZ9iqF.css",

@@ -27,6 +27,7 @@
             <p class="text-[9px] uppercase tracking-[0.3em] font-bold text-purple-300 mt-4">Individual learner evidence</p>
             <h2 class="font-orbitron font-black text-2xl md:text-3xl mt-2">{{ $student['name'] ?: 'Student' }} <span class="text-cyan-400">Solo Stats</span></h2>
             <p class="text-sm text-slate-400 mt-3 max-w-2xl">Monitor this learner’s mastery, accuracy, topic progress, hint use, improvement, and practice consistency without exposing another student’s data.</p>
+            <p class="text-[10px] text-slate-500 mt-2">Calendar timezone: {{ $analytics['timezone'] }}</p>
         </div>
         <form method="GET" action="/teacher/learning-hub/students/{{ $student['id'] }}" class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 w-full xl:w-auto" data-seamless-form>
             @if($analytics['selected_class_id'])

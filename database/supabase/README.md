@@ -477,8 +477,13 @@ browser requirement.
    ```
 
 5. Deploy the included Edge Function. The Supabase legacy JWT check is disabled
-   because this is a service-to-service call; the function validates the
-   dedicated `ADMIN_PUSH_SECRET` before doing any work:
+   because this is a service-to-service call. Instead, the function requires a
+   v2 HMAC-SHA256 signature keyed by `ADMIN_PUSH_SECRET`; the key itself is
+   never sent. The signed canonical message is
+   `v2:send-admin-push:POST:/functions/v1/send-admin-push:<unix_timestamp>:`
+   followed by `<nonce>:<sha256_hex_of_exact_raw_body>`. It verifies the
+   signature before claiming the nonce/rate slot installed by the October 2
+   migration or parsing the JSON body:
 
    ```bash
    supabase functions deploy send-admin-push --no-verify-jwt
@@ -486,7 +491,9 @@ browser requirement.
 
 The VAPID private key stays only in Supabase secrets. Both private values stay
 out of browser JavaScript and Git, and `ADMIN_PUSH_SECRET` must never be shown
-to users or included in screenshots.
+to users or included in screenshots. The v2 Laravel sender and Edge receiver
+must be deployed together in the coordinated maintenance window described
+below: neither accepts the other's former request format.
 
 ## Single-topic curriculum quiz library
 
@@ -512,13 +519,14 @@ of those quizzes retain their session data and have `source_quiz_id` set to
 
 ## Unity VR database access and score submission
 
-After all earlier forward migrations, run these five files in this exact order:
+After all earlier forward migrations, run these six files in this exact order:
 
 1. `2026_09_20_vr_legacy_access.sql`
 2. `2026_09_20_vr_score_submission.sql`
 3. `2026_09_20_vr_authenticated_client.sql`
 4. `2026_09_23_vr_retake_score_repair.sql`
 5. `2026_09_24_quiz_lifecycle_and_active_retakes.sql`
+6. `2026_10_02_vr_server_authority_and_request_guards.sql`
 
 The first migration restores the narrowly scoped anonymous access required by
 the existing Unity client: lookup and status polling for waiting/active rooms,
@@ -532,7 +540,7 @@ teacher-granted retake. Direct anonymous access to `quiz_results` remains
 closed, previous scores remain immutable, and an accepted retake becomes the
 counted result even when its score is lower.
 
-The third migration is the production Unity boundary. It binds participant
+The third migration was the first authenticated Unity boundary. It binds participant
 registration and score submission to the Supabase JWT's `auth.uid()`, exposes
 no caller-controlled student ID, and closes the older anonymous participant
 insert and score-RPC permissions. Room-code lookup and question loading remain
@@ -552,11 +560,35 @@ student who already finished while the original quiz remains active. It keeps
 `retake_mode` off in that case so classmates can still complete their first
 attempt, and only turns it on when an ended assignment is reopened.
 
-All five migrations are idempotent and register themselves in
-`mathverse_schema_migrations`. Reapply them in the same order after any future
-global security migration that revokes anonymous privileges or function
-execution. The Unity project must use the matching RPC-enabled
-`QuizManager.cs`; these database migrations do not modify Unity files.
+The sixth migration is the current production boundary and must be deployed
+with its matching Unity client. It removes anonymous room/question reads,
+validates the existing four-digit room code through an authenticated and
+rate-limited join RPC, and returns the private session UUID used for an
+unlisted Photon room. Unity receives only question IDs, text, and choices;
+`correct_answer` remains in Supabase. The final RPC accepts question IDs and
+selected indexes, calculates the score in the database, and then uses the
+existing immutable/idempotent result and retake guards. It also secures retained
+rollback archives and adds the service-role-only durable nonce/rate claim used
+by the signed `send-admin-push` Edge Function.
+
+Step 6 is an incompatible, forward-only boundary rather than a rolling update.
+The old Unity client cannot join after anonymous reads are revoked, and the new
+client cannot join before the new RPCs exist. The old Laravel push sender also
+cannot authenticate to the v2 Edge Function, while the new sender cannot
+authenticate to the old function. Schedule one maintenance window: stop new VR
+joins, drain or end active rooms, pause browser-push dispatch, apply step 6,
+deploy the v2 Edge Function and Laravel release, and publish the matching Unity
+build. Before reopening, verify an authenticated room-code join, question load,
+server-calculated score submission, retake, and administrator push. If a check
+fails, keep those paths offline and complete a forward repair; do not restore
+anonymous grants as a compatibility workaround.
+
+All six migrations register themselves in `mathverse_schema_migrations`.
+After step 6, do not reapply the legacy-access file: it detects the new boundary
+and safely performs no grants. Apply future security changes as new forward
+migrations. The matching Unity project must include the RPC-enabled
+`VRRoomPopupManager.cs` and `QuizManager.cs`; do not run that build against a
+pre-step-6 database or a legacy build against a post-step-6 database.
 
 Apply steps 4 and 5 before deploying the website version that calls
 `transition_quiz_session`; otherwise manual Start and End fail closed until the

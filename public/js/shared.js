@@ -203,19 +203,29 @@ document.addEventListener('change', event => {
 
 function handleAuthConfirmationReturn() {
     const url = new URL(window.location.href);
-    // Dedicated auth pages own token capture and cleanup, including older
-    // templates that placed the credential in the query string.
+    // Dedicated auth pages own fragment-token capture and cleanup.
     if (['/reset-password', '/auth/confirm'].includes(url.pathname)) return;
     const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
     const action = url.searchParams.get('auth_action') || hashParams.get('type') || url.searchParams.get('type');
     const hasAuthError = url.searchParams.has('error') || hashParams.has('error');
+    const credentialParameters = ['token', 'token_hash', 'access_token', 'refresh_token', 'code'];
+    const hasQueryCredential = credentialParameters.some(parameter => url.searchParams.has(parameter));
+
+    if (hasQueryCredential) {
+        showToast('This security link uses an unsupported format. Request a new email and use its secure link.', true);
+        [...credentialParameters, 'type', 'error', 'error_code', 'error_description']
+            .forEach(parameter => url.searchParams.delete(parameter));
+        url.hash = '';
+        const cleanUrl = url.pathname + (url.searchParams.size ? `?${url.searchParams.toString()}` : '');
+        window.history.replaceState(window.history.state, document.title, cleanUrl);
+        return;
+    }
 
     if (action === 'recovery') {
         // Supabase can return either the template token hash or an already
-        // verified access token. Move both forms to the reset page without
-        // putting the credential in a query string or leaving it on login.
-        const tokenHash = hashParams.get('token_hash') || url.searchParams.get('token_hash');
-        const accessToken = hashParams.get('access_token') || url.searchParams.get('access_token');
+        // verified access token. Only fragment credentials are forwarded.
+        const tokenHash = hashParams.get('token_hash');
+        const accessToken = hashParams.get('access_token');
         if (!hasAuthError && (tokenHash || accessToken)) {
             const recoveryUrl = new URL('/reset-password', 'https://mathmetaverse.space');
             const recoveryParams = new URLSearchParams({ type: 'recovery' });

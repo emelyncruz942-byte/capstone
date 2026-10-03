@@ -3,12 +3,19 @@
 namespace App\Services;
 
 use App\Jobs\SendAdminPush;
+use App\Support\MachineRequestSignature;
 use App\Support\SafePath;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class AdminPushService
 {
+    private const SIGNATURE_SCOPE = 'send-admin-push';
+
+    // This is a protocol identifier, not the externally routed function URL.
+    // Keeping it fixed makes signatures stable across Supabase proxy rewrites.
+    private const SIGNATURE_PATH = '/send-admin-push';
+
     public function sendAfterResponse(string $title, string $body, string $url, string $tag): void
     {
         SendAdminPush::dispatch($title, $body, $url, $tag)
@@ -28,8 +35,7 @@ class AdminPushService
         string $body,
         string $url,
         string $tag
-    ): bool
-    {
+    ): bool {
         return $this->dispatch($title, $body, $url, $tag, [$userId]);
     }
 
@@ -39,8 +45,7 @@ class AdminPushService
         string $url,
         string $tag,
         ?array $userIds = null
-    ): bool
-    {
+    ): bool {
         $supabaseUrl = rtrim((string) config('services.supabase.url'), '/');
         $anonKey = (string) config('services.supabase.anon_key');
         $publicKey = (string) config('services.web_push.public_key');
@@ -48,16 +53,17 @@ class AdminPushService
         $authSecret = (string) config('services.web_push.auth_secret');
 
         if ($functionUrl === '' && $supabaseUrl !== '') {
-            $functionUrl = $supabaseUrl . '/functions/v1/send-admin-push';
+            $functionUrl = $supabaseUrl.'/functions/v1/send-admin-push';
         }
 
         if ($functionUrl === ''
             || $anonKey === ''
             || $publicKey === ''
             || strlen($authSecret) < 32
-            || !$this->functionUrlIsAllowed($functionUrl, $supabaseUrl)
+            || ! $this->functionUrlIsAllowed($functionUrl, $supabaseUrl)
         ) {
             Log::warning('MathVerse browser push is not fully configured.');
+
             return false;
         }
 
@@ -72,15 +78,27 @@ class AdminPushService
                 $payload['user_ids'] = array_values(array_unique($userIds));
             }
 
+            $encodedPayload = json_encode(
+                $payload,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
+            );
+            $signatureHeaders = MachineRequestSignature::headers(
+                $encodedPayload,
+                $authSecret,
+                self::SIGNATURE_SCOPE,
+                'POST',
+                self::SIGNATURE_PATH,
+            );
+
             $response = Http::connectTimeout(5)->timeout(12)->withHeaders([
                 // The Edge Function has its own service role. Only the public
-                // anon key and the narrowly scoped push secret leave Laravel.
+                // anon key and a short-lived HMAC proof leave Laravel. The
+                // signing secret itself never crosses the network.
                 'apikey' => $anonKey,
-                'X-MathVerse-Push-Secret' => $authSecret,
-                'Content-Type' => 'application/json',
-            ])->post($functionUrl, $payload);
+                ...$signatureHeaders,
+            ])->withBody($encodedPayload, 'application/json')->post($functionUrl);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('MathVerse browser push failed.', [
                     'status' => $response->status(),
                 ]);
@@ -99,7 +117,7 @@ class AdminPushService
             $result = $response->json();
 
             return $response->successful()
-                && (!is_array($result) || (int) ($result['failed'] ?? 0) === 0);
+                && (! is_array($result) || (int) ($result['failed'] ?? 0) === 0);
         } catch (\Throwable $exception) {
             Log::warning('MathVerse browser push could not be sent.', [
                 'exception' => $exception::class,
@@ -113,8 +131,8 @@ class AdminPushService
     {
         $function = parse_url($functionUrl);
         $supabase = parse_url($supabaseUrl);
-        if (!is_array($function)
-            || !is_array($supabase)
+        if (! is_array($function)
+            || ! is_array($supabase)
             || empty($function['host'])
             || empty($supabase['host'])
             || isset($function['user'])
@@ -130,11 +148,11 @@ class AdminPushService
 
         $functionScheme = strtolower((string) ($function['scheme'] ?? ''));
         $supabaseScheme = strtolower((string) ($supabase['scheme'] ?? ''));
-        if ($functionScheme !== $supabaseScheme || !in_array($functionScheme, ['http', 'https'], true)) {
+        if ($functionScheme !== $supabaseScheme || ! in_array($functionScheme, ['http', 'https'], true)) {
             return false;
         }
 
-        return !app()->isProduction() || $functionScheme === 'https';
+        return ! app()->isProduction() || $functionScheme === 'https';
     }
 
     private function normalizedPort(array $parts): int

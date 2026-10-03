@@ -15,6 +15,7 @@ concurrency:
 jobs:
   browser:
     name: Student, teacher, and admin journeys
+    if: vars.STAGING_BROWSER_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -28,10 +29,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -47,7 +48,7 @@ jobs:
 
       - name: Upload browser diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: staging-browser-diagnostics
           path: |

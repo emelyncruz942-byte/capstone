@@ -184,9 +184,7 @@ function resetFixture(url, hasServerToken = false) {
 
 for (const [format, suffix, expectedType] of [
     ['current token hash fragment', '#token_hash=fixture-hash&type=recovery', 'token_hash'],
-    ['legacy token hash query', '?token_hash=fixture-hash&type=recovery', 'token_hash'],
     ['access token fragment', '#access_token=fixture-access&type=recovery', 'access_token'],
-    ['legacy access token query', '?access_token=fixture-access&type=recovery', 'access_token'],
 ]) {
     test(`reset forms accept ${format} and scrub the credential before submission`, () => {
         const f = resetFixture(`https://mathmetaverse.space/reset-password${suffix}`);
@@ -198,6 +196,20 @@ for (const [format, suffix, expectedType] of [
         f.callbacks[0]();
         assert.equal(f.submit.disabled, false);
         assert.equal(f.toasts.length, 0);
+    });
+}
+
+for (const suffix of [
+    '?token_hash=fixture-hash&type=recovery',
+    '?access_token=fixture-access&type=recovery',
+]) {
+    test(`reset forms reject and scrub legacy query credential ${suffix.split('=')[0]}`, () => {
+        const f = resetFixture(`https://mathmetaverse.space/reset-password${suffix}`);
+        assert.equal(f.token.value, '');
+        assert.equal(f.submit.disabled, true);
+        assert.equal(f.location.href, 'https://mathmetaverse.space/reset-password');
+        assert.equal(f.toasts.length, 1);
+        assert.equal(f.toasts[0].error, true);
     });
 }
 
@@ -219,7 +231,7 @@ test('incomplete or expired reset links disable submission and remove credential
 });
 
 test('reset cleanup preserves unrelated non-sensitive query parameters', () => {
-    const f = resetFixture('https://mathmetaverse.space/reset-password?lang=en&token_hash=fixture-hash&type=recovery');
+    const f = resetFixture('https://mathmetaverse.space/reset-password?lang=en#token_hash=fixture-hash&type=recovery');
     assert.equal(f.location.search, '?lang=en');
     assert.equal(f.token.value, 'fixture-hash');
 });
@@ -234,8 +246,17 @@ test('shared auth cleanup leaves dedicated reset and confirmation token capture 
     }
 });
 
-test('legacy recovery returns on login are forwarded using a token fragment', () => {
+test('legacy query recovery returns on login are rejected and scrubbed', () => {
     const f = sharedFixture({ url: 'https://mathmetaverse.space/?token_hash=fixture-hash&type=recovery' });
+    f.context.handleAuthConfirmationReturn();
+    assert.equal(f.replacements.length, 0);
+    assert.equal(f.location.href, 'https://mathmetaverse.space/');
+    assert.equal(f.toasts.length, 1);
+    assert.equal(f.toasts[0].error, true);
+});
+
+test('fragment recovery returns on login are forwarded using a token fragment', () => {
+    const f = sharedFixture({ url: 'https://mathmetaverse.space/#token_hash=fixture-hash&type=recovery' });
     f.context.handleAuthConfirmationReturn();
     const destination = new URL(f.replacements[0]);
     assert.equal(destination.pathname, '/reset-password');

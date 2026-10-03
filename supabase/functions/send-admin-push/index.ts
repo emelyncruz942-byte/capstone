@@ -10,6 +10,12 @@ type PushPayload = {
 };
 
 const MAX_REQUEST_BYTES = 32 * 1024;
+const MAX_CLOCK_SKEW_SECONDS = 300;
+const DEFAULT_RATE_LIMIT = 60;
+const RATE_WINDOW_SECONDS = 60;
+const SIGNATURE_SCOPE = "send-admin-push";
+// A fixed protocol identifier avoids gateway path rewriting differences.
+const SIGNATURE_PATH = "/send-admin-push";
 
 Deno.serve(async (request: Request) => {
   if (request.method !== "POST") {
@@ -38,28 +44,81 @@ Deno.serve(async (request: Request) => {
   ) {
     return json({ message: "Web Push secrets are incomplete." }, 503);
   }
-  if (
-    !safeEqual(
-      request.headers.get("x-mathverse-push-secret") ?? "",
-      adminPushSecret,
-    )
-  ) {
-    return json({ message: "Unauthorized." }, 401);
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BYTES) {
+    return json({ message: "Request payload is too large." }, 413);
   }
 
-  let payload: PushPayload;
+  let rawBody = "";
   try {
-    const declaredLength = Number(request.headers.get("content-length") ?? 0);
-    if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BYTES) {
-      return json({ message: "Request payload is too large." }, 413);
-    }
-
     const body = await readLimitedText(request.body, MAX_REQUEST_BYTES);
     if (body === null) {
       return json({ message: "Request payload is too large." }, 413);
     }
+    rawBody = body;
+  } catch (_error) {
+    return json({ message: "Request body is not valid UTF-8." }, 400);
+  }
 
-    const decoded = JSON.parse(body);
+  const timestampHeader = request.headers.get("x-mathverse-timestamp") ?? "";
+  const nonce = request.headers.get("x-mathverse-nonce") ?? "";
+  const providedSignature = (
+    request.headers.get("x-mathverse-signature") ?? ""
+  ).toLowerCase();
+  const timestamp = /^[0-9]{10}$/.test(timestampHeader)
+    ? Number(timestampHeader)
+    : Number.NaN;
+  if (
+    !Number.isSafeInteger(timestamp) ||
+    Math.abs(Math.floor(Date.now() / 1000) - timestamp) >
+      MAX_CLOCK_SKEW_SECONDS ||
+    !/^[A-Za-z0-9_-]{32,128}$/.test(nonce) ||
+    !/^[a-f0-9]{64}$/.test(providedSignature)
+  ) {
+    return json({ message: "Unauthorized." }, 401);
+  }
+
+  const expectedSignature = await hmacSignature(
+    rawBody,
+    adminPushSecret,
+    SIGNATURE_SCOPE,
+    request.method.toUpperCase(),
+    SIGNATURE_PATH,
+    timestamp,
+    nonce,
+  );
+  if (!safeEqual(providedSignature, expectedSignature)) {
+    return json({ message: "Unauthorized." }, 401);
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const configuredLimit = Number(Deno.env.get("ADMIN_PUSH_RATE_LIMIT") ?? "");
+  const rateLimit = Number.isSafeInteger(configuredLimit) &&
+      configuredLimit >= 1 && configuredLimit <= 1000
+    ? configuredLimit
+    : DEFAULT_RATE_LIMIT;
+  const { data: claimed, error: claimError } = await supabase.rpc(
+    "claim_machine_request",
+    {
+      p_scope: SIGNATURE_SCOPE,
+      p_nonce: nonce,
+      p_timestamp: new Date(timestamp * 1000).toISOString(),
+      p_limit: rateLimit,
+      p_window_seconds: RATE_WINDOW_SECONDS,
+    },
+  );
+  if (claimError) {
+    return json({ message: "Request verification is temporarily unavailable." }, 503);
+  }
+  if (claimed !== true) {
+    return json({ message: "Request was already used or the rate limit was reached." }, 429);
+  }
+
+  let payload: PushPayload;
+  try {
+    const decoded = JSON.parse(rawBody);
     if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) {
       return json({ message: "The JSON payload must be an object." }, 422);
     }
@@ -83,9 +142,6 @@ Deno.serve(async (request: Request) => {
     tag: String(payload.tag ?? "mathverse-notification").slice(0, 100),
   });
 
-  const supabase = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
   let subscriptionQuery = supabase
     .from("push_subscriptions")
     .select("id,user_id,endpoint,p256dh,auth,profiles!inner(role)");
@@ -209,6 +265,34 @@ function safeEqual(left: string, right: string): boolean {
     difference |= leftBytes[index] ^ rightBytes[index];
   }
   return difference === 0;
+}
+
+async function hmacSignature(
+  body: string,
+  secret: string,
+  scope: string,
+  method: string,
+  path: string,
+  timestamp: number,
+  nonce: string,
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const bodyDigest = await crypto.subtle.digest("SHA-256", encoder.encode(body));
+  const canonical = `v2:${scope}:${method}:${path}:${timestamp}:${nonce}:${toHex(bodyDigest)}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  return toHex(await crypto.subtle.sign("HMAC", key, encoder.encode(canonical)));
+}
+
+function toHex(value: ArrayBuffer): string {
+  return [...new Uint8Array(value)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function normalizeUserIds(value: unknown): string[] | null {

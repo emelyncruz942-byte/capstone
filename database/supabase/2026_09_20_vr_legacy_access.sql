@@ -1,7 +1,9 @@
 -- MathVerse forward migration: restore the legacy Unity VR database access.
 -- Run the WHOLE file in Supabase SQL Editor as the database owner (postgres).
--- This migration is intentionally idempotent and permanently enables the
--- narrowly scoped VR access. Reapply it after any global security migration.
+-- This migration is intentionally idempotent for legacy deployments. Do not
+-- reapply it after 2026_10_02_vr_server_authority_and_request_guards.sql;
+-- the guard below then makes ENABLE a no-op so anonymous answer reads cannot
+-- be reopened accidentally.
 --
 -- Opened: anon reads of current waiting/active VR room metadata and questions
 -- (including answers), plus anon registration into those rooms using existing
@@ -35,6 +37,15 @@ DECLARE
 BEGIN
     IF operation NOT IN ('ENABLE', 'DISABLE') THEN
         RAISE EXCEPTION 'operation must be ENABLE or DISABLE.';
+    END IF;
+    IF to_regclass('public.mathverse_schema_migrations') IS NOT NULL
+       AND EXISTS (
+           SELECT 1 FROM public.mathverse_schema_migrations
+           WHERE migration_key = '2026_10_02_vr_server_authority_and_request_guards.sql'
+       ) THEN
+        PERFORM set_config('mathverse.legacy_vr_operation', 'SUPERSEDED', true);
+        RAISE NOTICE 'Legacy anonymous VR access is superseded; no grants or policies were changed.';
+        RETURN;
     END IF;
     PERFORM set_config('mathverse.legacy_vr_operation', operation, true);
     IF to_regclass('public.mathverse_schema_migrations') IS NULL THEN

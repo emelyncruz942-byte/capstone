@@ -6,8 +6,8 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -47,25 +47,62 @@ class AppServiceProvider extends ServiceProvider
                 throw new \RuntimeException('Production APP_DEBUG must be false.');
             }
 
-            if (!is_array($appParts)
+            if (! is_array($appParts)
                 || $appScheme !== 'https'
-                || !is_string($appHost)
+                || ! is_string($appHost)
                 || $appHost === ''
                 || isset($appParts['user'])
                 || isset($appParts['pass'])
                 || isset($appParts['query'])
                 || isset($appParts['fragment'])
-                || !in_array((string) ($appParts['path'] ?? ''), ['', '/'], true)
+                || ! in_array((string) ($appParts['path'] ?? ''), ['', '/'], true)
             ) {
                 throw new \RuntimeException('Production APP_URL must be the HTTPS MathVerse root URL.');
             }
 
-            if (!(bool) config('session.encrypt')
-                || !(bool) config('session.secure')
-                || !(bool) config('session.http_only')
-                || !in_array(strtolower((string) config('session.same_site')), ['lax', 'strict'], true)
+            if (! (bool) config('session.encrypt')
+                || ! (bool) config('session.secure')
+                || ! (bool) config('session.http_only')
+                || ! in_array(strtolower((string) config('session.same_site')), ['lax', 'strict'], true)
             ) {
                 throw new \RuntimeException('Production MathVerse sessions require encryption and secure cookie settings.');
+            }
+
+            $limiterStore = (string) config('cache.limiter');
+            $limiterDriver = (string) config("cache.stores.{$limiterStore}.driver");
+            if (! in_array($limiterDriver, ['database', 'redis', 'memcached', 'dynamodb'], true)) {
+                throw new \RuntimeException(
+                    'Production CACHE_LIMITER must use a shared database, Redis, Memcached, or DynamoDB store.'
+                );
+            }
+            if ($limiterDriver === 'database') {
+                $databaseConnection = (string) (
+                    config("cache.stores.{$limiterStore}.connection")
+                    ?: config('database.default')
+                );
+                $databaseDriver = (string) config("database.connections.{$databaseConnection}.driver");
+                if ($databaseDriver === '' || $databaseDriver === 'sqlite') {
+                    throw new \RuntimeException(
+                        'Production database-backed rate limiting requires a shared non-SQLite database connection.'
+                    );
+                }
+            }
+
+            $corsOrigins = config('cors.allowed_origins');
+            if (! is_array($corsOrigins) || $corsOrigins === []) {
+                throw new \RuntimeException('Production CORS_ALLOWED_ORIGINS must contain at least one exact HTTPS origin.');
+            }
+            foreach ($corsOrigins as $origin) {
+                if (! $this->isExactHttpsOrigin($origin)) {
+                    throw new \RuntimeException(
+                        'Production CORS_ALLOWED_ORIGINS may contain only exact HTTPS origins without wildcards, paths, or credentials.'
+                    );
+                }
+            }
+            if ((array) config('cors.allowed_origins_patterns') !== []
+                || (bool) config('cors.supports_credentials')
+            ) {
+                throw new \RuntimeException('Production CORS cannot use origin patterns or credentialed cross-origin requests.');
             }
 
             URL::forceRootUrl($appUrl);
@@ -162,5 +199,37 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(60)->by("reports-ip:{$request->ip()}"),
             ];
         });
+    }
+
+    private function isExactHttpsOrigin(mixed $origin): bool
+    {
+        if (! is_string($origin)
+            || $origin === ''
+            || strlen($origin) > 2048
+            || str_contains($origin, '*')
+            || filter_var($origin, FILTER_VALIDATE_URL) === false
+        ) {
+            return false;
+        }
+
+        $parts = parse_url($origin);
+        if (! is_array($parts)
+            || strtolower((string) ($parts['scheme'] ?? '')) !== 'https'
+            || ! isset($parts['host'])
+            || isset($parts['user'])
+            || isset($parts['pass'])
+            || isset($parts['query'])
+            || isset($parts['fragment'])
+            || ! in_array((string) ($parts['path'] ?? ''), ['', '/'], true)
+        ) {
+            return false;
+        }
+
+        $canonical = 'https://'.strtolower((string) $parts['host']);
+        if (isset($parts['port'])) {
+            $canonical .= ':'.(int) $parts['port'];
+        }
+
+        return rtrim($origin, '/') === $canonical;
     }
 }

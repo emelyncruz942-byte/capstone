@@ -68,4 +68,32 @@ class SecurityHeadersTest extends TestCase
             (string) $response->headers->get('Cache-Control')
         );
     }
+
+    public function test_api_preflight_allows_only_the_configured_exact_origin(): void
+    {
+        config(['cors.allowed_origins' => ['https://mathmetaverse.space']]);
+
+        $allowed = $this->withHeaders([
+            'Origin' => 'https://mathmetaverse.space',
+            'Access-Control-Request-Method' => 'POST',
+            'Access-Control-Request-Headers' => 'content-type,x-mathverse-signature',
+        ])->options('/api/operations/monitor');
+
+        $allowed->assertHeader('Access-Control-Allow-Origin', 'https://mathmetaverse.space');
+        $this->assertNotSame('*', $allowed->headers->get('Access-Control-Allow-Origin'));
+
+        $this->flushHeaders();
+        $rejected = $this->withHeaders([
+            'Origin' => 'https://attacker.example',
+            'Access-Control-Request-Method' => 'POST',
+        ])->options('/api/operations/monitor');
+
+        // A single configured origin is emitted as a cacheable constant. The
+        // attacker's browser sees a mismatch and denies access.
+        $rejected->assertHeader('Access-Control-Allow-Origin', 'https://mathmetaverse.space');
+        $this->assertNotSame(
+            'https://attacker.example',
+            $rejected->headers->get('Access-Control-Allow-Origin')
+        );
+    }
 }

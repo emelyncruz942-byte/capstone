@@ -6,12 +6,14 @@
 
         const url = new URL(window.location.href);
         const fragmentParams = new URLSearchParams(url.hash.replace(/^#/, ''));
-        // Prefer the current fragment-based templates, but also accept links
-        // from older templates without exposing their token in rendered HTML.
-        const tokenHash = fragmentParams.get('token_hash') || url.searchParams.get('token_hash');
-        const accessToken = fragmentParams.get('access_token') || url.searchParams.get('access_token');
+        // Credentials are accepted only from a fragment. Query strings reach
+        // proxies and web-server logs before JavaScript can scrub them.
+        const tokenHash = fragmentParams.get('token_hash');
+        const accessToken = fragmentParams.get('access_token');
         const token = tokenHash || accessToken;
-        const type = fragmentParams.get('type') || url.searchParams.get('type');
+        const type = fragmentParams.get('type');
+        const hasQueryCredential = ['token', 'token_hash', 'access_token', 'refresh_token', 'code']
+            .some(key => url.searchParams.has(key));
         const hasAuthError = ['error', 'error_code', 'error_description'].some(key =>
             fragmentParams.has(key) || url.searchParams.has(key));
         const hasServerToken = resetForm.dataset.hasRecoveryToken === 'true';
@@ -26,7 +28,7 @@
         window.history.replaceState(window.history.state, document.title,
             cleanUrl.pathname + (cleanUrl.searchParams.size ? `?${cleanUrl.searchParams.toString()}` : ''));
 
-        if (hasAuthError || (type && type !== 'recovery')) {
+        if (hasQueryCredential || hasAuthError || (type && type !== 'recovery')) {
             submit.disabled = true;
             showToast('This password reset link is invalid or expired. Request a new password reset email.', true);
             return;

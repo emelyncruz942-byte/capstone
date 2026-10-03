@@ -432,7 +432,9 @@ class SecuritySourceTest extends TestCase
         $this->assertStringNotContainsString('?token_hash={{ .TokenHash }}', $template);
         $this->assertStringContainsString('url.hash', $resetScript);
         $this->assertStringContainsString("fragmentParams.get('access_token')", $resetScript);
-        $this->assertStringContainsString("url.searchParams.get('token_hash')", $resetScript);
+        $this->assertStringNotContainsString("url.searchParams.get('token_hash')", $resetScript);
+        $this->assertStringNotContainsString("url.searchParams.get('access_token')", $resetScript);
+        $this->assertStringContainsString('hasQueryCredential', $resetScript);
         $this->assertStringNotContainsString("old('token')", $resetView);
         $this->assertStringContainsString('password_recovery_token', $resetView);
         $this->assertStringContainsString("cleanUrl.hash = '';", $resetScript);
@@ -486,15 +488,17 @@ class SecuritySourceTest extends TestCase
     public function test_profile_menu_buttons_can_reach_the_delegated_action_handler(): void
     {
         $dashboardScript = (string) file_get_contents($this->projectPath('public/js/dashboard.js'));
+        $sharedScript = (string) file_get_contents($this->projectPath('public/js/shared.js'));
         $profileMenu = (string) file_get_contents($this->projectPath(
             'resources/views/partials/profile-menu.blade.php'
         ));
 
-        $menuClickHandler = strstr($dashboardScript, "menu.addEventListener('click'", false);
+        $menuClickHandler = strstr($dashboardScript, "document.addEventListener('click'", false);
         $this->assertIsString($menuClickHandler);
         $menuClickHandler = strstr($menuClickHandler, "document.addEventListener('mathverse:header-menu-open'", true);
         $this->assertIsString($menuClickHandler);
-        $this->assertStringNotContainsString('stopPropagation()', $menuClickHandler);
+        $this->assertStringNotContainsString('stopImmediatePropagation()', $menuClickHandler);
+        $this->assertStringContainsString("event.target.closest('[data-action]')", $sharedScript);
         $this->assertStringContainsString('data-action="openModal"', $profileMenu);
         $this->assertStringContainsString('["logoutModal"]', $profileMenu);
     }

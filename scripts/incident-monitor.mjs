@@ -1,5 +1,7 @@
+import { createHash, createHmac, randomBytes } from 'node:crypto';
+
 // Independent observer: never prints tokens, webhook URLs or response bodies.
-export async function monitor({ url, token, webhook, fetchImpl = fetch }) {
+export async function monitor({ url, token, webhook, fetchImpl = fetch, now = () => Date.now(), nonceFactory = () => randomBytes(24).toString('hex') }) {
     const target = new URL(url);
     if (target.protocol !== 'https:' || target.username || target.password || target.search || target.hash
         || target.pathname !== '/api/operations/monitor' || !token || token.length < 32) {
@@ -7,8 +9,20 @@ export async function monitor({ url, token, webhook, fetchImpl = fetch }) {
     }
     let failed = false;
     try {
+        const body = '{}';
+        const timestamp = String(Math.floor(now() / 1000));
+        const nonce = nonceFactory();
+        if (!/^[A-Za-z0-9_-]{32,128}$/.test(nonce)) throw new Error('The monitor nonce source is invalid.');
+        const digest = createHash('sha256').update(body).digest('hex');
+        const signature = createHmac('sha256', token)
+            .update(`v2:incident-monitor:POST:${target.pathname}:${timestamp}:${nonce}:${digest}`)
+            .digest('hex');
         const response = await fetchImpl(target.href, { method: 'POST', redirect: 'error',
-            signal: AbortSignal.timeout(20000), headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+            signal: AbortSignal.timeout(20000), headers: {
+                Accept: 'application/json', 'Content-Type': 'application/json',
+                'X-MathVerse-Timestamp': timestamp, 'X-MathVerse-Nonce': nonce,
+                'X-MathVerse-Signature': signature,
+            }, body });
         if (!response.ok) failed = true;
     } catch {
         failed = true;

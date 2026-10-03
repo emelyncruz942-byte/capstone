@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\IncidentAlertService;
 use App\Services\SupabaseService;
+use App\Support\MachineRequestSignature;
 use Illuminate\Http\Request;
 
 class IncidentController extends Controller
@@ -30,6 +31,7 @@ class IncidentController extends Controller
             $event = $this->supabase->adminSelect('incident_events', 'reference_id,kind,actor_id,route_name,http_status,created_at', ['reference_id' => $reference])[0] ?? null;
         }
         $activePage = 'incidents';
+
         return view('admin.incidents', compact('user', 'items', 'status', 'page', 'pages', 'reference', 'event', 'activePage', 'incidentsReady'));
     }
 
@@ -38,6 +40,7 @@ class IncidentController extends Controller
         $result = $this->supabase->adminRpcResult('acknowledge_system_incident', [
             'p_actor_id' => session('supabase_user.id'), 'p_id' => $id,
         ]);
+
         return redirect('/admin/incidents')->with($result['error'] === null ? 'success' : 'error', $result['error'] === null
             ? 'Incident acknowledged. Repeated alerts are paused until recovery or a critical escalation.'
             : 'The incident could not be acknowledged.');
@@ -46,9 +49,12 @@ class IncidentController extends Controller
     public function monitor(Request $request)
     {
         $token = (string) config('mathverse.incidents.monitor_token');
-        $provided = (string) $request->bearerToken();
-        // Fail closed when unconfigured. Never take the token from a URL.
-        abort_unless(strlen($token) >= 32 && hash_equals($token, $provided), 401);
+        // Authenticate the exact body and reject stale or replayed requests.
+        // The secret is never transmitted as a bearer credential.
+        abort_unless(
+            MachineRequestSignature::verify($request, $token, 'incident-monitor'),
+            401,
+        );
         $stats = $this->alerts->check();
         $recorded = $this->supabase->adminUpsert('system_heartbeats', [
             'component' => 'independent_incident_monitor', 'status' => $stats['failed'] > 0 ? 'failed' : 'ok',
@@ -57,7 +63,8 @@ class IncidentController extends Controller
         if (($recorded[0]['component'] ?? null) !== 'independent_incident_monitor') {
             $stats['failed']++;
         }
-        return response()->json($stats, !$stats['enabled'] || $stats['failed'] > 0 ? 503 : 200)
+
+        return response()->json($stats, ! $stats['enabled'] || $stats['failed'] > 0 ? 503 : 200)
             ->header('Cache-Control', 'no-store, private');
     }
 }

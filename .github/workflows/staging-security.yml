@@ -1,0 +1,31 @@
+name: Staging security scan
+
+on:
+  schedule:
+    - cron: '41 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mathverse-staging-security
+  cancel-in-progress: false
+
+jobs:
+  zap-baseline:
+    if: vars.STAGING_SECURITY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run an unauthenticated OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: ${{ secrets.STAGING_BASE_URL }}
+          rules_file_name: .zap/rules.tsv
+          cmd_options: '-a -j'
+          allow_issue_writing: false
+          fail_action: true

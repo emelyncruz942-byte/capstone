@@ -15,6 +15,7 @@
             <p class="text-[9px] uppercase tracking-[0.3em] font-bold text-green-400">Adaptive practice evidence</p>
             <h2 class="font-orbitron font-black text-2xl md:text-3xl mt-2">Learning Hub <span class="text-cyan-400">Insights</span></h2>
             <p class="text-sm text-slate-400 mt-3 max-w-2xl">See class-wide trends, then open secure solo statistics for any student enrolled in your active classes.</p>
+            <p class="text-[10px] text-slate-500 mt-2">Calendar timezone: {{ $analytics['timezone'] }}</p>
         </div>
         <form method="GET" action="/teacher/learning-hub" class="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 w-full xl:w-auto" data-seamless-form>
             <label class="sr-only" for="learning-class-filter">Class</label>

@@ -10,6 +10,12 @@ class QuizListScalingTest extends TestCase
 {
     private const OWNER_ID = '11111111-1111-4111-8111-111111111111';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withViewErrors([]);
+    }
+
     public function test_admin_can_open_a_quiz_list_with_more_ids_than_one_safe_filter_can_hold(): void
     {
         $this->withoutMiddleware();

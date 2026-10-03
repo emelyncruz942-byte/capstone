@@ -90,7 +90,7 @@ class AuthSecurityFlowTest extends TestCase
             ->with(
                 $userId,
                 'teacher_application_received',
-                'teacher-application-received:' . $userId,
+                'teacher-application-received:'.$userId,
             )
             ->andReturn(['sent' => true, 'queued' => true]);
 
@@ -110,7 +110,7 @@ class AuthSecurityFlowTest extends TestCase
         );
     }
 
-    public function test_password_reset_rejects_an_unregistered_email(): void
+    public function test_password_reset_does_not_reveal_an_unregistered_email(): void
     {
         $supabase = $this->mock(SupabaseService::class);
         $supabase->shouldReceive('adminSelectResult')
@@ -131,9 +131,11 @@ class AuthSecurityFlowTest extends TestCase
         ]);
 
         $response->assertRedirect('/');
-        $response->assertSessionHasErrors([
-            'email' => 'No MathVerse account is registered with that email address.',
-        ]);
+        $response->assertSessionHas(
+            'success',
+            'Reset email sent if that email address is registered to a MathVerse account.'
+        );
+        $response->assertSessionDoesntHaveErrors();
     }
 
     public function test_login_rejects_a_malformed_auth_identity_before_profile_lookup(): void
@@ -286,11 +288,10 @@ class AuthSecurityFlowTest extends TestCase
             'https://project.supabase.co/auth/v1/logout*' => Http::response(null, 204),
         ]);
 
-        $service = new SupabaseService();
+        $service = new SupabaseService;
 
         $this->assertTrue($service->signOut('header.payload.signature'));
-        Http::assertSent(static fn ($request): bool =>
-            $request->url() === 'https://project.supabase.co/auth/v1/logout?scope=global'
+        Http::assertSent(static fn ($request): bool => $request->url() === 'https://project.supabase.co/auth/v1/logout?scope=global'
             && $request->hasHeader('apikey', 'public-anon-key-for-testing')
             && $request->hasHeader('Authorization', 'Bearer header.payload.signature')
         );
@@ -325,7 +326,10 @@ class AuthSecurityFlowTest extends TestCase
         ]);
 
         $response->assertRedirect('/');
-        $response->assertSessionHas('success', 'Recovery link sent.');
+        $response->assertSessionHas(
+            'success',
+            'Reset email sent if that email address is registered to a MathVerse account.'
+        );
     }
 
     public function test_password_reset_failure_returns_an_error_instead_of_a_server_error(): void

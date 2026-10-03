@@ -7,6 +7,8 @@ use App\Services\IncidentReporter;
 use App\Services\NotificationDeliveryService;
 use App\Services\SupabaseService;
 use App\Services\SystemHealthService;
+use App\Support\MachineRequestSignature;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -15,7 +17,9 @@ use Tests\TestCase;
 class IncidentFlowTest extends TestCase
 {
     private const ID = '11111111-1111-4111-8111-111111111111';
+
     private const LEASE = '22222222-2222-4222-8222-222222222222';
+
     private const ADMIN = '33333333-3333-4333-8333-333333333333';
 
     public function test_unhandled_errors_have_a_matching_safe_reference_in_response_and_diagnostics(): void
@@ -26,6 +30,7 @@ class IncidentFlowTest extends TestCase
         $captured = null;
         $service->shouldReceive('adminInsertResult')->once()->withArgs(function ($table, $payload) use (&$captured): bool {
             $captured = $payload;
+
             return $table === 'incident_events' && $payload['kind'] === 'error';
         })->andReturn(['error' => null, 'data' => []]);
         $response = $this->getJson('/test-incident-error?token_hash=synthetic-secret');
@@ -45,7 +50,7 @@ class IncidentFlowTest extends TestCase
         $service->shouldReceive('signIn')->once()->andReturn(['error' => 'Invalid login credentials']);
         $service->shouldReceive('adminInsertResult')->once()->withArgs(fn ($table, $data): bool => $table === 'incident_events'
             && $data['kind'] === 'auth_failure' && strlen($data['subject_hash']) === 64 && strlen($data['network_hash']) === 64
-            && !str_contains(json_encode($data), 'student@example.test') && !str_contains(json_encode($data), 'Password1!'))
+            && ! str_contains(json_encode($data), 'student@example.test') && ! str_contains(json_encode($data), 'Password1!'))
             ->andReturn(['error' => null, 'data' => []]);
         $this->from('/')->post('/login', ['email' => 'student@example.test', 'password' => 'Password1!'])
             ->assertRedirect('/')->assertSessionHas('error', fn ($message): bool => str_contains($message, 'Reference: MV-'));
@@ -56,7 +61,7 @@ class IncidentFlowTest extends TestCase
         config(['mathverse.incidents.enabled' => true]);
         RateLimiter::shouldReceive('tooManyAttempts')->once()->andThrow(new \RuntimeException('Cache unavailable'));
         $this->mock(SupabaseService::class)->shouldNotReceive('adminInsertResult');
-        $request = \Illuminate\Http\Request::create('/test-incident-cache', 'GET');
+        $request = Request::create('/test-incident-cache', 'GET');
         $reference = app(IncidentReporter::class)->capture($request, 'error', 500);
         $this->assertMatchesRegularExpression('/^MV-[A-F0-9]{16}$/', $reference);
     }
@@ -76,7 +81,7 @@ class IncidentFlowTest extends TestCase
         config(['mathverse.incidents.enabled' => true]);
         Route::middleware('web')->get('/test-incident-denied', fn () => abort(403));
         $this->mock(SupabaseService::class)->shouldReceive('adminInsertResult')->once()
-            ->withArgs(fn ($table,$data): bool => $table === 'incident_events' && $data['kind'] === 'access_denied')
+            ->withArgs(fn ($table, $data): bool => $table === 'incident_events' && $data['kind'] === 'access_denied')
             ->andReturn(['error' => null, 'data' => []]);
         $response = $this->getJson('/test-incident-denied');
         $response->assertForbidden()->assertJsonPath('reference_id', $response->headers->get('X-MathVerse-Reference'))
@@ -97,12 +102,58 @@ class IncidentFlowTest extends TestCase
 
     public function test_external_monitor_runs_without_the_scheduler_or_a_queue_worker(): void
     {
-        config(['mathverse.incidents.monitor_token' => str_repeat('x', 40)]);
+        $secret = str_repeat('x', 40);
+        $body = '{}';
+        config(['mathverse.incidents.monitor_token' => $secret]);
         $this->mock(IncidentAlertService::class)->shouldReceive('check')->once()
             ->andReturn(['enabled' => true, 'checked' => 9, 'active' => 1, 'failed' => 0, 'notified' => 1]);
         $this->mock(SupabaseService::class)->shouldReceive('adminUpsert')->once()->andReturn([['component' => 'independent_incident_monitor']]);
-        $this->withHeader('Authorization', 'Bearer '.str_repeat('x', 40))->postJson('/api/operations/monitor')
+        $headers = MachineRequestSignature::headers(
+            $body, $secret, 'incident-monitor', 'POST', '/api/operations/monitor',
+            time(), str_repeat('a', 48)
+        );
+
+        $this->signedMonitorRequest($headers, $body)
             ->assertOk()->assertJsonPath('notified', 1)->assertHeader('Cache-Control', 'no-store, private');
+
+        $this->signedMonitorRequest($headers, $body)->assertUnauthorized();
+    }
+
+    public function test_external_monitor_rejects_stale_and_tampered_signatures(): void
+    {
+        $secret = str_repeat('x', 40);
+        $body = '{}';
+        config(['mathverse.incidents.monitor_token' => $secret]);
+        $this->mock(IncidentAlertService::class)->shouldNotReceive('check');
+
+        $stale = MachineRequestSignature::headers(
+            $body,
+            $secret,
+            'incident-monitor',
+            'POST',
+            '/api/operations/monitor',
+            time() - MachineRequestSignature::MAX_CLOCK_SKEW_SECONDS - 1,
+            str_repeat('b', 48),
+        );
+        $this->signedMonitorRequest($stale, $body)->assertUnauthorized();
+
+        $tampered = MachineRequestSignature::headers(
+            $body, $secret, 'incident-monitor', 'POST', '/api/operations/monitor',
+            time(), str_repeat('c', 48)
+        );
+        $this->signedMonitorRequest($tampered, '{"changed":true}')->assertUnauthorized();
+
+        $wrongPath = MachineRequestSignature::headers(
+            $body, $secret, 'incident-monitor', 'POST', '/api/operations/other',
+            time(), str_repeat('d', 48)
+        );
+        $this->signedMonitorRequest($wrongPath, $body)->assertUnauthorized();
+
+        $wrongMethod = MachineRequestSignature::headers(
+            $body, $secret, 'incident-monitor', 'GET', '/api/operations/monitor',
+            time(), str_repeat('e', 48)
+        );
+        $this->signedMonitorRequest($wrongMethod, $body)->assertUnauthorized();
     }
 
     public function test_stale_scheduler_is_immediately_dispatched_through_durable_email_and_webhook(): void
@@ -113,11 +164,12 @@ class IncidentFlowTest extends TestCase
                 && str_contains($args[7], self::ID) && $args[8] === self::ADMIN)
             ->andReturn(['sent' => true, 'queued' => true]);
         Http::fake(['alerts.example.test/*' => Http::response([], 200)]);
-        $service->shouldReceive('adminRpcResult')->once()->withArgs(fn ($name,$args): bool => $name === 'finish_incident_notification'
+        $service->shouldReceive('adminRpcResult')->once()->withArgs(fn ($name, $args): bool => $name === 'finish_incident_notification'
             && $args['p_complete'] && ((array) $args['p_channels'])['webhook'] && ((array) $args['p_channels'])['email:'.self::ADMIN])
             ->andReturn(['error' => null, 'data' => [['completed' => true]]]);
         $stats = app(IncidentAlertService::class)->check();
-        $this->assertSame(1, $stats['notified']); $this->assertSame(0, $stats['failed']);
+        $this->assertSame(1, $stats['notified']);
+        $this->assertSame(0, $stats['failed']);
         Http::assertSentCount(1);
     }
 
@@ -126,9 +178,9 @@ class IncidentFlowTest extends TestCase
         $service = $this->alertFixture(['bell' => true, 'email:'.self::ADMIN => true]);
         $this->mock(NotificationDeliveryService::class)->shouldNotReceive('deliverStandaloneEmailNow');
         Http::fake(['alerts.example.test/*' => Http::response([], 503)]);
-        $service->shouldReceive('adminRpcResult')->once()->withArgs(fn ($name,$args): bool => $name === 'finish_incident_notification'
-            && !$args['p_complete'] && ((array) $args['p_channels'])['email:'.self::ADMIN]
-            && !str_contains($args['p_error'], 'webhook-secret'))
+        $service->shouldReceive('adminRpcResult')->once()->withArgs(fn ($name, $args): bool => $name === 'finish_incident_notification'
+            && ! $args['p_complete'] && ((array) $args['p_channels'])['email:'.self::ADMIN]
+            && ! str_contains($args['p_error'], 'webhook-secret'))
             ->andReturn(['error' => null, 'data' => [['completed' => true]]]);
         $stats = app(IncidentAlertService::class)->check();
         $this->assertSame(1, $stats['failed']);
@@ -144,18 +196,35 @@ class IncidentFlowTest extends TestCase
         $service = $this->mock(SupabaseService::class);
         $service->shouldReceive('adminRpcResult')->once()->with('incident_signal_counts', ['p_window_seconds' => 600])
             ->andReturn(['error' => null, 'data' => [['errors' => 0, 'repeated_failures' => 0, 'admin_actions' => 0]]]);
-        $service->shouldReceive('adminRpcResult')->withArgs(fn ($name,$args): bool => $name === 'sync_incident_signal')
-            ->andReturnUsing(fn ($name,$args): array => ['error' => null, 'data' => [$args['p_key'] === 'scheduler'
+        $service->shouldReceive('adminRpcResult')->withArgs(fn ($name, $args): bool => $name === 'sync_incident_signal')
+            ->andReturnUsing(fn ($name, $args): array => ['error' => null, 'data' => [$args['p_key'] === 'scheduler'
                 ? ['id' => self::ID, 'lease' => self::LEASE, 'signal_key' => 'scheduler', 'severity' => 'critical',
                     'summary' => 'Scheduler heartbeat stale.', 'notification_generation' => 1, 'delivered_channels' => $channels, 'notify' => true]
                 : ['notify' => false]]]);
-        if (!($channels['bell'] ?? false)) {
+        if (! ($channels['bell'] ?? false)) {
             $service->shouldReceive('adminRpcResult')->once()->with('notify_incident_admins', ['p_id' => self::ID, 'p_generation' => 1])
                 ->andReturn(['error' => null, 'data' => [['saved' => true]]]);
         }
         $service->shouldReceive('adminSelectResult')->once()->andReturn(['error' => null, 'data' => [[
             'id' => self::ADMIN, 'email' => 'admin@example.test', 'first_name' => 'A', 'last_name' => 'Admin',
         ]]]);
+
         return $service;
+    }
+
+    /**
+     * @param  array<string, string>  $headers
+     */
+    private function signedMonitorRequest(array $headers, string $body)
+    {
+        $server = [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+        ];
+        foreach ($headers as $name => $value) {
+            $server['HTTP_'.strtoupper(str_replace('-', '_', $name))] = $value;
+        }
+
+        return $this->call('POST', '/api/operations/monitor', [], [], [], $server, $body);
     }
 }

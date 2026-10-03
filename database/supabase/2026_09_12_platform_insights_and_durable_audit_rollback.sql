@@ -2,7 +2,9 @@
 begin;
 create table if not exists public.rollback_privileged_audit_outbox_20260912
     as select * from public.privileged_audit_outbox;
-revoke all on public.rollback_privileged_audit_outbox_20260912
+alter table public.rollback_privileged_audit_outbox_20260912 enable row level security;
+alter table public.rollback_privileged_audit_outbox_20260912 force row level security;
+revoke all privileges on table public.rollback_privileged_audit_outbox_20260912
     from public, anon, authenticated, service_role;
 drop function if exists public.teacher_learning_hub_analytics(uuid, uuid, integer);
 drop function if exists public.student_trophy_leaderboard(uuid, integer);

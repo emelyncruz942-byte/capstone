@@ -1,0 +1,4 @@
+10020	FAIL	X-Frame-Options header must be present
+10021	FAIL	X-Content-Type-Options header must be present
+10038	FAIL	Content-Security-Policy header must be present
+10035	WARN	Strict-Transport-Security applies to deployed HTTPS responses

@@ -2,8 +2,12 @@
 begin;
 create table if not exists public.rollback_arcade_scores_20260912 as select * from public.arcade_scores;
 create table if not exists public.rollback_arcade_achievements_20260912 as select * from public.arcade_achievements;
-revoke all on public.rollback_arcade_scores_20260912 from public,anon,authenticated,service_role;
-revoke all on public.rollback_arcade_achievements_20260912 from public,anon,authenticated,service_role;
+alter table public.rollback_arcade_scores_20260912 enable row level security;
+alter table public.rollback_arcade_scores_20260912 force row level security;
+alter table public.rollback_arcade_achievements_20260912 enable row level security;
+alter table public.rollback_arcade_achievements_20260912 force row level security;
+revoke all privileges on table public.rollback_arcade_scores_20260912 from public, anon, authenticated, service_role;
+revoke all privileges on table public.rollback_arcade_achievements_20260912 from public, anon, authenticated, service_role;
 drop function if exists public.finish_arcade_game(uuid,uuid,text);
 drop function if exists public.submit_arcade_answer(uuid,uuid,text,integer,text);
 drop function if exists public.start_arcade_game(uuid,text);

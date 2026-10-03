@@ -468,6 +468,8 @@ declare
         'assign_shared_quiz_to_classes',
         'auto_verify_admin_quiz',
         'claim_notification_deliveries',
+        'claim_machine_request',
+        'consume_vr_request_limit',
         'create_notification',
         'delete_open_quiz_assignment',
         'delete_teacher_class',
@@ -480,11 +482,14 @@ declare
         'finish_number_guess_game',
         'generate_upcoming_quiz_notifications',
         'get_my_vr_quiz_score_slot',
+        'get_my_vr_quiz_questions',
+        'get_my_vr_quiz_status',
         'get_vr_quiz_score_slot',
         'grant_quiz_retake',
         'handle_auth_security_change',
         'ignore_repeat_quiz_result',
         'invalidate_profile_sessions_after_password_change',
+        'join_my_vr_quiz_room',
         'keep_quiz_results_immutable',
         'number_guess_dashboard',
         'notify_all_admins',
@@ -519,6 +524,7 @@ declare
         'submit_number_guess',
         'submit_practice_answer',
         'submit_my_vr_quiz_score',
+        'submit_my_vr_quiz_answers',
         'submit_vr_quiz_score'
     ];
 begin
@@ -548,8 +554,10 @@ begin
         );
         if function_record.function_name in (
             'get_my_vr_quiz_score_slot',
-            'register_my_vr_quiz_participant',
-            'submit_my_vr_quiz_score'
+            'get_my_vr_quiz_questions',
+            'get_my_vr_quiz_status',
+            'join_my_vr_quiz_room',
+            'submit_my_vr_quiz_answers'
         ) then
             execute format(
                 'grant execute on function %I.%I(%s) to authenticated',
@@ -559,7 +567,7 @@ begin
             );
         elsif function_record.function_name in ('get_vr_quiz_score_slot', 'submit_vr_quiz_score') then
             execute format(
-                'grant execute on function %I.%I(%s) to anon, authenticated, service_role',
+                'grant execute on function %I.%I(%s) to service_role',
                 function_record.schema_name,
                 function_record.function_name,
                 function_record.identity_arguments

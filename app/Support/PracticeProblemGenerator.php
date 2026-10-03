@@ -1400,10 +1400,10 @@ class PracticeProblemGenerator
 
         if ($variant === 1) {
             $validIndex = $this->number(0, 2, 222, $seed);
-            $answer = $tiles[$validIndex][0];
+            [$answer, $answerAngle] = $tiles[$validIndex];
 
             return $this->choiceProblem(
-                'Which regular tile can meet copies of itself at a point so the corner angles total exactly 360°?',
+                "Which regular tile has a {$answerAngle}° corner and can meet copies of itself at a point so the angles total exactly 360°?",
                 [$answer, 'Regular pentagon', 'Circle'],
                 $answer,
                 ['A full turn around one point is 360°.', 'The valid tile needs a whole number of equal corner angles to fill that turn.'],
@@ -1651,9 +1651,14 @@ class PracticeProblemGenerator
             }
             $budget = min($limit, $first + $second + $third + $this->number(20, 100, 61, $seed));
             $answer = $budget - $first - $second - $third;
+            $prompt = $this->promptVariant([
+                "A class has ₱{$budget}. It buys materials for ₱{$first}, ₱{$second}, and ₱{$third}. How much money remains?",
+                "A school club starts with ₱{$budget} and pays three bills: ₱{$first}, ₱{$second}, and ₱{$third}. Find its remaining budget.",
+                "After spending ₱{$first}, ₱{$second}, and ₱{$third} from ₱{$budget}, how many pesos are left for the next activity?",
+            ], $seed, 234);
 
             return $this->numberProblem(
-                "A class has ₱{$budget}. It buys materials for ₱{$first}, ₱{$second}, and ₱{$third}. How much money remains?",
+                $prompt,
                 $answer,
                 ['Add the three costs.', 'Subtract the combined cost from the budget.'],
                 "₱{$budget} − (₱{$first} + ₱{$second} + ₱{$third}) = ₱{$answer}."

@@ -34,8 +34,10 @@
     document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         const queryParams = new URLSearchParams(window.location.search);
-        const token = params.get('token_hash') || queryParams.get('token_hash');
-        const type = params.get('type') || queryParams.get('type');
+        const token = params.get('token_hash');
+        const type = params.get('type');
+        const hasQueryCredential = ['token', 'token_hash', 'access_token', 'refresh_token', 'code']
+            .some(parameter => queryParams.has(parameter));
         const form = document.getElementById('confirmation-form');
         const status = document.getElementById('confirmation-status');
         const returnLink = document.getElementById('confirmation-return');
@@ -44,7 +46,7 @@
         cleanUrl.hash = '';
         window.history.replaceState(window.history.state, document.title, cleanUrl.pathname);
 
-        if (!token || !['email', 'email_change'].includes(type)) {
+        if (hasQueryCredential || !token || !['email', 'email_change'].includes(type)) {
             status.textContent = 'This email confirmation link is incomplete or invalid.';
             returnLink.classList.remove('hidden');
             showToast('This email confirmation link is incomplete or invalid.', true);

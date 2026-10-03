@@ -10,7 +10,10 @@ class TrustedHost
 {
     private const CANONICAL_URL = 'https://mathmetaverse.space';
 
-    private const LEGACY_HOST = 'mathverse-production-luqbjt.laravel.cloud';
+    private const LEGACY_HOSTS = [
+        'capstone-production-bgoexb.laravel.cloud',
+        'mathverse-production-luqbjt.laravel.cloud',
+    ];
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -20,7 +23,7 @@ class TrustedHost
             abort(400, 'Invalid host.');
         }
 
-        if ($host === self::LEGACY_HOST) {
+        if (in_array($host, self::LEGACY_HOSTS, true)) {
             $target = self::CANONICAL_URL.$request->getPathInfo();
             $query = $request->getQueryString();
             if (is_string($query) && $query !== '') {
@@ -55,7 +58,7 @@ class TrustedHost
     private function allowedHosts(): array
     {
         $configured = config('app.trusted_hosts', []);
-        $hosts = [parse_url(self::CANONICAL_URL, PHP_URL_HOST), self::LEGACY_HOST];
+        $hosts = [parse_url(self::CANONICAL_URL, PHP_URL_HOST), ...self::LEGACY_HOSTS];
         if (is_array($configured)) {
             $hosts = array_merge($hosts, $configured);
         }

@@ -1,0 +1,79 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 2
+			path: app/Http/Controllers/StudentClassController.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
+			identifier: greater.alwaysTrue
+			count: 2
+			path: app/Http/Controllers/TeacherClassController.php
+
+		-
+			message: '#^Offset ''status'' on non\-empty\-array on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Http/Controllers/TeacherClassController.php
+
+		-
+			message: '#^Offset ''error'' on non\-empty\-array on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/TeacherQuizController.php
+
+		-
+			message: '#^Comparison operation "\>" between int\<1, 65535\> and 65535 is always false\.$#'
+			identifier: greater.alwaysFalse
+			count: 1
+			path: app/Http/Middleware/SecurityHeaders.php
+
+		-
+			message: '#^Offset 0 on array\{list\<string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Services/AdaptivePracticeService.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<string, mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Support/NotificationDigest.php
+
+		-
+			message: '#^Method App\\Support\\PracticeProblemGenerator\:\:decimalAddition\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Support/PracticeProblemGenerator.php
+
+		-
+			message: '#^Method App\\Support\\PracticeProblemGenerator\:\:division\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Support/PracticeProblemGenerator.php
+
+		-
+			message: '#^Method App\\Support\\PracticeProblemGenerator\:\:fractionNumeratorAddition\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Support/PracticeProblemGenerator.php
+
+		-
+			message: '#^Method App\\Support\\PracticeProblemGenerator\:\:multiDigitAddition\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Support/PracticeProblemGenerator.php
+
+		-
+			message: '#^Method App\\Support\\PracticeProblemGenerator\:\:multiplication\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: app/Support/PracticeProblemGenerator.php
+
+		-
+			message: '#^Parameter \#1 \$array \(non\-empty\-list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Support/PracticeProblemGenerator.php

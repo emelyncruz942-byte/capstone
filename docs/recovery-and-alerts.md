@@ -82,9 +82,33 @@ For the included **Independent incident monitor** GitHub workflow, configure:
 | Actions secret `INCIDENT_MONITOR_TOKEN` | The exact private token in that deployment. |
 | Actions secret `INCIDENT_WEBHOOK_URL` | Optional independent fallback destination; configure here **and** Cloud to cover an unreachable site/database and failed application email. |
 
-The endpoint accepts its token **only** as `Authorization: Bearer`, fails closed
-when unconfigured and returns no private operational rows. The observer refuses
-redirects. Do not commit credentials, put them in URLs or expose them in screenshots.
+The token is a shared HMAC key and is never sent to the endpoint. For the
+included request (`POST /api/operations/monitor` with the exact raw body `{}`),
+the observer computes the lowercase hexadecimal HMAC-SHA256 of this v2
+canonical message:
+
+```text
+v2:incident-monitor:POST:/api/operations/monitor:<unix_timestamp>:<nonce>:<sha256_hex_of_exact_raw_body>
+```
+
+It sends the timestamp, fresh random nonce, and result in
+`X-MathVerse-Timestamp`, `X-MathVerse-Nonce`, and
+`X-MathVerse-Signature`. Thus the scope, uppercase method, path without query
+or fragment, exact body, ten-digit Unix-seconds timestamp, and nonce are all
+authenticated. Laravel accepts signatures only inside the five-minute
+clock-skew window and atomically claims each nonce in the configured shared
+limiter store, so a captured request cannot be replayed. The endpoint fails
+closed when the key or replay store is unavailable and returns no private
+operational rows. The observer refuses redirects. Keep clocks synchronized,
+and do not commit the key, put it in URLs, or expose it in screenshots.
+
+The v2 observer and endpoint are intentionally incompatible with the former
+bearer-token protocol. For this release, set `INCIDENT_MONITOR_ENABLED=false`
+only for the planned maintenance window, keep a separate uptime alert active,
+deploy the Laravel endpoint and updated default-branch workflow together, then
+run the workflow manually and restore the variable to `true`. Update any
+external cron signer to the v2 canonical format before re-enabling it; do not
+add a bearer-token fallback to the endpoint.
 
 Run the workflow manually once. It then runs approximately every five minutes
 outside Laravel. GitHub scheduled jobs can be delayed/skipped under load: this
