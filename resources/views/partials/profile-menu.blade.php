@@ -5,13 +5,14 @@
         'admin' => '/admin/dashboard',
         default => '/student/dashboard',
     };
+    $profileAvatar = $user['avatar_url'] ?? null;
 @endphp
 
 <div class="profile-menu-root relative shrink-0" data-profile-root>
     <button type="button" data-profile-toggle aria-haspopup="menu" aria-expanded="false"
             aria-label="Open profile menu"
             class="profile-menu-toggle w-11 h-11 rounded-full border border-white/15 bg-black/70 hover:border-cyan-400/60 transition-colors overflow-hidden flex items-center justify-center">
-        <img src="{{ $user['avatar_url'] ?: asset('default.png') }}" data-current-user-avatar
+        <img src="{{ $profileAvatar ?: asset('default.png') }}" data-current-user-avatar
              alt="{{ $profileName }} profile image" width="44" height="44" decoding="async"
              class="w-full h-full object-cover">
     </button>
@@ -19,7 +20,7 @@
     <div data-profile-menu role="menu" aria-hidden="true"
          class="profile-menu absolute right-0 top-full mt-3 w-64 rounded-lg border border-white/10 bg-slate-950/95 backdrop-blur-xl shadow-2xl overflow-hidden z-[210] scale-95 opacity-0 pointer-events-none">
         <div class="flex items-center gap-3 px-4 py-4 border-b border-white/10 bg-white/[0.025]">
-            <img src="{{ $user['avatar_url'] ?: asset('default.png') }}" data-current-user-avatar
+            <img src="{{ $profileAvatar ?: asset('default.png') }}" data-current-user-avatar
                  alt="" width="40" height="40" loading="lazy" decoding="async" aria-hidden="true"
                  class="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0">
             <div class="min-w-0 text-left">

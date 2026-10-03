@@ -34,3 +34,7 @@
     <i class="fas fa-rocket mr-3 w-5 text-green-400"></i> Learning Hub Insights
 </a>
 <a href="/teacher/trash" class="nav-link w-full {{ $activePage === 'trash' ? 'active' : '' }}"><i class="fas fa-trash-restore mr-3 w-5 text-amber-400"></i> Trash and Recovery</a>
+<a href="{{ route('support-tickets.index') }}"
+   class="nav-link w-full {{ $activePage === 'support' ? 'active' : '' }}">
+    <i class="fas fa-life-ring mr-3 w-5 text-orange-400"></i> Help &amp; Support
+</a>

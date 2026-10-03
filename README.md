@@ -75,8 +75,8 @@ Laravel SQL database, verify these Cloud environment variables and redeploy:
 
 ```dotenv
 QUEUE_CONNECTION=deferred
-CACHE_STORE=file
-CACHE_LIMITER=file
+CACHE_STORE=redis
+CACHE_LIMITER=redis
 SCHEDULE_CACHE_DRIVER=file
 ```
 
@@ -87,7 +87,11 @@ storage. The health page monitors the Supabase delivery outbox, not Laravel's
 optional queue. Multiple
 application replicas need shared cache, rate-limit, and scheduler-lock storage
 (for example Redis), not per-instance files. Do not switch a working Redis
-configuration to files. Sessions also need a working backend: an encrypted
+configuration to files. The production limiter uses Redis first and falls back
+to a per-instance file limiter only while the shared service is unavailable, so
+an infrastructure fault cannot turn every throttled route into a 500 response;
+restore Redis promptly because fallback limits are not shared across replicas.
+Sessions also need a working backend: an encrypted
 cookie driver or shared Redis is appropriate when there is no Laravel SQL
 database; `SESSION_DRIVER=database` still requires its own SQL session table.
 Remove a Cloud worker explicitly pinned to the `database` connection when no

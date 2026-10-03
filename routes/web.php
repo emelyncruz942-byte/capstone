@@ -18,6 +18,8 @@ use App\Http\Controllers\TeacherLearningHubController;
 use App\Http\Controllers\SystemHealthController;
 use App\Http\Controllers\RecoveryController;
 use App\Http\Controllers\IncidentController;
+use App\Http\Controllers\SupportTicketController;
+use App\Http\Controllers\AdminSupportTicketController;
 
 $uuidPattern = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}';
 Route::pattern('id', $uuidPattern);
@@ -51,6 +53,13 @@ Route::middleware(['throttle:authenticated', 'auth.supabase'])->group(function (
     Route::post('/notifications/{id}/read', [NotificationController::class, 'read']);
     Route::post('/push-subscription', [AdminPushController::class, 'store'])->middleware('throttle:30,1');
     Route::delete('/push-subscription', [AdminPushController::class, 'destroy'])->middleware('throttle:30,1');
+    Route::get('/support-tickets', [SupportTicketController::class, 'index'])
+        ->name('support-tickets.index');
+    Route::post('/support-tickets', [SupportTicketController::class, 'store'])
+        ->middleware('throttle:support-tickets')
+        ->name('support-tickets.store');
+    Route::get('/support-tickets/{id}', [SupportTicketController::class, 'show'])
+        ->name('support-tickets.show');
 });
 
 // Student routes
@@ -143,6 +152,13 @@ Route::middleware(['throttle:authenticated', 'auth.supabase:admin'])->group(func
     Route::get('/admin/trash', [RecoveryController::class, 'index']);
     Route::get('/admin/incidents', [IncidentController::class, 'index']);
     Route::post('/admin/incidents/{id}/acknowledge', [IncidentController::class, 'acknowledge'])->middleware('throttle:account-security');
+    Route::get('/admin/support-tickets', [AdminSupportTicketController::class, 'index'])
+        ->name('admin.support-tickets.index');
+    Route::get('/admin/support-tickets/{id}', [AdminSupportTicketController::class, 'show'])
+        ->name('admin.support-tickets.show');
+    Route::patch('/admin/support-tickets/{id}', [AdminSupportTicketController::class, 'update'])
+        ->middleware('throttle:account-security')
+        ->name('admin.support-tickets.update');
     Route::post('/admin/trash/account/{id}/restore', [RecoveryController::class, 'reactivate'])->middleware('throttle:account-security');
     Route::post('/admin/trash/{kind}/{id}/restore', [RecoveryController::class, 'restoreItem'])->where('kind', 'class|quiz')->middleware('throttle:account-security');
     Route::delete('/admin/trash/account/{id}', [RecoveryController::class, 'permanentlyDelete'])->middleware('throttle:account-security');

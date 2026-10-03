@@ -68,7 +68,14 @@ class AppServiceProvider extends ServiceProvider
                 throw new \RuntimeException('Production MathVerse sessions require encryption and secure cookie settings.');
             }
 
-            $limiterStore = (string) config('cache.limiter');
+            $configuredLimiterStore = (string) config('cache.limiter');
+            $configuredLimiterDriver = (string) config("cache.stores.{$configuredLimiterStore}.driver");
+            // config:cache boots providers and persists their final values. If
+            // this failover store was cached by an earlier boot, validate and
+            // reuse its shared primary instead of wrapping it recursively.
+            $limiterStore = $configuredLimiterDriver === 'failover'
+                ? (string) (config("cache.stores.{$configuredLimiterStore}.stores.0") ?? '')
+                : $configuredLimiterStore;
             $limiterDriver = (string) config("cache.stores.{$limiterStore}.driver");
             if (! in_array($limiterDriver, ['database', 'redis', 'memcached', 'dynamodb'], true)) {
                 throw new \RuntimeException(
@@ -87,6 +94,19 @@ class AppServiceProvider extends ServiceProvider
                     );
                 }
             }
+
+            // Keep the shared store as the authoritative limiter, but do not
+            // turn an unavailable cache service into a site-wide outage. The
+            // file store preserves local throttling until the shared service
+            // recovers; Laravel automatically retries the primary store on
+            // later operations.
+            config([
+                'cache.stores.rate-limiter-failover' => [
+                    'driver' => 'failover',
+                    'stores' => [$limiterStore, 'file'],
+                ],
+                'cache.limiter' => 'rate-limiter-failover',
+            ]);
 
             $corsOrigins = config('cors.allowed_origins');
             if (! is_array($corsOrigins) || $corsOrigins === []) {
@@ -180,6 +200,15 @@ class AppServiceProvider extends ServiceProvider
             $userId = (string) $request->session()->get('supabase_user.id', $request->ip());
 
             return Limit::perMinute(5)->by("account-security:{$userId}");
+        });
+
+        RateLimiter::for('support-tickets', function (Request $request): array {
+            $userId = (string) $request->session()->get('supabase_user.id', 'guest');
+
+            return [
+                Limit::perHour(5)->by("support-ticket-user:{$userId}"),
+                Limit::perHour(30)->by("support-ticket-ip:{$request->ip()}"),
+            ];
         });
 
         RateLimiter::for('authenticated', function (Request $request): array {

@@ -519,7 +519,7 @@ of those quizzes retain their session data and have `source_quiz_id` set to
 
 ## Unity VR database access and score submission
 
-After all earlier forward migrations, run these six files in this exact order:
+After all earlier forward migrations, run these seven files in this exact order:
 
 1. `2026_09_20_vr_legacy_access.sql`
 2. `2026_09_20_vr_score_submission.sql`
@@ -527,6 +527,7 @@ After all earlier forward migrations, run these six files in this exact order:
 4. `2026_09_23_vr_retake_score_repair.sql`
 5. `2026_09_24_quiz_lifecycle_and_active_retakes.sql`
 6. `2026_10_02_vr_server_authority_and_request_guards.sql`
+7. `2026_10_03_support_tickets.sql`
 
 The first migration restores the narrowly scoped anonymous access required by
 the existing Unity client: lookup and status polling for waiting/active rooms,
@@ -571,6 +572,17 @@ existing immutable/idempotent result and retake guards. It also secures retained
 rollback archives and adds the service-role-only durable nonce/rate claim used
 by the signed `send-admin-push` Edge Function.
 
+The seventh migration adds private support tickets for signed-in students and
+teachers. Laravel performs the rate-limited writes with the service role;
+authenticated Data API clients can only read their own tickets through RLS.
+Administrators can triage status and priority, respond to the requester, and
+link an `MV-...` reference to the matching incident. Database triggers keep the
+report body immutable, require an administrator response before resolution,
+prevent lost updates with a version counter, and create bounded in-app
+notifications. Use `2026_10_03_support_tickets_rollback.sql` only after the
+matching routes have been removed; it retains tickets in an RLS-forced archive
+with privileges revoked from runtime roles.
+
 Step 6 is an incompatible, forward-only boundary rather than a rolling update.
 The old Unity client cannot join after anonymous reads are revoked, and the new
 client cannot join before the new RPCs exist. The old Laravel push sender also
@@ -583,7 +595,7 @@ server-calculated score submission, retake, and administrator push. If a check
 fails, keep those paths offline and complete a forward repair; do not restore
 anonymous grants as a compatibility workaround.
 
-All six migrations register themselves in `mathverse_schema_migrations`.
+All seven migrations register themselves in `mathverse_schema_migrations`.
 After step 6, do not reapply the legacy-access file: it detects the new boundary
 and safely performs no grants. Apply future security changes as new forward
 migrations. The matching Unity project must include the RPC-enabled

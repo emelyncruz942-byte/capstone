@@ -52,6 +52,10 @@
    class="nav-link w-full {{ $activePage === 'system-health' ? 'active' : '' }}">
     <i class="fas fa-heart-pulse mr-3 w-5 text-green-400"></i> System Health
 </a>
+<a href="{{ route('admin.support-tickets.index') }}"
+   class="nav-link w-full {{ $activePage === 'support-tickets' ? 'active' : '' }}">
+    <i class="fas fa-headset mr-3 w-5 text-orange-400"></i> Support Tickets
+</a>
 <a href="/admin/trash" class="nav-link w-full {{ $activePage === 'trash' ? 'active' : '' }}"><i class="fas fa-trash-restore mr-3 w-5 text-amber-400"></i> Trash and Recovery</a>
 <!--<a href="/admin/incidents" class="nav-link w-full {{ $activePage === 'incidents' ? 'active' : '' }}"><i class="fas fa-bell mr-3 w-5 text-red-400"></i> Incident Alerts</a>-->
 <a href="/admin/dashboard?section=reports" id="btn-reports"
