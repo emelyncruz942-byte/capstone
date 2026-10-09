@@ -1,4 +1,4 @@
-function initializeTeacherDashboard() {
+function initializeTeacherDashboard(event) {
     if (document.getElementById('dashboard-content')?.dataset.dashboardRole !== 'teacher') return;
     if (!document.getElementById('sec-overview')) return;
 
@@ -15,7 +15,8 @@ function initializeTeacherDashboard() {
     }
 
     if (section === 'stats' && typeof loadTeacherStats === 'function') {
-        requestAnimationFrame(() => requestAnimationFrame(() => loadTeacherStats()));
+        const foreground = event?.detail?.background !== true;
+        requestAnimationFrame(() => requestAnimationFrame(() => loadTeacherStats({ foreground })));
     }
 }
 

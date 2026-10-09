@@ -238,14 +238,15 @@ function initializeMathArcadeGame() {
         return validation || payload?.message || `Request failed (${response.status}).`;
     }
 
-    async function requestJson(url, { method = 'GET', payload = null } = {}) {
+    async function requestJson(url, { method = 'GET', payload = null, foreground = method !== 'GET' } = {}) {
         const headers = { Accept: 'application/json' };
         if (method !== 'GET') {
             headers['X-CSRF-TOKEN'] = csrfToken();
             headers['Content-Type'] = 'application/json';
         }
 
-        const response = await fetch(url, {
+        const request = foreground ? (globalThis.mathVerseForegroundFetch ?? fetch) : fetch;
+        const response = await request(url, {
             method,
             headers,
             credentials: 'same-origin',
@@ -301,10 +302,11 @@ function initializeMathArcadeGame() {
         boardBusy = true;
         renderControls();
         try {
-            const result = await requestJson(`/student/games/${encodeURIComponent(gameKey)}/leaderboard`);
+            const result = await requestJson(`/student/games/${encodeURIComponent(gameKey)}/leaderboard`, {
+                foreground: announce,
+            });
             renderPersonal(result.personal);
             renderLeaderboard(result.leaderboard);
-            if (announce) showToast('Leaderboard refreshed.');
         } catch (error) {
             if (error.name !== 'AbortError') showToast(error.message, true);
         } finally {
@@ -419,7 +421,6 @@ function initializeMathArcadeGame() {
             renderSession({ resetAnswer: true });
             if (result.outcome.direction === 'stale') {
                 setFeedback('Game state refreshed. That question was already answered in this run.', 'neutral');
-                showToast('Your latest verified question is ready.');
                 focusAnswer();
                 return;
             }
@@ -464,7 +465,7 @@ function initializeMathArcadeGame() {
 
     if (gameIsActive()) {
         setDeadline(session.remaining_ms);
-        setFeedback('Your verified run is active. Keep going!', 'neutral');
+        setFeedback('Your run is active. Keep going!', 'neutral');
         renderSession({ resetAnswer: true });
         focusAnswer();
     } else {

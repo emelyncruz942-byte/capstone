@@ -35,12 +35,13 @@ async function loadQuizBuilder(quizId = null) {
         configureQuizEditMode(form, quizId);
 
         try {
-            const response = await fetch(`${getQuizBasePath()}/${quizId}`, {
+            const foregroundFetch = globalThis.mathVerseForegroundFetch ?? fetch;
+            const response = await foregroundFetch(`${getQuizBasePath()}/${quizId}`, {
                 cache: 'no-store',
                 headers: { 'Accept': 'application/json' },
             });
+            const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error('Quiz could not be loaded.');
-            const data = await response.json();
             if (!form.isConnected
                 || document.getElementById('quiz-form') !== form
                 || editingQuizId !== quizId) return;

@@ -12,6 +12,154 @@ function onMathVerseReady(callback) {
 
 window.onMathVerseReady = onMathVerseReady;
 
+const mathVerseProgressTokens = new Map();
+
+function syncMathVerseProgress() {
+    const active = mathVerseProgressTokens.size > 0;
+    document.body?.classList.toggle('mathverse-navigating', active);
+    document.querySelector('main')?.setAttribute('aria-busy', String(active));
+}
+
+function beginMathVerseProgress(options = {}) {
+    const token = Symbol('mathverse-request');
+    const timeoutMs = Math.max(1000, Number(options.timeoutMs) || 45000);
+    let finished = false;
+
+    const finish = () => {
+        if (finished) return;
+        finished = true;
+        const timer = mathVerseProgressTokens.get(token);
+        if (timer) window.clearTimeout(timer);
+        mathVerseProgressTokens.delete(token);
+        syncMathVerseProgress();
+    };
+
+    mathVerseProgressTokens.set(token, window.setTimeout(finish, timeoutMs));
+    syncMathVerseProgress();
+    return finish;
+}
+
+function resetMathVerseProgress() {
+    mathVerseProgressTokens.forEach(timer => window.clearTimeout(timer));
+    mathVerseProgressTokens.clear();
+    syncMathVerseProgress();
+}
+
+window.MathVerseProgress = {
+    begin: beginMathVerseProgress,
+    reset: resetMathVerseProgress,
+    track(promise, options = {}) {
+        const finish = beginMathVerseProgress(options);
+        return Promise.resolve(promise).finally(finish);
+    },
+};
+
+function mathVerseForegroundFetch(input, init = {}, progressOptions = {}) {
+    const finish = beginMathVerseProgress(progressOptions);
+    let request;
+    try {
+        request = fetch(input, init);
+    } catch (error) {
+        finish();
+        throw error;
+    }
+
+    return Promise.resolve(request).then(response => {
+        if (!response?.body) {
+            finish();
+            return response;
+        }
+
+        const bodyReaders = new Set(['arrayBuffer', 'blob', 'bytes', 'formData', 'json', 'text']);
+        return new Proxy(response, {
+            get(target, property) {
+                if (bodyReaders.has(property) && typeof target[property] === 'function') {
+                    return (...args) => {
+                        try {
+                            return Promise.resolve(target[property](...args)).finally(finish);
+                        } catch (error) {
+                            finish();
+                            throw error;
+                        }
+                    };
+                }
+
+                const value = Reflect.get(target, property, target);
+                return typeof value === 'function' ? value.bind(target) : value;
+            },
+        });
+    }, error => {
+        finish();
+        throw error;
+    });
+}
+
+window.mathVerseForegroundFetch = mathVerseForegroundFetch;
+
+window.addEventListener('pageshow', resetMathVerseProgress);
+
+function isMathVerseDownload(url, element) {
+    const format = url.searchParams.get('format')?.toLowerCase();
+    return element?.hasAttribute('download')
+        || url.pathname.includes('/report/')
+        || ['pdf', 'csv', 'xlsx', 'zip'].includes(format)
+        || /\.(?:pdf|csv|xlsx|zip)$/i.test(url.pathname);
+}
+
+// Native page loads do not pass through the dashboard's seamless-navigation
+// handler. Start the same progress bar for those forms and links too. The
+// microtask lets client-side handlers cancel the event before we decide.
+document.addEventListener('submit', event => {
+    const form = event.target;
+    queueMicrotask(() => {
+        if (event.defaultPrevented || !(form instanceof HTMLFormElement)) return;
+        if (typeof form.checkValidity === 'function' && !form.checkValidity()) return;
+        const submitter = event.submitter;
+        const target = submitter?.formTarget || form.target;
+        const method = String(submitter?.formMethod || form.method || 'GET').toUpperCase();
+        if ((target && target !== '_self') || method === 'DIALOG') return;
+
+        let destination;
+        try {
+            destination = new URL(submitter?.formAction || form.action || window.location.href, window.location.href);
+        } catch {
+            return;
+        }
+        if (destination.origin !== window.location.origin) return;
+        if (isMathVerseDownload(destination, form)) {
+            beginMathVerseProgress({ timeoutMs: 6000 });
+            return;
+        }
+        beginMathVerseProgress({ timeoutMs: 45000 });
+    });
+}, true);
+
+document.addEventListener('click', event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const anchor = event.target.closest?.('a[href]');
+    if (!anchor || anchor.target && anchor.target !== '_self') return;
+
+    queueMicrotask(() => {
+        if (event.defaultPrevented) return;
+        let destination;
+        try {
+            destination = new URL(anchor.href, window.location.href);
+        } catch {
+            return;
+        }
+        if (destination.origin !== window.location.origin
+            || destination.href === window.location.href
+            || (destination.pathname === window.location.pathname
+                && destination.search === window.location.search
+                && destination.hash)) return;
+        if (isMathVerseDownload(destination, anchor)) {
+            beginMathVerseProgress({ timeoutMs: 6000 });
+            return;
+        }
+        beginMathVerseProgress({ timeoutMs: 30000 });
+    });
+}, true);
+
 function _spawn() {
     const c = document.getElementById('particle-container');
     if (!c || c.children.length > 10) return;
@@ -172,7 +320,10 @@ document.addEventListener('click', event => {
     const action = control.dataset.action;
     if (action === 'navigate') {
         const destination = new URL(control.dataset.destination || '/', window.location.origin);
-        if (destination.origin === window.location.origin) window.location.assign(destination.href);
+        if (destination.origin === window.location.origin) {
+            beginMathVerseProgress({ timeoutMs: 30000 });
+            window.location.assign(destination.href);
+        }
         return;
     }
     if (action === 'closeModalAndSubmit') {

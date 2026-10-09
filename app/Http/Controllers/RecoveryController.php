@@ -55,7 +55,7 @@ class RecoveryController extends Controller
             'p_actor_id' => session('supabase_user.id'), 'p_kind' => $kind, 'p_id' => $id, 'p_restore' => true,
         ]);
         if ($result['error'] !== null || ($result['data'][0]['id'] ?? null) !== $id) {
-            return redirect('/'.$role.'/trash?type='.$kind)->with('error', 'This record could not be restored. It may require administrator approval, or the latest database update.');
+            return redirect('/'.$role.'/trash?type='.$kind)->with('error', 'This item could not be restored. Please try again or contact an administrator.');
         }
         return redirect('/'.$role.'/trash?type='.$kind)->with('success', $kind === 'class'
             ? 'Class restored as archived, with its roster and history. Its teacher can reactivate it from Class Settings.'

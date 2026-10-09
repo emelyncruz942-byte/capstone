@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Academic Portal')
-@section('description', 'Learn mathematics through immersive VR quiz bees, classroom challenges, practice activities, and progress tracking in MathVerse.')
+@section('title', 'Interactive Mathematics Learning Platform')
+@section('description', 'MathVerse is an online math learning platform for students and teachers in the Philippines with VR quiz bees, classroom quizzes, games, and progress tracking.')
 
 @section('content')
 <div class="w-full max-w-sm z-20 transition-all duration-500" id="main-content">
@@ -38,24 +38,28 @@
                 </div>
 
                 {{-- Laravel form: POST to /login --}}
-                <form method="POST" action="/login" class="space-y-5" autocomplete="off">
+                <form id="loginForm" method="POST" action="/login" class="space-y-5"
+                      autocomplete="on" data-login-form>
                     @csrf
                     <div class="form-group">
-                        <label class="input-label">Email Address</label>
+                        <label for="lEmail" class="input-label">Email Address</label>
                         <div class="relative">
                             <i class="fas fa-envelope input-icon"></i>
-                            <input type="email" name="email" required
+                            <input type="email" id="lEmail" name="email" required
                                    value="{{ old('email') }}"
-                                   class="input-mobile-ultra" placeholder="Enter email" autocomplete="off">
+                                   class="input-mobile-ultra" placeholder="Enter email"
+                                   autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="email"
+                                   data-login-credential="username">
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label class="input-label">Password</label>
+                        <label for="lPass" class="input-label">Password</label>
                         <div class="relative">
                             <i class="fas fa-lock input-icon"></i>
                             <input type="password" id="lPass" name="password" required
-                                   class="input-mobile-ultra pr-12" placeholder="Enter password" autocomplete="off">
+                                   class="input-mobile-ultra pr-12" placeholder="Enter password"
+                                   autocomplete="current-password" data-login-credential="password">
                             <button type="button" data-action="tglPass" data-action-args='["lPass","lIcon"]'
                                     class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-8 flex items-center justify-center text-slate-500">
                                 <i id="lIcon" class="fas fa-eye-slash"></i>

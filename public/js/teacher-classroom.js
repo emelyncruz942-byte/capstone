@@ -9,22 +9,23 @@ function openLobby(classId, sessionId, topic, code) {
     document.getElementById('lobby-title').textContent = `${topic} - Lobby`;
     document.getElementById('lobby-code').textContent = code;
     openModal('liveLobbyModal');
-    fetchLobby();
+    fetchLobby(true);
     clearInterval(lobbyTimer);
     lobbyTimer = setInterval(fetchLobby, 3000);
 }
 
-async function fetchLobby() {
+async function fetchLobby(showProgress = false) {
     if (!currentLobbyUrl) return;
     const body = document.getElementById('lobby-tbody');
 
     try {
-        const response = await fetch(currentLobbyUrl, {
+        const request = showProgress ? (globalThis.mathVerseForegroundFetch ?? fetch) : fetch;
+        const response = await request(currentLobbyUrl, {
             cache: 'no-store',
             headers: { 'Accept': 'application/json' },
         });
+        const participants = await response.json().catch(() => []);
         if (!response.ok) throw new Error('The lobby could not be loaded.');
-        const participants = await response.json();
 
         if (!participants.length) {
             body.innerHTML = '<tr><td class="p-8 text-center text-slate-500 text-xs uppercase">Waiting for students to connect...</td></tr>';
@@ -59,12 +60,13 @@ async function openResults(classId, sessionId, topic) {
     openModal('viewResultsModal');
 
     try {
-        const response = await fetch(`/teacher/classes/${classId}/quizzes/${sessionId}/results`, {
+        const foregroundFetch = globalThis.mathVerseForegroundFetch ?? fetch;
+        const response = await foregroundFetch(`/teacher/classes/${classId}/quizzes/${sessionId}/results`, {
             cache: 'no-store',
             headers: { 'Accept': 'application/json' },
         });
+        const results = await response.json().catch(() => []);
         if (!response.ok) throw new Error('Quiz results could not be loaded.');
-        const results = await response.json();
 
         if (!results.length) {
             body.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-500 text-xs uppercase">No eligible students for this assignment.</td></tr>';
@@ -169,7 +171,8 @@ function initializeStudentExceptionForm() {
         button.classList.add('opacity-50');
 
         try {
-            const response = await fetch(`/teacher/classes/${classId}/quizzes/${sessionId}/students/${studentId}/${action}`, {
+            const foregroundFetch = globalThis.mathVerseForegroundFetch ?? fetch;
+            const response = await foregroundFetch(`/teacher/classes/${classId}/quizzes/${sessionId}/students/${studentId}/${action}`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrfToken(),
@@ -182,7 +185,10 @@ function initializeStudentExceptionForm() {
             if (!response.ok) throw new Error(data.message ?? 'The exception could not be saved.');
             document.dispatchEvent(new CustomEvent('mathverse:data-changed'));
             closeModal('quizStudentExceptionModal');
-            showToast(data.message ?? 'Student exception saved.', data.email_sent === false);
+            showToast(
+                data.message ?? 'Student exception saved.',
+                data.email_sent === false && data.email_queued !== true
+            );
             await openResults(classId, sessionId, currentResultsContext?.topic ?? 'Quiz');
         } catch (error) {
             showToast(error.message, true);
@@ -217,6 +223,7 @@ function initializeQuizActionButton() {
         const { classId, sessionId, action } = pendingQuizAction;
         button.disabled = true;
         button.classList.add('opacity-50');
+        const finishProgress = globalThis.MathVerseProgress?.begin?.() ?? (() => {});
 
         try {
             const data = await submitQuizAction(classId, sessionId, action);
@@ -237,6 +244,8 @@ function initializeQuizActionButton() {
             button.disabled = false;
             button.classList.remove('opacity-50');
             closeModal('quizActionModal');
+        } finally {
+            finishProgress();
         }
     });
 }

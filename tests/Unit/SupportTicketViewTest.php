@@ -35,7 +35,8 @@ class SupportTicketViewTest extends TestCase
         $this->assertStringContainsString('name="description"', $view);
         $this->assertStringContainsString('name="page_url"', $view);
         $this->assertStringContainsString('name="reference_id"', $view);
-        $this->assertStringContainsString('Never include your password or access token.', $view);
+        $this->assertStringContainsString('Never include your password, sign-in link, or private codes.', $view);
+        $this->assertStringNotContainsString('access token', strtolower($view));
     }
 
     public function test_admin_update_form_preserves_lock_version(): void

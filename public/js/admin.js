@@ -1,4 +1,4 @@
-function initializeAdminDashboard() {
+function initializeAdminDashboard(event) {
     if (document.getElementById('dashboard-content')?.dataset.dashboardRole !== 'admin') return;
     if (!document.getElementById('sec-overview')) return;
 
@@ -12,7 +12,8 @@ function initializeAdminDashboard() {
     }
 
     if (requested === 'stats' && typeof loadAdminStats === 'function') {
-        requestAnimationFrame(() => requestAnimationFrame(() => loadAdminStats()));
+        const foreground = event?.detail?.background !== true;
+        requestAnimationFrame(() => requestAnimationFrame(() => loadAdminStats({ foreground })));
     }
 }
 

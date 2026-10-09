@@ -38,7 +38,7 @@ class TeacherClassController extends Controller
         $classId = $created[0]['id'] ?? null;
         if (! $classId) {
             return redirect('/teacher/dashboard?section=classes')
-                ->with('error', 'The class could not be created. Run the latest database update first.');
+                ->with('error', 'The class could not be created. Please try again or contact an administrator.');
         }
 
         $this->supabase->insert('class_customizations', [
@@ -266,7 +266,7 @@ class TeacherClassController extends Controller
         );
         if (! isset($updated[0]['id'])) {
             return redirect("/teacher/classes/{$id}/settings")
-                ->with('error', 'The class could not be archived. Run the latest database update first.');
+                ->with('error', 'The class could not be archived. Please try again or contact an administrator.');
         }
 
         $openSessions = $this->supabase->adminSelect('quiz_sessions', 'id,status', [
@@ -295,7 +295,7 @@ class TeacherClassController extends Controller
         ]);
 
         return redirect('/teacher/dashboard?section=classes')
-            ->with('success', 'Class archived. Its history is preserved and it no longer locks student grade levels.');
+            ->with('success', 'Class archived.');
     }
 
     public function restore(string $id)
@@ -363,14 +363,14 @@ class TeacherClassController extends Controller
             $error = strtolower((string) ($deleted['error'] ?? ''));
             $message = str_contains($error, 'set_recovery_item')
                 || str_contains($error, 'schema cache')
-                    ? 'Class deletion is unavailable. Run the latest database update, then try again.'
+                    ? 'Moving this class to Trash is temporarily unavailable. Contact an administrator.'
                     : 'The class could not be deleted. No changes were saved.';
 
             return redirect("/teacher/classes/{$id}/settings")
                 ->with('error', $message);
         }
 
-        return redirect('/teacher/trash')->with('success', 'Class moved to Trash. Students, assignments and results are preserved.');
+        return redirect('/teacher/trash')->with('success', 'Class moved to Trash.');
     }
 
     public function removeStudent(string $classId, string $studentId)
@@ -409,10 +409,10 @@ class TeacherClassController extends Controller
 
         if (! $removalEmail['sent']) {
             return redirect("/teacher/classes/{$classId}")->with(
-                'error',
+                $removalEmail['queued'] ? 'success' : 'error',
                 $removalEmail['queued']
-                    ? 'Student removed, but the mail server did not accept the removal email immediately. MathVerse will retry it automatically.'
-                    : 'Student removed, but the removal email could not be sent or queued. Check the mail and database settings.'
+                    ? 'Student removed. The email will be sent shortly.'
+                    : 'Student removed, but the email could not be sent. Please notify the student directly.'
             );
         }
 
@@ -593,7 +593,7 @@ class TeacherClassController extends Controller
         }
         if (! in_array($session['status'] ?? 'waiting', ['waiting', 'active'], true)) {
             return redirect("/teacher/classes/{$classId}")
-                ->with('error', 'Only an assigned or active quiz can be deleted. Ended quiz records are preserved.');
+                ->with('error', 'Only an assigned or active quiz can be deleted.');
         }
 
         $deleted = $this->supabase->adminRpcResult('delete_open_quiz_assignment', [
@@ -607,7 +607,7 @@ class TeacherClassController extends Controller
             $reason = trim((string) ($deleted['error'] ?? 'The database returned no deletion result.'));
             if (str_contains(strtolower($reason), 'delete_open_quiz_assignment')) {
                 return redirect("/teacher/classes/{$classId}")
-                    ->with('error', 'The assignment deletion update is not installed. Run the latest database update, then try again.');
+                    ->with('error', 'Deleting this assignment is temporarily unavailable. Contact an administrator.');
             }
 
             return redirect("/teacher/classes/{$classId}")
@@ -626,11 +626,7 @@ class TeacherClassController extends Controller
             'remaining_usage_count' => (int) ($result['remaining_usage_count'] ?? 0),
         ]);
 
-        $message = $wasShared
-            ? 'Assignment deleted. The shared quiz\'s Class Uses decreased by 1.'
-            : 'Assignment deleted. Your quiz\'s Class Uses were not changed.';
-
-        return redirect("/teacher/classes/{$classId}")->with('success', $message);
+        return redirect("/teacher/classes/{$classId}")->with('success', 'Assignment deleted.');
     }
 
     public function start(string $classId, string $sessionId)
@@ -848,7 +844,7 @@ class TeacherClassController extends Controller
                 || str_contains($lowerReason, 'schema cache')
             ) {
                 return response()->json([
-                    'message' => 'The active-retake database update is not installed yet.',
+                    'message' => 'Retakes are temporarily unavailable. Contact an administrator.',
                 ], 503);
             }
 
@@ -884,8 +880,8 @@ class TeacherClassController extends Controller
         $message = $retakeEmail['sent']
             ? 'Retake granted. The student email was sent.'
             : ($retakeEmail['queued']
-                ? 'Retake granted, but the mail server did not accept the student email immediately. MathVerse will retry it automatically.'
-                : 'Retake granted, but the student email could not be sent or queued. Check the mail and database settings.');
+                ? 'Retake granted. The email will be sent shortly.'
+                : 'Retake granted, but the email could not be sent. Please notify the student directly.');
 
         $roomCode = trim((string) ($session['room_code'] ?? ''));
         $message .= $roomCode !== ''
@@ -965,8 +961,8 @@ class TeacherClassController extends Controller
         $message = $excuseEmail['sent']
             ? 'Student marked excused. The student email was sent.'
             : ($excuseEmail['queued']
-                ? 'Student marked excused, but the mail server did not accept the student email immediately. MathVerse will retry it automatically.'
-                : 'Student marked excused, but the student email could not be sent or queued. Check the mail and database settings.');
+                ? 'Student marked excused. The email will be sent shortly.'
+                : 'Student marked excused, but the email could not be sent. Please notify the student directly.');
 
         return response()->json([
             'success' => true,
@@ -1009,7 +1005,7 @@ class TeacherClassController extends Controller
             || str_contains($lowerReason, 'schema cache')
         ) {
             return response()->json([
-                'message' => 'The quiz lifecycle database update is not installed yet.',
+                'message' => 'Quiz controls are temporarily unavailable. Contact an administrator.',
             ], 503);
         }
 

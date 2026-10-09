@@ -50,6 +50,7 @@ async function initializeAdminPush() {
 
     buttons.forEach(button => {
         button.addEventListener('click', async () => {
+            const finishProgress = globalThis.MathVerseProgress?.begin?.() ?? (() => {});
             setButtonsDisabled(true);
             try {
                 const existing = await registration.pushManager.getSubscription();
@@ -80,6 +81,7 @@ async function initializeAdminPush() {
                 showToast(error.message || 'Browser alerts could not be updated.', true);
             } finally {
                 await updateButton(registration);
+                finishProgress();
             }
         });
     });

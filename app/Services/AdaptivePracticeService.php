@@ -186,7 +186,7 @@ class AdaptivePracticeService
         );
 
         if ($sessionResult['error'] !== null) {
-            throw new RuntimeException('The Learning Hub database update has not been installed yet.');
+            throw new RuntimeException('The Learning Hub is temporarily unavailable. Please try again later.');
         }
 
         $session = $sessionResult['data'][0] ?? null;

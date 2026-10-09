@@ -406,7 +406,7 @@ class MathArcadeService
             return 'That MathVerse arcade game is not available.';
         }
         if (str_contains($lower, 'function') || str_contains($lower, 'schema cache')) {
-            return 'The shared Math Arcade database update has not been installed yet.';
+            return 'This arcade game is temporarily unavailable. Please try again later.';
         }
 
         return 'MathVerse could not update this game. Please try again.';
@@ -435,7 +435,7 @@ class MathArcadeService
         return [
             'configured' => false,
             'grade' => $grade,
-            'message' => 'The shared Math Arcade database update has not been installed yet. Number Guess is still available.',
+            'message' => 'Some arcade games are temporarily unavailable. Number Guess is still available.',
             'games' => $games,
             'badges' => $this->normalizeBadges([]),
             'rules' => $this->rules(),
@@ -447,7 +447,7 @@ class MathArcadeService
         return [
             'configured' => false,
             'grade' => $grade,
-            'message' => 'The shared Math Arcade database update has not been installed yet.',
+            'message' => 'This arcade game is temporarily unavailable. Please try again later.',
             'game' => array_merge($definition, ['key' => $gameKey]),
             'session' => null,
             'personal' => $this->normalizePersonal(null),

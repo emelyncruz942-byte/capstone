@@ -70,7 +70,8 @@ class NumberGuessGameServiceTest extends TestCase
         $this->assertFalse($state['configured']);
         $this->assertNull($state['session']);
         $this->assertSame([], $state['leaderboard']);
-        $this->assertStringContainsString('database update', $state['message']);
+        $this->assertStringContainsString('temporarily unavailable', $state['message']);
+        $this->assertStringNotContainsString('database', strtolower($state['message']));
     }
 
     public function test_database_range_error_is_returned_as_a_friendly_message(): void

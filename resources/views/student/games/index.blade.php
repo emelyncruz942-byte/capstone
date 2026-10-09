@@ -16,7 +16,7 @@
                 <p class="text-[9px] uppercase tracking-[0.3em] font-bold text-pink-400">MathVerse Arcade</p>
                 <h2 class="font-orbitron font-black text-2xl md:text-4xl mt-2">Think Fast. <span class="text-cyan-400">Reason Deeper.</span></h2>
                 <p class="text-sm text-slate-400 mt-3 leading-relaxed">
-                    Four short math game challenges with fair server-verified scores. Be the top player in your grade level.
+                    Four short math challenges with fair scores. Be the top player in your grade level.
                 </p>
             </div>
             <div class="arcade-grade-chip shrink-0">
@@ -29,9 +29,9 @@
     @if(!$arcade['configured'])
         <section class="portal-frame !p-5 mb-6 border-yellow-500/40" role="status">
             <div class="flex items-start gap-4">
-                <div class="arcade-notice-icon"><i class="fas fa-database"></i></div>
+                <div class="arcade-notice-icon"><i class="fas fa-wrench"></i></div>
                 <div>
-                    <h3 class="font-orbitron font-bold uppercase text-yellow-300">Shared games need an update</h3>
+                    <h3 class="font-orbitron font-bold uppercase text-yellow-300">Some games are unavailable</h3>
                     <p class="text-sm text-slate-400 mt-2">{{ $arcade['message'] }}</p>
                 </div>
             </div>
@@ -44,7 +44,7 @@
                 <p class="text-[9px] uppercase tracking-widest font-bold text-cyan-400">Choose a mission</p>
                 <h3 id="arcade-games-title" class="font-orbitron font-bold text-xl mt-1">Math Games</h3>
             </div>
-            <p class="text-[10px] text-slate-500"><i class="fas fa-shield-halved text-green-400 mr-1"></i> Answers, timers, scores, and ranks are verified by the server.</p>
+            <p class="text-[10px] text-slate-500"><i class="fas fa-trophy text-green-400 mr-1"></i> Your best score counts toward the Grade {{ $arcade['grade'] }} leaderboard.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -82,7 +82,7 @@
                 <h3 id="arcade-badges-title" class="font-orbitron font-bold text-xl mt-1">Arcade Badges</h3>
             </div>
             <p class="max-w-xl text-[10px] leading-relaxed text-slate-500">
-                Game badges and leaderboards are their own reward system. Arcade games never award Learning Hub XP or trophies.
+                Earn badges and improve your leaderboard rank by playing arcade games.
             </p>
         </div>
 

@@ -110,7 +110,7 @@ class TeacherController extends Controller
             ]);
 
             return redirect('/teacher/dashboard?section=profile')
-                ->with('error', 'The profile service is temporarily unavailable. Please try again.');
+                ->with('error', 'Your profile could not be updated. Please try again.');
         }
         if (!isset($profileUpdated[0]['id'])) {
             return redirect('/teacher/dashboard?section=profile')

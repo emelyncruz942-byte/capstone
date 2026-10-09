@@ -36,12 +36,12 @@
         <section class="portal-frame !p-7 border-yellow-500/40" role="status">
             <div class="flex items-start gap-4">
                 <div class="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 flex items-center justify-center shrink-0">
-                    <i class="fas fa-database"></i>
+                    <i class="fas fa-wrench"></i>
                 </div>
                 <div>
-                    <h3 class="font-orbitron font-bold uppercase text-yellow-400">Game update required</h3>
+                    <h3 class="font-orbitron font-bold uppercase text-yellow-400">Game unavailable</h3>
                     <p class="text-sm text-slate-400 mt-2">{{ $gameState['message'] }}</p>
-                    <p class="text-xs text-slate-500 mt-3">Install the matching Number Guess migration, then reload this page.</p>
+                    <p class="text-xs text-slate-500 mt-3">Please try again later.</p>
                 </div>
             </div>
         </section>
@@ -154,7 +154,7 @@
                     <ul class="mt-4 space-y-3 text-xs text-slate-400">
                         <li class="flex gap-3"><i class="fas fa-clock text-cyan-400 mt-0.5"></i><span>Begin with {{ $gameState['rules']['starting_seconds'] }} seconds.</span></li>
                         <li class="flex gap-3"><i class="fas fa-arrow-trend-up text-green-400 mt-0.5"></i><span>Each correct number adds {{ $gameState['rules']['correct_bonus_seconds'] }} seconds and expands the range by {{ $gameState['rules']['range_increase'] }}.</span></li>
-                        <li class="flex gap-3"><i class="fas fa-shield-halved text-yellow-400 mt-0.5"></i><span>Scores and time are verified by the server for a fair leaderboard.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-trophy text-yellow-400 mt-0.5"></i><span>Your best score counts toward the leaderboard.</span></li>
                     </ul>
                 </section>
             </aside>
@@ -177,7 +177,7 @@
             <div class="portal-frame !p-7 w-full max-w-sm text-center border-red-500/40">
                 <i class="fas fa-stop-circle text-4xl text-red-400 mb-4"></i>
                 <h3 id="number-guess-end-title" class="font-orbitron font-bold uppercase">End Current Game?</h3>
-                <p id="number-guess-end-message" class="text-xs text-slate-400 mt-3 mb-6">Your verified score stays on the leaderboard, but this timer cannot be resumed.</p>
+                <p id="number-guess-end-message" class="text-xs text-slate-400 mt-3 mb-6">Your score stays on the leaderboard, but this game cannot be resumed.</p>
                 <button type="button" id="number-guess-confirm-end" class="btn-rect-primary !bg-red-500 !text-white">End Game</button>
                 <button type="button" data-action="closeModal" data-action-args='["numberGuessEndModal"]' class="modal-cancel">Cancel</button>
             </div>

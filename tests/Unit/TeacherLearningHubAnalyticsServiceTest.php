@@ -78,6 +78,7 @@ class TeacherLearningHubAnalyticsServiceTest extends TestCase
         ]);
         $state = (new TeacherLearningHubAnalyticsService($database))->dashboard(['id' => 'teacher']);
         $this->assertFalse($state['configured']);
-        $this->assertStringContainsString('SQL migration', $state['message']);
+        $this->assertStringContainsString('temporarily unavailable', $state['message']);
+        $this->assertStringNotContainsString('migration', strtolower($state['message']));
     }
 }

@@ -11,8 +11,9 @@ class SeoMetadataTest extends TestCase
         $response = $this->get('/');
 
         $response->assertOk()
-            ->assertSee('<title>MathVerse | Academic Portal</title>', false)
-            ->assertSee('<meta name="description" content="Learn mathematics through immersive VR quiz bees, classroom challenges, practice activities, and progress tracking in MathVerse.">', false)
+            ->assertSee('<title>MathVerse | Interactive Mathematics Learning Platform</title>', false)
+            ->assertSee('<meta name="description" content="MathVerse is an online math learning platform for students and teachers in the Philippines with VR quiz bees, classroom quizzes, games, and progress tracking.">', false)
+            ->assertSee('<meta name="keywords" content="VR math quiz bee, interactive mathematics learning platform, online math quiz for students, classroom quiz platform for teachers, virtual reality math game, math practice games, student progress tracking, online math learning platform Philippines">', false)
             ->assertSee('<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">', false)
             ->assertSee('<link rel="canonical" href="https://mathmetaverse.space/">', false)
             ->assertSee('<meta property="og:type" content="website">', false)
@@ -34,6 +35,34 @@ class SeoMetadataTest extends TestCase
             'https://mathmetaverse.space/#application',
             $schema['@graph'][1]['mainEntity']['@id'] ?? null
         );
+        $this->assertStringContainsString(
+            'VR math quiz bee',
+            $schema['@graph'][0]['keywords'] ?? ''
+        );
+    }
+
+    public function test_vr_math_quiz_bee_page_is_indexable_and_has_useful_public_content(): void
+    {
+        $response = $this->get('/vr-math-quiz-bee');
+
+        $response->assertOk()
+            ->assertSee('<title>MathVerse | VR Math Quiz Bee for Students and Teachers</title>', false)
+            ->assertSee('<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">', false)
+            ->assertSee('<link rel="canonical" href="https://mathmetaverse.space/vr-math-quiz-bee">', false)
+            ->assertSee('VR Math <span class="text-cyan-400">Quiz Bee</span> and Classroom Learning', false)
+            ->assertSee('online math learning platform for students and teachers in the Philippines', false)
+            ->assertSee('Do students need a VR headset to use MathVerse?', false)
+            ->assertSee('href="'.route('login').'"', false);
+
+        $schema = $this->schemaFrom($response->getContent());
+        $this->assertSame(
+            ['WebSite', 'WebPage', 'WebApplication'],
+            array_column($schema['@graph'], '@type')
+        );
+        $this->assertContains(
+            'Virtual-reality and standard-screen math quiz modes',
+            $schema['@graph'][2]['featureList'] ?? []
+        );
     }
 
     public function test_account_recovery_page_is_not_indexable_and_has_a_queryless_canonical(): void
@@ -54,7 +83,8 @@ class SeoMetadataTest extends TestCase
 
             $response->assertOk()
                 ->assertSee('<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">', false)
-                ->assertSee('<link rel="canonical" href="https://mathmetaverse.space'.$path.'">', false);
+                ->assertSee('<link rel="canonical" href="https://mathmetaverse.space'.$path.'">', false)
+                ->assertDontSee('<meta name="keywords"', false);
 
             $schema = $this->schemaFrom($response->getContent());
             $this->assertSame('https://schema.org', $schema['@context'] ?? null);
@@ -78,6 +108,7 @@ class SeoMetadataTest extends TestCase
         $this->assertIsString($sitemap);
         $this->assertStringContainsString('<loc>https://mathmetaverse.space/privacy-policy</loc>', $sitemap);
         $this->assertStringContainsString('<loc>https://mathmetaverse.space/terms-and-conditions</loc>', $sitemap);
+        $this->assertStringContainsString('<loc>https://mathmetaverse.space/vr-math-quiz-bee</loc>', $sitemap);
     }
 
     public function test_health_endpoint_is_reachable_but_cannot_be_indexed_or_cached(): void

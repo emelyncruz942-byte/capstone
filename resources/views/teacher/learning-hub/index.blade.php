@@ -36,7 +36,7 @@
     @if(!$analytics['configured'])
         <section class="portal-frame !p-5 mb-6 border-yellow-500/40" role="status"><p class="text-sm text-yellow-300"><i class="fas fa-triangle-exclamation mr-2"></i>{{ $analytics['message'] }}</p></section>
     @elseif($analytics['timezone'] !== \App\Support\AppDate::timezone())
-        <section class="portal-frame !p-5 mb-6 border-yellow-500/40" role="status"><p class="text-sm text-yellow-300">Daily practice totals still use {{ $analytics['timezone'] }}. Apply the timezone and insights SQL update to group them by Philippine calendar day.</p></section>
+        <section class="portal-frame !p-5 mb-6 border-yellow-500/40" role="status"><p class="text-sm text-yellow-300">Daily practice totals currently use {{ $analytics['timezone'] }} instead of Philippine time. Contact an administrator if the dates look incorrect.</p></section>
     @endif
 
     @php

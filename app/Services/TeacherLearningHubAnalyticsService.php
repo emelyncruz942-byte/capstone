@@ -31,7 +31,7 @@ class TeacherLearningHubAnalyticsService
                 'teacher_id' => $teacher['id'] ?? null,
                 'status' => $result['status'] ?? null,
             ]);
-            return $this->emptyState($days, $classId, false, 'Learning Hub insights could not be read. Check the analytics SQL migration and data-service logs, then try again.');
+            return $this->emptyState($days, $classId, false, 'Learning Hub insights are temporarily unavailable. Please try again later.');
         }
 
         $payload = $result['data'][0];
@@ -113,7 +113,7 @@ class TeacherLearningHubAnalyticsService
                 $days,
                 $classId,
                 false,
-                'This student is unavailable for the selected class, or the solo-insights SQL update still needs to be applied.'
+                'This student is unavailable for the selected class, or their insights could not be loaded. Please try again.'
             );
         }
 

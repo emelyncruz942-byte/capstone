@@ -30,7 +30,7 @@
 @if(!empty($class['archived_at']))
     <div class="portal-frame !p-5 mb-7 border-l-4 border-slate-500">
         <p class="font-bold text-slate-300"><i class="fas fa-archive mr-2"></i>This class is archived</p>
-        <p class="text-xs text-slate-500 mt-2">It is hidden from students, excluded from active class counts, and no longer prevents their grade changes. Quiz history is preserved.</p>
+        <p class="text-xs text-slate-500 mt-2">Students cannot see this class. You can restore it when needed.</p>
     </div>
 @endif
 
@@ -141,7 +141,7 @@
 
         <div class="portal-frame !p-6 border-l-4 border-red-500">
             <h2 class="font-orbitron font-bold text-red-400 uppercase">Danger Zone</h2>
-            <p class="text-xs text-slate-500 mt-3 mb-5">Move this class to Trash. Its members, assignments and results are preserved for restoration.</p>
+            <p class="text-xs text-slate-500 mt-3 mb-5">Move this class to Trash. You can restore it later.</p>
             <button type="button" data-action="openModal" data-action-args='["deleteClassModal"]' class="btn-rect-secondary !py-3 !border-red-500/40 text-red-400">
                 <i class="fas fa-trash-alt mr-2"></i> Move to Trash
             </button>

@@ -292,7 +292,7 @@ class StudentClassController extends Controller
     {
         $message = trim(preg_replace('/\s+/', ' ', (string) $error));
         if ($message === '') {
-            return 'The class could not be joined because the database returned no reason.';
+            return 'The class could not be joined. Please try again or ask your teacher to check the class code.';
         }
 
         $lower = strtolower($message);

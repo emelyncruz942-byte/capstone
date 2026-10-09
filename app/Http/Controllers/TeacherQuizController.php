@@ -537,7 +537,7 @@ class TeacherQuizController extends Controller
         }
 
         return redirect($destination)
-            ->with('success', "Quiz assigned to {$classLabel} using the original Grade {$grade} level. The shared original and classes were not changed.");
+            ->with('success', "Quiz assigned to {$classLabel}.");
     }
 
     public function store(Request $request)
@@ -557,7 +557,7 @@ class TeacherQuizController extends Controller
         $quizId = $created[0]['id'] ?? null;
         if (!$quizId) {
             return redirect('/teacher/quizzes')
-                ->with('error', 'The quiz could not be created. Run the latest database update first.');
+                ->with('error', 'The quiz could not be created. Please try again or contact an administrator.');
         }
 
         if (!$this->saveTemplateQuestions(
@@ -723,11 +723,11 @@ class TeacherQuizController extends Controller
             'p_actor_id' => $user['id'], 'p_kind' => 'quiz', 'p_id' => $id, 'p_restore' => false,
         ]);
         if ($result['error'] !== null || ($result['data'][0]['id'] ?? null) !== $id) {
-            return redirect('/teacher/quizzes')->with('error', 'The quiz could not be moved to Trash. Check the latest database update.');
+            return redirect('/teacher/quizzes')->with('error', 'The quiz could not be moved to Trash. Please try again or contact an administrator.');
         }
 
         return redirect('/teacher/trash')
-            ->with('success', 'Quiz moved to Trash. Questions, versions, assignments and results are preserved.');
+            ->with('success', 'Quiz moved to Trash.');
     }
 
     public function show(string $id)
@@ -836,7 +836,7 @@ class TeacherQuizController extends Controller
         $this->refreshQuizUsageCount($quiz['id']);
 
         return redirect("/teacher/classes/{$class['id']}")
-            ->with('success', "Quiz assigned to {$class['class_name']}. Its VR code is ready, and the class grade was not changed.");
+            ->with('success', "Quiz assigned to {$class['class_name']}. Its VR code is ready.");
     }
 
     private function validateQuiz(Request $request): array
@@ -1218,7 +1218,7 @@ class TeacherQuizController extends Controller
             : 'The quiz was not assigned. ';
 
         if ($message === '') {
-            return $prefix . 'The database returned no failure reason. Please try again.';
+            return $prefix . 'Please try again or contact an administrator.';
         }
 
         $lower = strtolower($message);
@@ -1231,11 +1231,11 @@ class TeacherQuizController extends Controller
         }
         if (str_contains($lower, 'assign_shared_quiz_to_classes')
             || str_contains($lower, 'could not find the function')) {
-            return $prefix . 'Run the latest shared-assignment database update, then try again.';
+            return $prefix . 'This feature is temporarily unavailable. Contact an administrator.';
         }
         if (str_contains($lower, 'schema cache')
             || (str_contains($lower, 'column') && str_contains($lower, 'does not exist'))) {
-            return $prefix . 'The assignment database update is incomplete. Run the latest database update, then try again.';
+            return $prefix . 'This feature is temporarily unavailable. Contact an administrator.';
         }
 
         return $prefix . 'Please try again. If the problem continues, contact an administrator.';
@@ -1250,7 +1250,7 @@ class TeacherQuizController extends Controller
         if (str_contains(strtolower($message), 'schema cache')
             || str_contains(strtolower($message), 'could not find the function')
             || str_contains(strtolower($message), 'restore_quiz_version')) {
-            return 'Version restoration is unavailable. Run the standalone quiz database update, then try again.';
+            return 'Version restoration is temporarily unavailable. Contact an administrator.';
         }
 
         return 'The selected version could not be restored. Please try again.';

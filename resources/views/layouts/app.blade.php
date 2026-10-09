@@ -28,6 +28,8 @@
 </head>
 <body class="app-body @yield('body-class', 'flex items-center justify-center p-4 min-h-screen')">
 
+    <div id="mathverse-navigation-progress" aria-hidden="true"></div>
+
     {{-- Background effects used on every page --}}
     <div class="stars-container"></div>
     <div class="digital-rain"></div>

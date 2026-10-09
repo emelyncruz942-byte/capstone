@@ -5,8 +5,19 @@ return [
 
     'description' => env(
         'SEO_DESCRIPTION',
-        'MathVerse is an interactive mathematics learning platform with virtual-reality quiz bees, classrooms, practice activities, and progress insights for students and teachers.'
+        'MathVerse is an online math learning platform for students and teachers in the Philippines with VR quiz bees, classroom quizzes, games, and progress tracking.'
     ),
+
+    'keywords' => [
+        'VR math quiz bee',
+        'interactive mathematics learning platform',
+        'online math quiz for students',
+        'classroom quiz platform for teachers',
+        'virtual reality math game',
+        'math practice games',
+        'student progress tracking',
+        'online math learning platform Philippines',
+    ],
 
     // Keep this path public and absolute-from-root so social crawlers can fetch it.
     'image' => env('SEO_IMAGE', '/og-image-1200x630.jpg'),

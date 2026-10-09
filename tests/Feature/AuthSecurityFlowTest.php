@@ -12,6 +12,20 @@ use Tests\TestCase;
 
 class AuthSecurityFlowTest extends TestCase
 {
+    public function test_login_form_supports_password_managers_without_bypassing_the_server_post(): void
+    {
+        $this->withoutVite();
+        $this->mock(SupabaseService::class);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('method="POST" action="/login"', false)
+            ->assertSee('data-login-form', false)
+            ->assertSee('autocomplete="username"', false)
+            ->assertSee('autocomplete="current-password"', false)
+            ->assertSee('js/auth.js');
+    }
+
     public function test_legacy_query_reset_links_do_not_expose_or_consume_the_token_on_page_load(): void
     {
         $this->withoutVite();

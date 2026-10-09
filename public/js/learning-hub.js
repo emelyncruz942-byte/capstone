@@ -209,7 +209,8 @@ function initializeLearningHub() {
     }
 
     async function postJson(url, payload = {}) {
-        const response = await fetch(url, {
+        const foregroundFetch = globalThis.mathVerseForegroundFetch ?? fetch;
+        const response = await foregroundFetch(url, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': csrfToken(),

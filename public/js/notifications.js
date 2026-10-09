@@ -52,7 +52,8 @@
         if (!form) return false;
 
         markAllReadPromise = (async () => {
-            const response = await fetch(form.action, {
+            const foregroundFetch = globalThis.mathVerseForegroundFetch ?? fetch;
+            const response = await foregroundFetch(form.action, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -156,7 +157,8 @@
         if (submitter) submitter.disabled = true;
 
         try {
-            const response = await fetch(form.action, {
+            const foregroundFetch = globalThis.mathVerseForegroundFetch ?? fetch;
+            const response = await foregroundFetch(form.action, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
@@ -179,7 +181,6 @@
             }
 
             await refresh(true);
-            if (payload.message) showToast(payload.message);
         } catch (error) {
             showToast(error.message || 'The notification could not be updated.', true);
         } finally {

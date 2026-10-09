@@ -214,7 +214,7 @@ class NumberGuessGameService
             return ucfirst(strtolower($match[0])) . '.';
         }
         if (str_contains($lower, 'function') || str_contains($lower, 'schema cache')) {
-            return 'The Number Guess database update has not been installed yet.';
+            return 'Number Guess is temporarily unavailable. Please try again later.';
         }
 
         return 'MathVerse could not update this game. Please try again.';
@@ -235,7 +235,7 @@ class NumberGuessGameService
         return [
             'configured' => false,
             'grade' => $grade,
-            'message' => 'The Number Guess database update has not been installed yet.',
+            'message' => 'Number Guess is temporarily unavailable. Please try again later.',
             'session' => null,
             'personal' => $this->normalizePersonal(null),
             'leaderboard' => [],

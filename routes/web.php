@@ -33,6 +33,7 @@ Route::pattern('version', '[1-9][0-9]{0,8}');
 
 // Auth routes
 Route::get('/',       [AuthController::class, 'showLogin'])->name('login');
+Route::view('/vr-math-quiz-bee', 'public.vr-math-quiz-bee')->name('vr-math-quiz-bee');
 Route::view('/privacy-policy', 'legal.privacy-policy')->name('privacy-policy');
 Route::view('/terms-and-conditions', 'legal.terms-and-conditions')->name('terms-and-conditions');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');

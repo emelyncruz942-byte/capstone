@@ -378,7 +378,7 @@ class StudentController extends Controller
             ]);
 
             return redirect('/student/dashboard?section=profile')
-                ->with('error', 'The profile service is temporarily unavailable. Please try again.');
+                ->with('error', 'Your profile could not be updated. Please try again.');
         }
 
         if (!isset($profileUpdated[0]['id'])) {

@@ -36,7 +36,7 @@
 <div class="max-w-7xl mx-auto" data-testid="student-learning-hub" data-configured="{{ $hub['configured'] ? 'true' : 'false' }}">
     <header class="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-7 border-b border-white/10 pb-5">
         <div>
-            <p class="text-[10px] font-bold uppercase tracking-[0.35em] text-purple-400 mb-2">Autonomous Learning System</p>
+            <p class="text-[10px] font-bold uppercase tracking-[0.35em] text-purple-400 mb-2">Personalized Practice</p>
             <h2 class="text-2xl md:text-4xl font-orbitron font-black uppercase">
                 MathVerse <span class="text-cyan-400">Adventure</span>
             </h2>
@@ -60,9 +60,9 @@
             <div class="flex items-start gap-4">
                 <i class="fas fa-triangle-exclamation text-yellow-400 text-xl mt-1"></i>
                 <div>
-                    <h3 class="font-orbitron font-bold uppercase text-yellow-400">Learning Hub update required</h3>
+                    <h3 class="font-orbitron font-bold uppercase text-yellow-400">Learning Hub unavailable</h3>
                     <p class="text-xs text-slate-400 mt-2">
-                        Install the curriculum topic-focus database update before students begin practicing.
+                        Practice activities are temporarily unavailable. Please try again later.
                     </p>
                 </div>
             </div>

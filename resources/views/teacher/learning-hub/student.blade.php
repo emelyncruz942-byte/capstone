@@ -26,7 +26,7 @@
             <a class="solo-back-link" href="{{ $backUrl }}"><i class="fas fa-arrow-left"></i> All Learning Hub insights</a>
             <p class="text-[9px] uppercase tracking-[0.3em] font-bold text-purple-300 mt-4">Individual learner evidence</p>
             <h2 class="font-orbitron font-black text-2xl md:text-3xl mt-2">{{ $student['name'] ?: 'Student' }} <span class="text-cyan-400">Solo Stats</span></h2>
-            <p class="text-sm text-slate-400 mt-3 max-w-2xl">Monitor this learner’s mastery, accuracy, topic progress, hint use, improvement, and practice consistency without exposing another student’s data.</p>
+            <p class="text-sm text-slate-400 mt-3 max-w-2xl">Monitor this learner’s mastery, accuracy, topic progress, hint use, improvement, and practice consistency.</p>
             <p class="text-[10px] text-slate-500 mt-2">Calendar timezone: {{ $analytics['timezone'] }}</p>
         </div>
         <form method="GET" action="/teacher/learning-hub/students/{{ $student['id'] }}" class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 w-full xl:w-auto" data-seamless-form>
@@ -50,7 +50,7 @@
     @else
         @if($analytics['timezone'] !== \App\Support\AppDate::timezone())
             <section class="portal-frame !p-5 mb-6 border-yellow-500/40" role="status">
-                <p class="text-sm text-yellow-300">Solo daily totals still use {{ $analytics['timezone'] }}. Apply the individual Learning Hub insights SQL update.</p>
+                <p class="text-sm text-yellow-300">Daily totals currently use {{ $analytics['timezone'] }} instead of Philippine time. Contact an administrator if the dates look incorrect.</p>
             </section>
         @endif
 

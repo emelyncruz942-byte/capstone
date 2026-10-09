@@ -199,14 +199,15 @@ function initializeNumberGuessGame() {
         return validation || payload?.message || `Request failed (${response.status}).`;
     }
 
-    async function requestJson(url, { method = 'GET', payload = null } = {}) {
+    async function requestJson(url, { method = 'GET', payload = null, foreground = method !== 'GET' } = {}) {
         const headers = { 'Accept': 'application/json' };
         if (method !== 'GET') {
             headers['X-CSRF-TOKEN'] = csrfToken();
             headers['Content-Type'] = 'application/json';
         }
 
-        const response = await fetch(url, {
+        const request = foreground ? (globalThis.mathVerseForegroundFetch ?? fetch) : fetch;
+        const response = await request(url, {
             method,
             headers,
             credentials: 'same-origin',
@@ -264,10 +265,11 @@ function initializeNumberGuessGame() {
         renderControls();
         elements.refreshBoard.classList.add('is-spinning');
         try {
-            const result = await requestJson('/student/games/number-guess/leaderboard');
+            const result = await requestJson('/student/games/number-guess/leaderboard', {
+                foreground: announce,
+            });
             renderPersonal(result.personal);
             renderLeaderboard(result.leaderboard);
-            if (announce) showToast('Leaderboard refreshed.');
         } catch (error) {
             if (error.name !== 'AbortError') showToast(error.message, true);
         } finally {
@@ -377,7 +379,6 @@ function initializeNumberGuessGame() {
 
             if (result.outcome.direction === 'stale') {
                 setFeedback('Game state refreshed. That guess was already recorded in this run.', 'neutral');
-                showToast('Your latest verified game state is ready.');
                 renderSession({ resetInput: true });
                 focusGuess();
                 return;
@@ -424,8 +425,8 @@ function initializeNumberGuessGame() {
         const restarting = action === 'restart';
         elements.endTitle.textContent = restarting ? 'Restart Current Game?' : 'End Current Game?';
         elements.endMessage.textContent = restarting
-            ? 'Your current verified score stays on the leaderboard, but its timer and hidden number will be replaced.'
-            : 'Your verified score stays on the leaderboard, but this timer cannot be resumed.';
+            ? 'Your current score stays on the leaderboard, but the timer and hidden number will restart.'
+            : 'Your current score stays on the leaderboard, but this game cannot be resumed.';
         elements.confirmEnd.textContent = restarting ? 'Restart Game' : 'End Game';
         openModal('numberGuessEndModal');
     }

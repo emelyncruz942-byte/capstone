@@ -187,7 +187,7 @@
             <i class="fas fa-trash-alt text-4xl text-red-500 mb-4"></i>
             <h3 class="font-orbitron font-bold mb-2 uppercase text-white">Move Quiz to Trash?</h3>
             <p id="delete-quiz-topic" class="text-xs text-slate-400 mb-2"></p>
-            <p class="text-[10px] text-slate-500 mb-8">Questions, versions, assignments and results are preserved. Restore this quiz from Trash and Recovery.</p>
+            <p class="text-[10px] text-slate-500 mb-8">You can restore this quiz from Trash.</p>
             <form id="deleteQuizForm" method="POST">
                 @csrf
                 @method('DELETE')

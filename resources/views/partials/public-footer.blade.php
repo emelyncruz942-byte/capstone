@@ -3,6 +3,11 @@
         @unless(request()->routeIs('login'))
             <a href="{{ route('login') }}" class="transition-colors hover:text-cyan-300">Home</a>
         @endunless
+        <a href="{{ route('vr-math-quiz-bee') }}"
+           @if(request()->routeIs('vr-math-quiz-bee')) aria-current="page" @endif
+           class="transition-colors hover:text-cyan-300 {{ request()->routeIs('vr-math-quiz-bee') ? 'text-cyan-300' : '' }}">
+            VR Math Quiz Bee
+        </a>
         <a href="{{ route('privacy-policy') }}"
            @if(request()->routeIs('privacy-policy')) aria-current="page" @endif
            class="transition-colors hover:text-cyan-300 {{ request()->routeIs('privacy-policy') ? 'text-cyan-300' : '' }}">

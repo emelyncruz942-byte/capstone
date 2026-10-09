@@ -4,8 +4,6 @@
 
 @section('content')
 
-<div id="mathverse-navigation-progress" aria-hidden="true"></div>
-
 <button type="button" id="sidebar-overlay" class="fixed inset-0 bg-black/80 z-40 hidden md:hidden" data-action="toggleSidebar" data-action-args='[false]' aria-label="Close navigation"></button>
 
 <aside id="sidebar" data-dashboard-role="{{ $user['role'] ?? '' }}" aria-label="Primary navigation" class="dashboard-sidebar fixed inset-y-0 left-0 w-64 border-r @yield('sidebar-border', 'border-white/10') backdrop-blur-xl bg-black/60 flex flex-col p-6 z-50 transform -translate-x-full transition-transform duration-300 md:sticky md:top-0 md:h-screen md:translate-x-0">

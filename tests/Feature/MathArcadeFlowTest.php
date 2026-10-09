@@ -40,7 +40,7 @@ class MathArcadeFlowTest extends TestCase
             ->assertSeeText('Equation Engineer')
             ->assertDontSeeText('Fraction Photon')
             ->assertSeeText('Pattern Pulse')
-            ->assertSeeText('never award Learning Hub XP or trophies');
+            ->assertSeeText('Earn badges and improve your leaderboard rank');
         $this->assertSame(4, substr_count($response->getContent(), 'arcade-game-card'));
     }
 

@@ -9,6 +9,10 @@
         ' ',
         $__env->yieldContent('description', (string) config('seo.description', ''))
     ));
+    $seoKeywords = array_values(array_filter(
+        array_map('trim', (array) config('seo.keywords', [])),
+        static fn (string $keyword): bool => $keyword !== ''
+    ));
 
     $seoBaseUrl = rtrim((string) config('app.canonical_url', config('app.url')), '/');
     $seoPath = request()->getPathInfo();
@@ -25,7 +29,8 @@
     // Only intentional public pages may enter search results. Account,
     // dashboard, recovery, report, error, and service-health pages stay out.
     $seoIndexable = request()->isMethod('GET')
-        && request()->routeIs(['login', 'privacy-policy', 'terms-and-conditions']);
+        && request()->routeIs(['login', 'vr-math-quiz-bee', 'privacy-policy', 'terms-and-conditions']);
+    $seoKeywordMetaEnabled = request()->routeIs(['login', 'vr-math-quiz-bee']);
     $seoDefaultRobots = $seoIndexable
         ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
         : 'noindex, nofollow, noarchive';
@@ -47,6 +52,7 @@
             'alternateName' => 'Math MetaVerse',
             'url' => $seoBaseUrl . '/',
             'description' => (string) config('seo.description', $seoDescription),
+            'keywords' => implode(', ', $seoKeywords),
             'inLanguage' => str_replace('_', '-', (string) config('seo.locale', 'en_PH')),
         ],
         [
@@ -66,7 +72,7 @@
         ],
     ];
 
-    if (request()->routeIs('login')) {
+    if (request()->routeIs(['login', 'vr-math-quiz-bee'])) {
         $seoSchemaGraph[] = [
             $schemaKey('type') => 'WebApplication',
             $schemaKey('id') => $seoApplicationId,
@@ -75,6 +81,12 @@
             'description' => (string) config('seo.description', $seoDescription),
             'applicationCategory' => 'EducationalApplication',
             'operatingSystem' => 'Any modern web browser',
+            'featureList' => [
+                'Virtual-reality and standard-screen math quiz modes',
+                'Teacher-managed classrooms and quizzes',
+                'Student math practice games and activities',
+                'Quiz scoring and learning progress insights',
+            ],
             'isPartOf' => [$schemaKey('id') => $seoWebsiteId],
         ];
         $seoSchemaGraph[1]['mainEntity'] = [$schemaKey('id') => $seoApplicationId];
@@ -87,6 +99,9 @@
 @endphp
 <title>{{ $seoTitle }}</title>
 <meta name="description" content="{{ $seoDescription }}">
+@if($seoKeywordMetaEnabled && $seoKeywords !== [])
+<meta name="keywords" content="{{ implode(', ', $seoKeywords) }}">
+@endif
 <meta name="robots" content="{{ $seoRobots }}">
 <meta name="googlebot" content="{{ $seoRobots }}">
 <link rel="canonical" href="{{ $seoCanonicalUrl }}">

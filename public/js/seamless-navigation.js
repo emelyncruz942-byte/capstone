@@ -18,6 +18,7 @@
     let lastVisibleRefreshAt = Date.now();
     let visibleRefreshTimer = null;
     let activePageNavigation = null;
+    let finishProgress = null;
 
     class NativeNavigationRequired extends Error {
         constructor(url) {
@@ -130,7 +131,15 @@
     }
 
     function setLoading(loading) {
-        document.body.classList.toggle('mathverse-navigating', loading);
+        if (loading && !finishProgress) {
+            finishProgress = window.MathVerseProgress?.begin?.({ timeoutMs: formRequestTimeoutMs }) ?? null;
+        } else if (!loading && finishProgress) {
+            finishProgress();
+            finishProgress = null;
+        }
+        if (!window.MathVerseProgress) {
+            document.body.classList.toggle('mathverse-navigating', loading);
+        }
         document.querySelector(contentSelector)?.setAttribute('aria-busy', String(loading));
     }
 
@@ -305,6 +314,7 @@
         preserveScroll = false,
         syncChrome = true,
         destinationHash = '',
+        background = false,
     } = {}) {
         const parsed = parsePage(entry.html, entry.finalUrl);
         const incomingContent = parsed.querySelector(contentSelector);
@@ -344,7 +354,7 @@
         }
         renderedUrl = displayedUrl.href;
         document.dispatchEvent(new CustomEvent('mathverse:page-ready', {
-            detail: { url: displayedUrl.href },
+            detail: { url: displayedUrl.href, background },
         }));
 
         if (preserveScroll) {
@@ -402,6 +412,7 @@
                     preserveScroll: true,
                     syncChrome: true,
                     destinationHash: refreshUrl.hash,
+                    background: true,
                 });
             } catch {
                 // The already-rendered page remains usable when revalidation fails.

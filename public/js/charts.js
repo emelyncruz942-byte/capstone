@@ -206,19 +206,21 @@ function clearStatsCache() {
     });
 }
 
-async function cachedStats(kind, url) {
+async function cachedStats(kind, url, { foreground = true } = {}) {
     const entry = _statsCache[kind];
     if (entry.data && Date.now() - entry.fetchedAt < STATS_CACHE_TTL_MS) return entry.data;
     if (entry.promise) return entry.promise;
 
     const requestedGeneration = statsCacheGeneration;
-    const request = fetch(url, {
+    const requestClient = foreground ? (globalThis.mathVerseForegroundFetch ?? fetch) : fetch;
+    const request = requestClient(url, {
         cache: 'no-store',
         headers: { 'Accept': 'application/json' },
     })
-        .then(response => {
+        .then(async response => {
+            const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error('HTTP ' + response.status);
-            return response.json();
+            return data;
         })
         .then(data => {
             if (requestedGeneration === statsCacheGeneration) {
@@ -237,7 +239,7 @@ async function cachedStats(kind, url) {
 
 // ── Teacher stats ─────────────────────────────────────────
 
-async function loadTeacherStats() {
+async function loadTeacherStats(options = {}) {
     const loading = document.getElementById('stats-loading');
     const content = document.getElementById('stats-content');
     if (typeof Chart === 'undefined') {
@@ -250,7 +252,7 @@ async function loadTeacherStats() {
     content?.classList.add('hidden');
 
     try {
-        const data = await cachedStats('teacher', '/teacher/stats');
+        const data = await cachedStats('teacher', '/teacher/stats', options);
 
         // Populate summary cards
         document.getElementById('stat-total-attempts').innerText = data.totalAttempts ?? '0';
@@ -311,7 +313,7 @@ async function loadTeacherStats() {
 
 // ── Admin stats ───────────────────────────────────────────
 
-async function loadAdminStats() {
+async function loadAdminStats(options = {}) {
     const loading = document.getElementById('stats-loading');
     const content = document.getElementById('stats-content');
     if (typeof Chart === 'undefined') {
@@ -323,7 +325,7 @@ async function loadAdminStats() {
     content?.classList.add('hidden');
 
     try {
-        const data = await cachedStats('admin', '/admin/stats');
+        const data = await cachedStats('admin', '/admin/stats', options);
 
         document.getElementById('stat-total-attempts').innerText = data.totalAttempts ?? '0';
         document.getElementById('stat-avg-accuracy').innerText   = (data.avgAccuracy ?? 0) + '%';

@@ -45,7 +45,7 @@
         <div>
             <p class="text-[9px] uppercase tracking-[0.3em] font-bold text-orange-400">MathVerse assistance</p>
             <h1 class="font-orbitron font-black text-2xl md:text-3xl mt-2">Help &amp; <span class="text-cyan-400">Support</span></h1>
-            <p class="text-sm text-slate-400 mt-3 max-w-2xl">Report an error or broken feature and track the response from an administrator. Never include your password or access token.</p>
+            <p class="text-sm text-slate-400 mt-3 max-w-2xl">Report an error or broken feature and track the response from an administrator. Never include your password, sign-in link, or private codes.</p>
         </div>
         <div class="flex items-center gap-3 text-[10px] uppercase tracking-widest text-slate-500">
             <i class="fas fa-shield-halved text-green-400"></i>
@@ -106,7 +106,7 @@
                 </div>
 
                 <p class="text-[10px] leading-relaxed text-slate-500">
-                    Error references appear on the “Request unavailable” page. Adding one helps the administrator find the matching diagnostic event.
+                    If an error page showed a reference, add it here to help the administrator find the problem.
                 </p>
 
                 <button type="submit" class="btn-rect-primary !py-3">

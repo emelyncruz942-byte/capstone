@@ -42,9 +42,9 @@
     @if(!$gameState['configured'])
         <section class="portal-frame !p-7 border-yellow-500/40" role="status">
             <div class="flex items-start gap-4">
-                <div class="arcade-notice-icon"><i class="fas fa-database"></i></div>
+                <div class="arcade-notice-icon"><i class="fas fa-wrench"></i></div>
                 <div>
-                    <h3 class="font-orbitron font-bold uppercase text-yellow-300">Game update required</h3>
+                    <h3 class="font-orbitron font-bold uppercase text-yellow-300">Game unavailable</h3>
                     <p class="text-sm text-slate-400 mt-2">{{ $gameState['message'] }}</p>
                     <a href="/student/games" class="inline-block text-xs uppercase font-bold text-cyan-300 mt-4">Return to Arcade</a>
                 </div>
@@ -78,7 +78,7 @@
                     </h1>
                     <p class="text-xs text-slate-500 mt-3">One point for each correct answer. A wrong answer resets only the streak.</p>
                     <div id="arcade-feedback" class="number-guess-feedback" data-tone="neutral" aria-live="assertive">
-                        {{ $gameState['session'] ? 'Your verified run is active. Keep going!' : 'Every run rotates through varied question types.' }}
+                        {{ $gameState['session'] ? 'Your run is active. Keep going!' : 'Every run rotates through varied question types.' }}
                     </div>
                 </div>
 
@@ -136,9 +136,9 @@
                 <section class="portal-frame !p-5 md:!p-6 border-purple-500/20">
                     <p class="text-[9px] uppercase tracking-widest font-bold text-purple-400"><i class="fas fa-circle-info mr-2"></i> Mission notes</p>
                     <ul class="mt-4 space-y-3 text-xs text-slate-400">
-                        <li class="flex gap-3"><i class="fas fa-clock text-cyan-400 mt-0.5"></i><span>You have {{ $gameState['rules']['starting_seconds'] }} server-timed seconds.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-clock text-cyan-400 mt-0.5"></i><span>You have {{ $gameState['rules']['starting_seconds'] }} seconds.</span></li>
                         <li class="flex gap-3"><i class="fas fa-shuffle text-green-400 mt-0.5"></i><span>Question families rotate, while values adapt to Grade {{ $gameState['grade'] }}.</span></li>
-                        <li class="flex gap-3"><i class="fas fa-shield-halved text-yellow-400 mt-0.5"></i><span>The browser never receives an answer until that question is submitted.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-trophy text-yellow-400 mt-0.5"></i><span>Correct answers raise your score and leaderboard rank.</span></li>
                     </ul>
                 </section>
             </aside>

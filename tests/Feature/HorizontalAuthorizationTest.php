@@ -65,7 +65,7 @@ class HorizontalAuthorizationTest extends TestCase
             ->delete('/teacher/classes/'.self::TARGET_ID, ['delete_class_id' => self::TARGET_ID]);
 
         $response->assertRedirect('/teacher/trash');
-        $response->assertSessionHas('success', 'Class moved to Trash. Students, assignments and results are preserved.');
+        $response->assertSessionHas('success', 'Class moved to Trash.');
     }
 
     public function test_misdirected_child_deletes_cannot_delete_a_class(): void
@@ -110,7 +110,7 @@ class HorizontalAuthorizationTest extends TestCase
         $this->withSession(['supabase_user' => $this->teacher()])
             ->post('/teacher/classes/'.self::TARGET_ID.'/quizzes/'.self::SESSION_ID, ['_method' => 'DELETE'])
             ->assertRedirect('/teacher/classes/'.self::TARGET_ID)
-            ->assertSessionHas('success', "Assignment deleted. Your quiz's Class Uses were not changed.");
+            ->assertSessionHas('success', 'Assignment deleted.');
     }
 
     public function test_assignment_delete_cannot_mutate_another_teachers_session(): void
