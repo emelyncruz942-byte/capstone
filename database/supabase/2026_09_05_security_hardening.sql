@@ -436,14 +436,18 @@ do $hardening$
 declare
     function_record record;
     mathverse_functions constant text[] := array[
+        'activate_unity_app_release',
         'acknowledge_system_incident',
         'arcade_game_dashboard',
         'arcade_hub_dashboard',
+        'begin_unity_app_release',
         'cancel_account_purge',
         'complete_privileged_audit_intent',
         'create_privileged_audit_intent',
         'finish_arcade_game',
         'finish_incident_notification',
+        'finalize_unity_app_release',
+        'fail_unity_app_release',
         'incident_signal_counts',
         'notify_incident_admins',
         'prepare_account_purge',
@@ -491,6 +495,7 @@ declare
         'invalidate_profile_sessions_after_password_change',
         'join_my_vr_quiz_room',
         'keep_quiz_results_immutable',
+        'mark_quiz_report_revised',
         'number_guess_dashboard',
         'notify_all_admins',
         'notify_class_archive_changed',

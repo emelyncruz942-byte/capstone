@@ -1,4 +1,4 @@
-function initializeTeacherDashboard(event) {
+function initializeTeacherDashboard() {
     if (document.getElementById('dashboard-content')?.dataset.dashboardRole !== 'teacher') return;
     if (!document.getElementById('sec-overview')) return;
 
@@ -15,8 +15,7 @@ function initializeTeacherDashboard(event) {
     }
 
     if (section === 'stats' && typeof loadTeacherStats === 'function') {
-        const foreground = event?.detail?.background !== true;
-        requestAnimationFrame(() => requestAnimationFrame(() => loadTeacherStats({ foreground })));
+        requestAnimationFrame(() => requestAnimationFrame(() => loadTeacherStats({ foreground: false })));
     }
 }
 
@@ -25,6 +24,6 @@ document.addEventListener('mathverse:section-change', event => {
     if (event.detail?.section === 'stats'
         && document.getElementById('dashboard-content')?.dataset.dashboardRole === 'teacher'
         && typeof loadTeacherStats === 'function') {
-        requestAnimationFrame(() => requestAnimationFrame(() => loadTeacherStats()));
+        requestAnimationFrame(() => requestAnimationFrame(() => loadTeacherStats({ foreground: false })));
     }
 });

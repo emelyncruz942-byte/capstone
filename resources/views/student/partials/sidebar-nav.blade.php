@@ -22,6 +22,10 @@
    class="nav-link w-full {{ $activePage === 'class' ? 'active' : '' }}">
     <i class="fas fa-chalkboard mr-3 w-5 text-green-400"></i> My Classes
 </a>
+<a href="{{ route('app-downloads.index') }}"
+   class="nav-link w-full {{ $activePage === 'app-download' ? 'active' : '' }}">
+    <i class="fas fa-mobile-screen-button mr-3 w-5 text-cyan-400"></i> Game Download
+</a>
 <a href="{{ route('support-tickets.index') }}"
    class="nav-link w-full {{ $activePage === 'support' ? 'active' : '' }}">
     <i class="fas fa-life-ring mr-3 w-5 text-orange-400"></i> Help &amp; Support

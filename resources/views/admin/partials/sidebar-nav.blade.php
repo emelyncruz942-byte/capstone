@@ -29,6 +29,10 @@
         <span class="ml-auto min-w-5 h-5 px-1 rounded-full bg-red-500 text-black text-[9px] font-black flex items-center justify-center">{{ $sidebarPendingReports }}</span>
     @endif
 </a>
+<a href="{{ route('admin.app-releases.index') }}"
+   class="nav-link w-full {{ $activePage === 'app-releases' ? 'active' : '' }}">
+    <i class="fas fa-mobile-screen-button mr-3 w-5 text-cyan-400"></i> Game Releases
+</a>
 <a href="/admin/dashboard?section=students" id="btn-students"
    class="nav-link w-full {{ $activePage === 'students' ? 'active' : '' }}">
     <i class="fas fa-user-graduate mr-3 w-5 text-cyan-400"></i> Students

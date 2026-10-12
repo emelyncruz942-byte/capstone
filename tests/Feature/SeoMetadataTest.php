@@ -54,6 +54,11 @@ class SeoMetadataTest extends TestCase
             ->assertSee('Do students need a VR headset to use MathVerse?', false)
             ->assertSee('href="'.route('login').'"', false);
 
+        $html = $response->getContent();
+        $this->assertIsString($html);
+        $this->assertSame(3, substr_count($html, '<details '));
+        $this->assertDoesNotMatchRegularExpression('/<details\b[^>]*\sopen(?:\s|>)/i', $html);
+
         $schema = $this->schemaFrom($response->getContent());
         $this->assertSame(
             ['WebSite', 'WebPage', 'WebApplication'],

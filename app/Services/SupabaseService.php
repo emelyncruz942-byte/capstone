@@ -12,6 +12,10 @@ class SupabaseService
 {
     private const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
 
+    private const STORAGE_BUCKET_PATTERN = '/^[a-z0-9][a-z0-9_-]{0,62}$/D';
+
+    private const STORAGE_OBJECT_PATH_PATTERN = '#^[A-Za-z0-9][A-Za-z0-9._/-]{0,1023}$#D';
+
     /** @var list<string> */
     private const PROFILE_FORM_COLUMNS = [
         'avatar_url',
@@ -197,6 +201,129 @@ class SupabaseService
         ])->delete("{$this->url}/storage/v1/object/{$path}");
 
         return $response->successful();
+    }
+
+    /**
+     * Create a short-lived upload token without exposing the service key to
+     * the browser. The token can be used by Supabase's resumable TUS endpoint.
+     *
+     * @return array{data: array{token: string, endpoint: string, bucket: string, path: string}|null, error: ?string, status: int}
+     */
+    public function createStorageSignedUpload(string $bucket, string $path): array
+    {
+        $this->assertStorageLocation($bucket, $path);
+        $encodedLocation = $this->encodedStorageLocation($bucket, $path);
+
+        $response = $this->request()->withHeaders([
+            'apikey' => $this->serviceKey,
+            'Authorization' => "Bearer {$this->serviceKey}",
+            'Content-Type' => 'application/json',
+            'x-upsert' => 'false',
+        ])->post("{$this->url}/storage/v1/object/upload/sign/{$encodedLocation}", []);
+
+        $payload = $response->json();
+        $relativeUrl = is_array($payload) ? ($payload['url'] ?? null) : null;
+        $signedUrl = is_string($relativeUrl) && str_starts_with($relativeUrl, '/')
+            ? "{$this->url}/storage/v1{$relativeUrl}"
+            : null;
+        $token = is_string($signedUrl)
+            ? (string) (parse_url($signedUrl, PHP_URL_QUERY) ?? '')
+            : '';
+        parse_str($token, $query);
+        $token = is_string($query['token'] ?? null) ? $query['token'] : '';
+
+        if (!$response->successful() || $token === '') {
+            return [
+                'data' => null,
+                'error' => $this->databaseErrorMessage($response)
+                    ?: 'The secure upload could not be prepared.',
+                'status' => $response->status(),
+            ];
+        }
+
+        return [
+            'data' => [
+                'token' => $token,
+                'endpoint' => $this->storageResumableEndpoint(),
+                'bucket' => $bucket,
+                'path' => $path,
+            ],
+            'error' => null,
+            'status' => $response->status(),
+        ];
+    }
+
+    /** @return array{data: ?array, error: ?string, status: int} */
+    public function storageObjectInfo(string $bucket, string $path): array
+    {
+        $this->assertStorageLocation($bucket, $path);
+        $encodedLocation = $this->encodedStorageLocation($bucket, $path);
+        $response = $this->request()->withHeaders([
+            'apikey' => $this->serviceKey,
+            'Authorization' => "Bearer {$this->serviceKey}",
+        ])->get("{$this->url}/storage/v1/object/info/{$encodedLocation}");
+        $payload = $response->json();
+
+        if (!$response->successful() || !is_array($payload) || array_is_list($payload)) {
+            return [
+                'data' => null,
+                'error' => $this->databaseErrorMessage($response)
+                    ?: 'The uploaded file could not be verified.',
+                'status' => $response->status(),
+            ];
+        }
+
+        return ['data' => $payload, 'error' => null, 'status' => $response->status()];
+    }
+
+    /**
+     * @return array{url: ?string, error: ?string, status: int}
+     */
+    public function createStorageSignedDownload(
+        string $bucket,
+        string $path,
+        string $downloadName,
+        int $expiresIn = 300
+    ): array {
+        $this->assertStorageLocation($bucket, $path);
+        if (!mb_check_encoding($downloadName, 'UTF-8')
+            || mb_strlen($downloadName, 'UTF-8') < 5
+            || mb_strlen($downloadName, 'UTF-8') > 220
+            || preg_match('/[\/\\\\\x00-\x1F\x7F]/u', $downloadName) !== 0
+        ) {
+            throw new \InvalidArgumentException('Invalid storage download name.');
+        }
+        $expiresIn = max(60, min($expiresIn, 900));
+        $encodedLocation = $this->encodedStorageLocation($bucket, $path);
+        $response = $this->request()->withHeaders([
+            'apikey' => $this->serviceKey,
+            'Authorization' => "Bearer {$this->serviceKey}",
+            'Content-Type' => 'application/json',
+        ])->post("{$this->url}/storage/v1/object/sign/{$encodedLocation}", [
+            'expiresIn' => $expiresIn,
+        ]);
+        $payload = $response->json();
+        $relativeUrl = is_array($payload) ? ($payload['signedURL'] ?? null) : null;
+
+        if (!$response->successful()
+            || !is_string($relativeUrl)
+            || !str_starts_with($relativeUrl, '/object/sign/')
+        ) {
+            return [
+                'url' => null,
+                'error' => $this->databaseErrorMessage($response)
+                    ?: 'The download link could not be created.',
+                'status' => $response->status(),
+            ];
+        }
+
+        return [
+            'url' => "{$this->url}/storage/v1{$relativeUrl}"
+                . (str_contains($relativeUrl, '?') ? '&' : '?')
+                . 'download=' . rawurlencode($downloadName),
+            'error' => null,
+            'status' => $response->status(),
+        ];
     }
 
     public function updateProfile(string $userId, array $data): array
@@ -970,6 +1097,46 @@ class SupabaseService
         if (preg_match('/^[a-z_][a-z0-9_]*$/i', $identifier) !== 1) {
             throw new \InvalidArgumentException("Invalid Supabase {$kind} identifier.");
         }
+    }
+
+    private function assertStorageLocation(string $bucket, string $path): void
+    {
+        if (preg_match(self::STORAGE_BUCKET_PATTERN, $bucket) !== 1
+            || preg_match(self::STORAGE_OBJECT_PATH_PATTERN, $path) !== 1
+            || str_contains($path, '//')
+            || str_ends_with($path, '/')
+        ) {
+            throw new \InvalidArgumentException('Invalid Supabase storage location.');
+        }
+
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '' || $segment === '.' || $segment === '..') {
+                throw new \InvalidArgumentException('Invalid Supabase storage location.');
+            }
+        }
+    }
+
+    private function encodedStorageLocation(string $bucket, string $path): string
+    {
+        return rawurlencode($bucket) . '/' . implode('/', array_map(
+            static fn (string $segment): string => rawurlencode($segment),
+            explode('/', $path),
+        ));
+    }
+
+    private function storageResumableEndpoint(): string
+    {
+        $parts = parse_url($this->url);
+        $scheme = is_array($parts) ? strtolower((string) ($parts['scheme'] ?? '')) : '';
+        $host = is_array($parts) ? strtolower((string) ($parts['host'] ?? '')) : '';
+
+        if (in_array($scheme, ['http', 'https'], true)
+            && preg_match('/^([a-z0-9-]+)\.supabase\.co$/D', $host, $matches) === 1
+        ) {
+            return "{$scheme}://{$matches[1]}.storage.supabase.co/storage/v1/upload/resumable";
+        }
+
+        return "{$this->url}/storage/v1/upload/resumable";
     }
 
     private function assertFilterColumn(string $column): void

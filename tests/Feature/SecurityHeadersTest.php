@@ -52,6 +52,22 @@ class SecurityHeadersTest extends TestCase
         );
     }
 
+    public function test_csp_allows_only_the_configured_supabase_api_and_storage_origins(): void
+    {
+        $this->withoutVite();
+        config(['services.supabase.url' => 'https://project-ref.supabase.co']);
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $policy = (string) $response->headers->get('Content-Security-Policy');
+        $this->assertStringContainsString(
+            "connect-src 'self' https://project-ref.supabase.co https://project-ref.storage.supabase.co",
+            $policy
+        );
+        $this->assertStringNotContainsString('connect-src *', $policy);
+    }
+
     public function test_authenticated_json_responses_cannot_be_stored(): void
     {
         Route::middleware('web')->get('/_security-json-response', fn () => response()->json([

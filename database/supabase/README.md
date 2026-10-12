@@ -519,7 +519,7 @@ of those quizzes retain their session data and have `source_quiz_id` set to
 
 ## Unity VR database access and score submission
 
-After all earlier forward migrations, run these seven files in this exact order:
+After all earlier forward migrations, run these nine files in this exact order:
 
 1. `2026_09_20_vr_legacy_access.sql`
 2. `2026_09_20_vr_score_submission.sql`
@@ -528,6 +528,8 @@ After all earlier forward migrations, run these seven files in this exact order:
 5. `2026_09_24_quiz_lifecycle_and_active_retakes.sql`
 6. `2026_10_02_vr_server_authority_and_request_guards.sql`
 7. `2026_10_03_support_tickets.sql`
+8. `2026_10_11_versioned_unity_app_releases.sql`
+9. `2026_10_12_teacher_quiz_report_revisions.sql`
 
 The first migration restores the narrowly scoped anonymous access required by
 the existing Unity client: lookup and status polling for waiting/active rooms,
@@ -583,6 +585,57 @@ notifications. Use `2026_10_03_support_tickets_rollback.sql` only after the
 matching routes have been removed; it retains tickets in an RLS-forced archive
 with privileges revoked from runtime roles.
 
+The eighth migration creates the private `unity-releases` Storage bucket and
+the server-only `unity_app_releases` version registry. It accepts Android
+`.apk` and iOS `.ipa` artifacts, retains older ready versions for an
+administrator rollback, and guarantees that application-managed state has only
+one active ready release per platform. A newly finalized upload becomes active
+atomically for Android or iOS without hiding the other platform; reactivating
+an older ready row atomically replaces only that platform's current release
+after its Storage object and recorded size are verified again. A failed upload
+remains in the history but does not block retrying the same platform/version.
+
+Laravel must perform this workflow with its private Supabase service-role key:
+
+1. Call `begin_unity_app_release` with the active administrator ID, version,
+   platform (`android` or `ios`), matching artifact kind (`apk` or `ipa`),
+   download name, expected byte size, optional notes, and optional MIME type.
+2. Upload the file to the returned `storage_bucket` and `storage_path` through
+   the Supabase Storage API. Do not write directly to `storage.objects`.
+3. Call `finalize_unity_app_release` with the actual byte size and, when the
+   server calculated one, an optional lowercase SHA-256 digest. If upload
+   fails, call `fail_unity_app_release` instead.
+4. To revert, call `activate_unity_app_release` for a retained ready release.
+
+The metadata table has forced RLS, grants no browser role access, and permits
+the service role to read but not directly mutate rows. Every state-changing
+RPC is `SECURITY DEFINER`, verifies that the supplied profile is an active
+administrator, and grants execution only to `service_role`. Restrictive
+Storage policies keep this bucket unavailable to `anon` and `authenticated`
+even if another broad legacy Storage policy exists. Teacher and student pages
+must obtain only the active ready row for each platform through Laravel, which
+then creates a short-lived signed URL. Never put the service-role key in
+JavaScript or Unity.
+
+An iOS `.ipa` must still be correctly signed and distributed through an Apple-
+approved installation method; making the file downloadable does not make an
+unsigned build installable. Use
+`2026_10_11_versioned_unity_app_releases_rollback.sql` only after removing the
+matching application routes. The rollback archives release metadata but keeps
+the bucket, files, and restrictive policies private. Remove retained objects
+through the Storage API before any later reviewed bucket cleanup.
+
+The ninth migration adds a separate teacher revision acknowledgement to quiz
+reports. A quiz creator can read the report details and call the server-only
+`mark_quiz_report_revised` RPC once while the report is still pending. This
+records who acknowledged the correction and when, but deliberately leaves the
+report status as `pending`; only an administrator can review or dismiss it.
+The migration also sends future quiz-owner notifications directly to the new
+report details page and updates matching existing notification links. Use
+`2026_10_12_teacher_quiz_report_revisions_rollback.sql` only after removing
+the matching teacher routes. It preserves revision timestamps in a forced-RLS
+archive with all runtime privileges revoked.
+
 Step 6 is an incompatible, forward-only boundary rather than a rolling update.
 The old Unity client cannot join after anonymous reads are revoked, and the new
 client cannot join before the new RPCs exist. The old Laravel push sender also
@@ -595,7 +648,7 @@ server-calculated score submission, retake, and administrator push. If a check
 fails, keep those paths offline and complete a forward repair; do not restore
 anonymous grants as a compatibility workaround.
 
-All seven migrations register themselves in `mathverse_schema_migrations`.
+All nine migrations register themselves in `mathverse_schema_migrations`.
 After step 6, do not reapply the legacy-access file: it detects the new boundary
 and safely performs no grants. Apply future security changes as new forward
 migrations. The matching Unity project must include the RPC-enabled

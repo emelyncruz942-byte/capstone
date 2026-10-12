@@ -23,4 +23,9 @@ return [
         'delivery_failure_threshold' => (int) env('INCIDENT_DELIVERY_FAILURE_THRESHOLD', 5),
         'repeat_seconds' => (int) env('INCIDENT_REPEAT_SECONDS', 3600),
     ],
+    'app_releases' => [
+        'bucket' => env('UNITY_RELEASE_BUCKET', 'unity-releases'),
+        'max_bytes' => (int) env('UNITY_RELEASE_MAX_BYTES', 1073741824),
+        'signed_download_ttl' => (int) env('UNITY_RELEASE_SIGNED_DOWNLOAD_TTL', 300),
+    ],
 ];

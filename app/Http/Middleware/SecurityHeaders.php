@@ -22,7 +22,11 @@ class SecurityHeaders
         $supabaseOrigin = $this->allowedHttpsOrigin((string) config('services.supabase.url'));
         $imageSources = array_filter(["'self'", 'data:', 'blob:', $supabaseOrigin]);
         $scriptSources = ["'self'", "'nonce-{$nonce}'"];
-        $connectSources = ["'self'"];
+        $connectSources = array_values(array_filter([
+            "'self'",
+            $supabaseOrigin,
+            $this->supabaseStorageOrigin((string) config('services.supabase.url')),
+        ]));
         if (!app()->isProduction() && ($hotOrigin = $this->localViteHotOrigin()) !== null) {
             $scriptSources[] = $hotOrigin;
             $connectSources[] = $hotOrigin;
@@ -133,6 +137,17 @@ class SecurityHeaders
         }
 
         return 'https://' . strtolower((string) $parts['host']);
+    }
+
+    private function supabaseStorageOrigin(string $url): ?string
+    {
+        $parts = parse_url($url);
+        $host = is_array($parts) ? strtolower((string) ($parts['host'] ?? '')) : '';
+        if (preg_match('/^([a-z0-9-]+)\.supabase\.co$/D', $host, $matches) !== 1) {
+            return null;
+        }
+
+        return "https://{$matches[1]}.storage.supabase.co";
     }
 
     private function requestUsesHttps(Request $request): bool

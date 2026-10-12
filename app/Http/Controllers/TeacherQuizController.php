@@ -285,6 +285,95 @@ class TeacherQuizController extends Controller
         return back()->with('success', 'Report submitted for admin review.');
     }
 
+    public function reportedQuizzes(Request $request)
+    {
+        $user = session('supabase_user');
+        $status = (string) $request->query('status', 'active');
+        if (!in_array($status, ['active', 'reviewed', 'dismissed'], true)) {
+            $status = 'active';
+        }
+
+        $databaseStatus = $status === 'active' ? 'pending' : $status;
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = 20;
+        $result = $this->supabase->adminSelectPage(
+            'quiz_reports',
+            '*',
+            [
+                'quiz_creator_id' => $user['id'],
+                'status' => $databaseStatus,
+                'order' => $status === 'active'
+                    ? 'created_at.asc'
+                    : 'reviewed_at.desc,created_at.desc',
+            ],
+            $perPage,
+            ($page - 1) * $perPage
+        );
+
+        $reports = $this->enrichOwnedReports($result['data']);
+        $total = $result['total'];
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        if ($page > $totalPages && $total > 0) {
+            return redirect()->to($request->fullUrlWithQuery(['page' => $totalPages]));
+        }
+
+        $reportCounts = [];
+        foreach (['active' => 'pending', 'reviewed' => 'reviewed', 'dismissed' => 'dismissed'] as $key => $value) {
+            $reportCounts[$key] = $this->supabase->adminCount('quiz_reports', [
+                'quiz_creator_id' => $user['id'],
+                'status' => $value,
+            ]);
+        }
+
+        return view('teacher.quiz-reports.index', compact(
+            'user', 'reports', 'status', 'page', 'total', 'totalPages', 'reportCounts'
+        ));
+    }
+
+    public function showReportedQuiz(string $reportId)
+    {
+        $user = session('supabase_user');
+        $report = $this->supabase->adminSelect('quiz_reports', '*', [
+            'id' => $reportId,
+            'quiz_creator_id' => $user['id'],
+        ])[0] ?? null;
+
+        if (!$report) {
+            return redirect('/teacher/quiz-reports')
+                ->with('error', 'That quiz report is not available to your account.');
+        }
+
+        $report = $this->enrichOwnedReports([$report])[0];
+
+        return view('teacher.quiz-reports.show', compact('user', 'report'));
+    }
+
+    public function markReportedQuizRevised(string $reportId)
+    {
+        $user = session('supabase_user');
+        $result = $this->supabase->adminRpcResult('mark_quiz_report_revised', [
+            'p_report_id' => $reportId,
+            'p_teacher_id' => $user['id'],
+        ]);
+        $revision = $result['data'][0] ?? null;
+
+        if ($result['error'] !== null || !isset($revision['report_id'])) {
+            return redirect("/teacher/quiz-reports/{$reportId}")
+                ->with('error', 'The report could not be marked revised. Check that it is still awaiting administrator review.');
+        }
+
+        if (($revision['report_status'] ?? null) !== 'pending') {
+            return redirect("/teacher/quiz-reports/{$reportId}")
+                ->with('error', 'This report has already been handled by an administrator.');
+        }
+
+        $message = ($revision['revision_changed'] ?? false)
+            ? 'Marked as revised. The report remains open for administrator review.'
+            : 'This quiz was already marked as revised and remains open for administrator review.';
+
+        return redirect("/teacher/quiz-reports/{$reportId}")->with('success', $message);
+    }
+
     public function versions(string $id)
     {
         $user = session('supabase_user');
@@ -1057,6 +1146,61 @@ class TeacherQuizController extends Controller
             'id' => $id,
             'teacher_id' => $teacherId,
         ])[0] ?? null;
+    }
+
+    private function enrichOwnedReports(array $reports): array
+    {
+        if ($reports === []) {
+            return [];
+        }
+
+        $quizIds = array_values(array_unique(array_filter(array_column($reports, 'quiz_id'))));
+        $quizzes = $quizIds === [] ? [] : $this->supabase->adminSelect(
+            'quizzes',
+            'id,teacher_id,topic,grade_level,version,visibility,updated_at,deleted_at',
+            ['id' => ['operator' => 'in', 'value' => '(' . implode(',', $quizIds) . ')']]
+        );
+        $quizMap = array_column($quizzes, null, 'id');
+
+        $questionIds = array_values(array_unique(array_filter(array_column($reports, 'question_id'))));
+        $questions = $questionIds === [] ? [] : $this->supabase->adminSelect(
+            'quiz_questions',
+            'id,position,question',
+            ['id' => ['operator' => 'in', 'value' => '(' . implode(',', $questionIds) . ')']]
+        );
+        $questionMap = array_column($questions, null, 'id');
+
+        $profileNames = $this->creatorNames(array_merge(
+            array_column($reports, 'reporter_id'),
+            array_column($reports, 'reviewed_by')
+        ));
+
+        foreach ($reports as &$report) {
+            $quiz = $quizMap[$report['quiz_id'] ?? ''] ?? null;
+            $question = $questionMap[$report['question_id'] ?? ''] ?? null;
+            $questionText = $report['question_text'] ?? $question['question'] ?? null;
+            $questionPrefix = empty($report['question_text']) && !empty($question['position'])
+                ? "Question {$question['position']}: "
+                : 'Reported question: ';
+
+            $report['quiz'] = $quiz;
+            $report['quiz_available'] = $quiz !== null && empty($quiz['deleted_at']);
+            $report['quiz_topic_display'] = $report['quiz_topic']
+                ?? $quiz['topic']
+                ?? 'Deleted quiz';
+            $report['quiz_grade_display'] = $report['quiz_grade_level']
+                ?? $quiz['grade_level']
+                ?? null;
+            $report['reporter_name'] = $profileNames[$report['reporter_id'] ?? ''] ?? 'Former user';
+            $report['reviewer_name'] = $profileNames[$report['reviewed_by'] ?? ''] ?? null;
+            $report['question_text_display'] = $questionText;
+            $report['question_label'] = $questionText
+                ? $questionPrefix . \Illuminate\Support\Str::limit($questionText, 100)
+                : null;
+        }
+        unset($report);
+
+        return $reports;
     }
 
     private function sharedQuiz(string $id, string $viewerId): ?array

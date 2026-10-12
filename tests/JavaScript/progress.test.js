@@ -11,6 +11,8 @@ const progressSource = sharedSource.slice(
 
 function progressFixture(fetchImplementation) {
     const classes = new Set();
+    const documentListeners = new Map();
+    const windowListeners = new Map();
     const main = { attributes: new Map(), setAttribute(name, value) { this.attributes.set(name, value); } };
     const body = {
         classList: {
@@ -24,12 +26,27 @@ function progressFixture(fetchImplementation) {
     const document = {
         body,
         querySelector: selector => selector === 'main' ? main : null,
-        addEventListener() {},
+        addEventListener(type, callback) {
+            const listeners = documentListeners.get(type) ?? [];
+            listeners.push(callback);
+            documentListeners.set(type, listeners);
+        },
     };
     const window = {
         setTimeout: () => 1,
         clearTimeout() {},
-        addEventListener() {},
+        addEventListener(type, callback) {
+            const listeners = windowListeners.get(type) ?? [];
+            listeners.push(callback);
+            windowListeners.set(type, listeners);
+        },
+        location: {
+            href: 'https://mathverse.test/dashboard',
+            origin: 'https://mathverse.test',
+            pathname: '/dashboard',
+            search: '',
+            hash: '',
+        },
     };
     const context = vm.createContext({
         document,
@@ -41,7 +58,17 @@ function progressFixture(fetchImplementation) {
     });
     vm.runInContext(progressSource, context);
 
-    return { body, main, window };
+    return {
+        body,
+        main,
+        window,
+        dispatchDocument(type, event = {}) {
+            for (const callback of documentListeners.get(type) ?? []) callback(event);
+        },
+        dispatchWindow(type, event = {}) {
+            for (const callback of windowListeners.get(type) ?? []) callback(event);
+        },
+    };
 }
 
 test('foreground progress remains active until the response body is consumed', async () => {
@@ -89,5 +116,67 @@ test('overlapping operations keep progress visible until every token finishes', 
     assert.equal(fixture.body.classList.contains('mathverse-navigating'), true);
 
     finishSecond();
+    assert.equal(fixture.body.classList.contains('mathverse-navigating'), false);
+});
+
+test('view cleanup leaves a mutation token active', () => {
+    const fixture = progressFixture(() => Promise.resolve({ body: null }));
+    const finishView = fixture.window.MathVerseProgress.begin({ scope: 'view' });
+    const finishMutation = fixture.window.MathVerseProgress.begin({ scope: 'mutation' });
+
+    fixture.dispatchDocument('mathverse:before-navigate');
+    assert.equal(fixture.body.classList.contains('mathverse-navigating'), true);
+
+    finishMutation();
+    assert.equal(fixture.body.classList.contains('mathverse-navigating'), false);
+    finishView();
+});
+
+test('pageshow clears every stale progress scope', () => {
+    const fixture = progressFixture(() => Promise.resolve({ body: null }));
+    fixture.window.MathVerseProgress.begin({ scope: 'view' });
+    fixture.window.MathVerseProgress.begin({ scope: 'mutation' });
+
+    fixture.dispatchWindow('pageshow', { persisted: true });
+
+    assert.equal(fixture.body.classList.contains('mathverse-navigating'), false);
+});
+
+test('foreground fetch scopes GET work to the view and clears mutations on abort', () => {
+    const fixture = progressFixture(() => new Promise(() => {}));
+    const mutationController = new AbortController();
+
+    void fixture.window.mathVerseForegroundFetch('/stats');
+    void fixture.window.mathVerseForegroundFetch('/save', {
+        method: 'POST',
+        signal: mutationController.signal,
+    });
+
+    fixture.dispatchDocument('mathverse:before-navigate');
+    assert.equal(fixture.body.classList.contains('mathverse-navigating'), true);
+
+    mutationController.abort();
+    assert.equal(fixture.body.classList.contains('mathverse-navigating'), false);
+});
+
+test('downloads do not leave the global progress bar running', async () => {
+    const fixture = progressFixture(() => Promise.resolve({ body: null }));
+    const click = href => fixture.dispatchDocument('click', {
+        button: 0,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        defaultPrevented: false,
+        target: {
+            closest: selector => selector === 'a[href]'
+                ? { href, target: '', hasAttribute: name => name === 'download' }
+                : null,
+        },
+    });
+
+    click('https://mathverse.test/downloads/mathverse.apk');
+    await Promise.resolve();
+
     assert.equal(fixture.body.classList.contains('mathverse-navigating'), false);
 });

@@ -34,6 +34,7 @@ function dashboardFixture(filename, role, loaderName) {
     const source = readFileSync(new URL(`../../public/js/${filename}`, import.meta.url), 'utf8');
     const readyCallbacks = [];
     const calls = [];
+    const listeners = new Map();
     const dashboard = { dataset: { dashboardRole: role } };
     const document = {
         getElementById(id) {
@@ -41,7 +42,9 @@ function dashboardFixture(filename, role, loaderName) {
             if (id === 'sec-overview') return {};
             return null;
         },
-        addEventListener() {},
+        addEventListener(type, callback) {
+            listeners.set(type, callback);
+        },
     };
     const context = vm.createContext({
         document,
@@ -53,17 +56,30 @@ function dashboardFixture(filename, role, loaderName) {
         [loaderName]: options => calls.push(options),
     });
     vm.runInContext(source, context);
-    return { calls, ready: readyCallbacks[0] };
+    return {
+        calls,
+        ready: readyCallbacks[0],
+        sectionChange: listeners.get('mathverse:section-change'),
+    };
 }
 
 for (const [filename, role, loaderName] of [
     ['teacher.js', 'teacher', 'loadTeacherStats'],
     ['admin.js', 'admin', 'loadAdminStats'],
 ]) {
-    test(`${role} background page refresh keeps stats loading quiet`, () => {
+    test(`${role} automatic page stats loading stays local`, () => {
         const fixture = dashboardFixture(filename, role, loaderName);
 
-        fixture.ready({ detail: { background: true } });
+        fixture.ready({ detail: { background: false } });
+
+        assert.equal(fixture.calls.length, 1);
+        assert.equal(fixture.calls[0].foreground, false);
+    });
+
+    test(`${role} stats section changes stay local`, () => {
+        const fixture = dashboardFixture(filename, role, loaderName);
+
+        fixture.sectionChange({ detail: { section: 'stats' } });
 
         assert.equal(fixture.calls.length, 1);
         assert.equal(fixture.calls[0].foreground, false);

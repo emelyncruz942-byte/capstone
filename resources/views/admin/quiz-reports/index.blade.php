@@ -65,6 +65,13 @@
                         @if(($report['quiz_creator_id_display'] ?? null) === ($user['id'] ?? null))
                             <span class="px-2 py-1 rounded bg-purple-500/15 text-purple-300">Your Admin Quiz</span>
                         @endif
+                        @if(!empty($report['revised_at']))
+                            <span class="px-2 py-1 rounded bg-cyan-500/15 text-cyan-300">
+                                <i class="fas fa-pen-to-square mr-1"></i> Revised by teacher
+                            </span>
+                        @else
+                            <span class="px-2 py-1 rounded bg-orange-500/10 text-orange-300">Not marked revised</span>
+                        @endif
                         <span class="text-red-400">{{ str_replace('_', ' ', $report['reason'] ?? 'other') }}</span>
                         <span class="text-slate-600">Reported by {{ $report['reporter_name'] }}</span>
                     </div>
@@ -85,6 +92,9 @@
                         @if(!empty($report['reviewed_at']))
                             · Handled {{ \App\Support\AppDate::format($report['reviewed_at'], 'M j, Y · g:i A') }}
                             @if($report['reviewer_name']) by {{ $report['reviewer_name'] }} @endif
+                        @endif
+                        @if(!empty($report['revised_at']))
+                            · Teacher revision {{ \App\Support\AppDate::format($report['revised_at'], 'M j, Y · g:i A') }}
                         @endif
                     </p>
                 </div>

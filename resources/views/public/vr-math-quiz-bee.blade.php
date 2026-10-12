@@ -81,7 +81,7 @@
         <section class="mt-12" aria-labelledby="faq-title">
             <h2 id="faq-title" class="font-orbitron text-xl font-black uppercase text-white">Frequently asked questions</h2>
             <div class="mt-5 space-y-4">
-                <details class="rounded-lg border border-white/10 bg-white/5 p-5" open>
+                <details class="rounded-lg border border-white/10 bg-white/5 p-5">
                     <summary class="cursor-pointer font-bold text-white">Do students need a VR headset to use MathVerse?</summary>
                     <p class="mt-3 text-sm leading-6 text-slate-300">
                         No. The quiz bee includes a standard screen mode, so students can look around the virtual room and select multiple-choice answers without a VR headset.

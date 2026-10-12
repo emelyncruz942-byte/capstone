@@ -124,6 +124,8 @@ class SupabaseAuth
             'student/report/*',
             'teacher/report/*',
             'admin/report/*',
+            'game-download/*',
+            'admin/game-releases/*/download',
         );
         $isDashboardDocumentRequest = $request->isMethod('GET')
             && !$request->expectsJson()

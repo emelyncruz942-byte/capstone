@@ -23,31 +23,41 @@ function syncMathVerseProgress() {
 function beginMathVerseProgress(options = {}) {
     const token = Symbol('mathverse-request');
     const timeoutMs = Math.max(1000, Number(options.timeoutMs) || 45000);
+    const scope = String(options.scope || 'operation');
     let finished = false;
 
     const finish = () => {
         if (finished) return;
         finished = true;
-        const timer = mathVerseProgressTokens.get(token);
-        if (timer) window.clearTimeout(timer);
+        const entry = mathVerseProgressTokens.get(token);
+        if (entry?.timer) window.clearTimeout(entry.timer);
         mathVerseProgressTokens.delete(token);
         syncMathVerseProgress();
     };
 
-    mathVerseProgressTokens.set(token, window.setTimeout(finish, timeoutMs));
+    mathVerseProgressTokens.set(token, {
+        scope,
+        timer: window.setTimeout(finish, timeoutMs),
+    });
     syncMathVerseProgress();
     return finish;
 }
 
-function resetMathVerseProgress() {
-    mathVerseProgressTokens.forEach(timer => window.clearTimeout(timer));
-    mathVerseProgressTokens.clear();
+function resetMathVerseProgress(scope = null) {
+    mathVerseProgressTokens.forEach((entry, token) => {
+        if (scope !== null && entry.scope !== scope) return;
+        if (entry.timer) window.clearTimeout(entry.timer);
+        mathVerseProgressTokens.delete(token);
+    });
     syncMathVerseProgress();
 }
 
 window.MathVerseProgress = {
     begin: beginMathVerseProgress,
     reset: resetMathVerseProgress,
+    resetScope(scope) {
+        resetMathVerseProgress(String(scope));
+    },
     track(promise, options = {}) {
         const finish = beginMathVerseProgress(options);
         return Promise.resolve(promise).finally(finish);
@@ -55,7 +65,21 @@ window.MathVerseProgress = {
 };
 
 function mathVerseForegroundFetch(input, init = {}, progressOptions = {}) {
-    const finish = beginMathVerseProgress(progressOptions);
+    const method = String(init.method || input?.method || 'GET').toUpperCase();
+    const signal = init.signal || input?.signal || null;
+    const finishProgress = beginMathVerseProgress({
+        ...progressOptions,
+        scope: progressOptions.scope || (['GET', 'HEAD'].includes(method) ? 'view' : 'mutation'),
+    });
+    const finish = () => {
+        signal?.removeEventListener?.('abort', finish);
+        finishProgress();
+    };
+    if (signal?.aborted) {
+        finish();
+    } else {
+        signal?.addEventListener?.('abort', finish, { once: true });
+    }
     let request;
     try {
         request = fetch(input, init);
@@ -96,7 +120,8 @@ function mathVerseForegroundFetch(input, init = {}, progressOptions = {}) {
 
 window.mathVerseForegroundFetch = mathVerseForegroundFetch;
 
-window.addEventListener('pageshow', resetMathVerseProgress);
+window.addEventListener('pageshow', () => resetMathVerseProgress());
+document.addEventListener('mathverse:before-navigate', () => resetMathVerseProgress('view'));
 
 function isMathVerseDownload(url, element) {
     const format = url.searchParams.get('format')?.toLowerCase();
@@ -126,10 +151,7 @@ document.addEventListener('submit', event => {
             return;
         }
         if (destination.origin !== window.location.origin) return;
-        if (isMathVerseDownload(destination, form)) {
-            beginMathVerseProgress({ timeoutMs: 6000 });
-            return;
-        }
+        if (isMathVerseDownload(destination, form)) return;
         beginMathVerseProgress({ timeoutMs: 45000 });
     });
 }, true);
@@ -152,10 +174,7 @@ document.addEventListener('click', event => {
             || (destination.pathname === window.location.pathname
                 && destination.search === window.location.search
                 && destination.hash)) return;
-        if (isMathVerseDownload(destination, anchor)) {
-            beginMathVerseProgress({ timeoutMs: 6000 });
-            return;
-        }
+        if (isMathVerseDownload(destination, anchor)) return;
         beginMathVerseProgress({ timeoutMs: 30000 });
     });
 }, true);

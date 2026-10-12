@@ -56,7 +56,7 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-BYGHy3g0.css",
+    "file": "assets/app-D-l7o6Cl.css",
     "name": "app",
     "names": [
       "app.css"
@@ -79,6 +79,12 @@
       "assets/fa-solid-900-tLH6XCuf.woff2",
       "assets/fa-regular-400-TCCU0xbi.woff2"
     ]
+  },
+  "resources/js/app-release-upload.js": {
+    "file": "assets/app-release-upload-DoO96R1s.js",
+    "name": "app-release-upload",
+    "src": "resources/js/app-release-upload.js",
+    "isEntry": true
   },
   "resources/js/app.js": {
     "file": "assets/app-BvRk9kiK.js",

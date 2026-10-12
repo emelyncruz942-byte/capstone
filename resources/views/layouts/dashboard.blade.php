@@ -68,6 +68,7 @@
     <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/teacher-quizzes.js') }}?v={{ filemtime(public_path('js/teacher-quizzes.js')) }}"></script>
 @endif
 @if(($user['role'] ?? '') === 'admin')
+    @vite('resources/js/app-release-upload.js')
     <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/admin.js') }}?v={{ filemtime(public_path('js/admin.js')) }}"></script>
 @elseif(($user['role'] ?? '') === 'teacher')
     <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/teacher.js') }}?v={{ filemtime(public_path('js/teacher.js')) }}"></script>

@@ -20,6 +20,8 @@ use App\Http\Controllers\RecoveryController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\AdminSupportTicketController;
+use App\Http\Controllers\AppDownloadController;
+use App\Http\Controllers\AdminAppReleaseController;
 
 $uuidPattern = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}';
 Route::pattern('id', $uuidPattern);
@@ -30,6 +32,7 @@ Route::pattern('reportId', $uuidPattern);
 Route::pattern('questionId', $uuidPattern);
 Route::pattern('gameKey', '(?:mental-arithmetic|equation-balance|pattern-pulse)');
 Route::pattern('version', '[1-9][0-9]{0,8}');
+Route::pattern('releaseId', $uuidPattern);
 
 // Auth routes
 Route::get('/',       [AuthController::class, 'showLogin'])->name('login');
@@ -61,6 +64,11 @@ Route::middleware(['throttle:authenticated', 'auth.supabase'])->group(function (
         ->name('support-tickets.store');
     Route::get('/support-tickets/{id}', [SupportTicketController::class, 'show'])
         ->name('support-tickets.show');
+    Route::get('/game-download', [AppDownloadController::class, 'index'])
+        ->name('app-downloads.index');
+    Route::get('/game-download/{releaseId}', [AppDownloadController::class, 'download'])
+        ->middleware('throttle:30,1')
+        ->name('app-downloads.download');
 });
 
 // Student routes
@@ -117,6 +125,13 @@ Route::middleware(['throttle:authenticated', 'auth.supabase:teacher'])->group(fu
     Route::post('/teacher/quiz-library/{id}/bookmark', [TeacherQuizController::class, 'toggleBookmark']);
     Route::post('/teacher/quiz-library/{id}/rating', [TeacherQuizController::class, 'rate']);
     Route::post('/teacher/quiz-library/{id}/report', [TeacherQuizController::class, 'report']);
+    Route::get('/teacher/quiz-reports', [TeacherQuizController::class, 'reportedQuizzes'])
+        ->name('teacher.quiz-reports.index');
+    Route::get('/teacher/quiz-reports/{reportId}', [TeacherQuizController::class, 'showReportedQuiz'])
+        ->name('teacher.quiz-reports.show');
+    Route::post('/teacher/quiz-reports/{reportId}/revised', [TeacherQuizController::class, 'markReportedQuizRevised'])
+        ->middleware('throttle:account-security')
+        ->name('teacher.quiz-reports.revised');
     Route::post('/teacher/quizzes', [TeacherQuizController::class, 'store']);
     Route::get('/teacher/quizzes/{id}/versions', [TeacherQuizController::class, 'versions']);
     Route::post('/teacher/quizzes/{id}/versions/{version}/restore', [TeacherQuizController::class, 'restoreVersion']);
@@ -165,6 +180,23 @@ Route::middleware(['throttle:authenticated', 'auth.supabase:admin'])->group(func
     Route::delete('/admin/trash/account/{id}', [RecoveryController::class, 'permanentlyDelete'])->middleware('throttle:account-security');
     Route::get('/admin/system-health', [SystemHealthController::class, 'index'])
         ->middleware('throttle:reports');
+    Route::get('/admin/game-releases', [AdminAppReleaseController::class, 'index'])
+        ->name('admin.app-releases.index');
+    Route::post('/admin/game-releases/uploads', [AdminAppReleaseController::class, 'initiate'])
+        ->middleware('throttle:10,1')
+        ->name('admin.app-releases.initiate');
+    Route::post('/admin/game-releases/{releaseId}/complete', [AdminAppReleaseController::class, 'complete'])
+        ->middleware('throttle:30,1')
+        ->name('admin.app-releases.complete');
+    Route::post('/admin/game-releases/{releaseId}/fail', [AdminAppReleaseController::class, 'fail'])
+        ->middleware('throttle:30,1')
+        ->name('admin.app-releases.fail');
+    Route::post('/admin/game-releases/{releaseId}/activate', [AdminAppReleaseController::class, 'activate'])
+        ->middleware('throttle:account-security')
+        ->name('admin.app-releases.activate');
+    Route::get('/admin/game-releases/{releaseId}/download', [AdminAppReleaseController::class, 'download'])
+        ->middleware('throttle:30,1')
+        ->name('admin.app-releases.download');
     Route::delete('/admin/user/{id}', [AdminController::class, 'deleteUser']);
     Route::post('/admin/user/{id}/suspend', [AdminController::class, 'suspendUser']);
     Route::post('/admin/user/{id}/restore', [AdminController::class, 'restoreUser']);

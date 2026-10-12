@@ -15,6 +15,10 @@
    class="nav-link w-full {{ $activePage === 'quizzes' ? 'active' : '' }}">
     <i class="fas fa-vr-cardboard mr-3 w-5 text-purple-400"></i> VR Quiz Bees
 </a>
+<a href="{{ route('teacher.quiz-reports.index') }}"
+   class="nav-link w-full {{ $activePage === 'quiz-reports' ? 'active' : '' }}">
+    <i class="fas fa-flag mr-3 w-5 text-orange-400"></i> Reported Quizzes
+</a>
 <a href="/teacher/quiz-library"
    class="nav-link w-full {{ $activePage === 'library' ? 'active' : '' }}">
     <i class="fas fa-book-open mr-3 w-5 text-blue-400"></i> Quiz Library
@@ -32,6 +36,10 @@
 <a href="/teacher/learning-hub"
    class="nav-link w-full {{ $activePage === 'learning-analytics' ? 'active' : '' }}">
     <i class="fas fa-rocket mr-3 w-5 text-green-400"></i> Learning Hub Insights
+</a>
+<a href="{{ route('app-downloads.index') }}"
+   class="nav-link w-full {{ $activePage === 'app-download' ? 'active' : '' }}">
+    <i class="fas fa-mobile-screen-button mr-3 w-5 text-cyan-400"></i> Game Download
 </a>
 <a href="/teacher/trash" class="nav-link w-full {{ $activePage === 'trash' ? 'active' : '' }}"><i class="fas fa-trash-restore mr-3 w-5 text-amber-400"></i> Trash and Recovery</a>
 <a href="{{ route('support-tickets.index') }}"

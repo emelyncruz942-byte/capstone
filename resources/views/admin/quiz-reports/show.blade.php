@@ -34,6 +34,13 @@
                 @if(($report['quiz_creator_id_display'] ?? null) === ($user['id'] ?? null))
                     <span class="px-2 py-1 rounded bg-purple-500/15 text-purple-300">Your Admin Quiz</span>
                 @endif
+                @if(!empty($report['revised_at']))
+                    <span class="px-2 py-1 rounded bg-cyan-500/15 text-cyan-300">
+                        <i class="fas fa-pen-to-square mr-1"></i> Revised by teacher
+                    </span>
+                @else
+                    <span class="px-2 py-1 rounded bg-orange-500/10 text-orange-300">Not marked revised</span>
+                @endif
                 <span class="text-red-400">{{ str_replace('_', ' ', $report['reason'] ?? 'other') }}</span>
             </div>
             <h1 class="text-2xl font-orbitron font-bold mt-3">{{ $report['quiz_topic_display'] }}</h1>
@@ -64,6 +71,19 @@
                 <p class="text-[9px] text-slate-500 uppercase font-black tracking-widest">Reporter Details</p>
                 <p class="text-sm text-slate-200 mt-3 leading-relaxed">{{ $report['details'] ?: 'No additional details provided.' }}</p>
             </div>
+        </section>
+
+        <section class="portal-frame !p-6 {{ !empty($report['revised_at']) ? 'border-cyan-500/20' : 'border-orange-500/20' }}">
+            <p class="text-[9px] {{ !empty($report['revised_at']) ? 'text-cyan-400' : 'text-orange-400' }} uppercase font-black tracking-widest">Teacher Revision Status</p>
+            @if(!empty($report['revised_at']))
+                <p class="text-sm text-white mt-2">The quiz creator marked this report as revised.</p>
+                <p class="text-[9px] text-slate-600 mt-2 uppercase">{{ \App\Support\AppDate::format($report['revised_at'], 'M j, Y · g:i A') }}</p>
+                @if(($report['status'] ?? 'pending') === 'pending')
+                    <p class="text-xs text-orange-300 mt-3">It remains in the active queue until an administrator reviews or dismisses it.</p>
+                @endif
+            @else
+                <p class="text-sm text-slate-300 mt-2">The quiz creator has not marked this issue as revised.</p>
+            @endif
         </section>
 
         @if(!empty($report['reviewed_at']))

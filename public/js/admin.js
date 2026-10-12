@@ -1,4 +1,4 @@
-function initializeAdminDashboard(event) {
+function initializeAdminDashboard() {
     if (document.getElementById('dashboard-content')?.dataset.dashboardRole !== 'admin') return;
     if (!document.getElementById('sec-overview')) return;
 
@@ -12,8 +12,7 @@ function initializeAdminDashboard(event) {
     }
 
     if (requested === 'stats' && typeof loadAdminStats === 'function') {
-        const foreground = event?.detail?.background !== true;
-        requestAnimationFrame(() => requestAnimationFrame(() => loadAdminStats({ foreground })));
+        requestAnimationFrame(() => requestAnimationFrame(() => loadAdminStats({ foreground: false })));
     }
 }
 
@@ -22,7 +21,7 @@ document.addEventListener('mathverse:section-change', event => {
     if (event.detail?.section === 'stats'
         && document.getElementById('dashboard-content')?.dataset.dashboardRole === 'admin'
         && typeof loadAdminStats === 'function') {
-        requestAnimationFrame(() => requestAnimationFrame(() => loadAdminStats()));
+        requestAnimationFrame(() => requestAnimationFrame(() => loadAdminStats({ foreground: false })));
     }
 });
 

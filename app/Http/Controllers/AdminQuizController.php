@@ -808,17 +808,20 @@ class AdminQuizController extends Controller
 
         foreach ($reports as &$report) {
             $quiz = $quizMap[$report['quiz_id'] ?? ''] ?? null;
-            $creatorId = $quiz['teacher_id'] ?? $report['quiz_creator_id'] ?? null;
+            $creatorId = $report['quiz_creator_id'] ?? $quiz['teacher_id'] ?? null;
             $question = $questionMap[$report['question_id'] ?? ''] ?? null;
-            $questionText = $question['question'] ?? $report['question_text'] ?? null;
+            $questionText = $report['question_text'] ?? $question['question'] ?? null;
+            $questionPrefix = empty($report['question_text']) && !empty($question['position'])
+                ? "Question {$question['position']}: "
+                : 'Reported question: ';
 
             $report['quiz'] = $quiz;
-            $report['quiz_available'] = $quiz !== null;
-            $report['quiz_topic_display'] = $quiz['topic']
-                ?? $report['quiz_topic']
+            $report['quiz_available'] = $quiz !== null && empty($quiz['deleted_at']);
+            $report['quiz_topic_display'] = $report['quiz_topic']
+                ?? $quiz['topic']
                 ?? 'Deleted quiz';
-            $report['quiz_grade_display'] = $quiz['grade_level']
-                ?? $report['quiz_grade_level']
+            $report['quiz_grade_display'] = $report['quiz_grade_level']
+                ?? $quiz['grade_level']
                 ?? null;
             $report['quiz_creator_id_display'] = $creatorId;
             $report['quiz_creator_name'] = $profileNames[$creatorId] ?? 'Former user';
@@ -826,8 +829,7 @@ class AdminQuizController extends Controller
             $report['reviewer_name'] = $profileNames[$report['reviewed_by'] ?? ''] ?? null;
             $report['question_text_display'] = $questionText;
             $report['question_label'] = $questionText
-                ? (!empty($question['position']) ? "Question {$question['position']}: " : '')
-                    . \Illuminate\Support\Str::limit($questionText, 100)
+                ? $questionPrefix . \Illuminate\Support\Str::limit($questionText, 100)
                 : null;
         }
         unset($report);
