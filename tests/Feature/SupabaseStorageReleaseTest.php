@@ -41,7 +41,7 @@ class SupabaseStorageReleaseTest extends TestCase
         $this->assertNull($result['error']);
         $this->assertSame('signed-upload-token', $result['data']['token']);
         $this->assertSame(
-            'https://project-ref.storage.supabase.co/storage/v1/upload/resumable',
+            'https://project-ref.storage.supabase.co/storage/v1/upload/resumable/sign',
             $result['data']['endpoint'],
         );
         $this->assertSame('unity-releases', $result['data']['bucket']);
@@ -77,7 +77,7 @@ class SupabaseStorageReleaseTest extends TestCase
         );
 
         $this->assertSame(
-            'http://storage.local.test:54321/storage/v1/upload/resumable',
+            'http://storage.local.test:54321/storage/v1/upload/resumable/sign',
             $result['data']['endpoint'],
         );
     }

@@ -123,59 +123,28 @@ window.mathVerseForegroundFetch = mathVerseForegroundFetch;
 window.addEventListener('pageshow', () => resetMathVerseProgress());
 document.addEventListener('mathverse:before-navigate', () => resetMathVerseProgress('view'));
 
-function isMathVerseDownload(url, element) {
-    const format = url.searchParams.get('format')?.toLowerCase();
-    return element?.hasAttribute('download')
-        || url.pathname.includes('/report/')
-        || ['pdf', 'csv', 'xlsx', 'zip'].includes(format)
-        || /\.(?:pdf|csv|xlsx|zip)$/i.test(url.pathname);
-}
-
-// Native page loads do not pass through the dashboard's seamless-navigation
-// handler. Start the same progress bar for those forms and links too. The
-// microtask lets client-side handlers cancel the event before we decide.
+// Forms explicitly kept on native browser navigation cannot expose their
+// request promise. Track only those forms, then release the indicator when the
+// page lifecycle advances. Seamless forms and fetch requests manage their own
+// completion tokens above.
 document.addEventListener('submit', event => {
     const form = event.target;
     queueMicrotask(() => {
-        if (event.defaultPrevented || !(form instanceof HTMLFormElement)) return;
-        if (typeof form.checkValidity === 'function' && !form.checkValidity()) return;
+        if (event.defaultPrevented
+            || !(form instanceof HTMLFormElement)
+            || !form.hasAttribute('data-native-navigation')
+            || (typeof form.checkValidity === 'function' && !form.checkValidity())) return;
+
         const submitter = event.submitter;
         const target = submitter?.formTarget || form.target;
         const method = String(submitter?.formMethod || form.method || 'GET').toUpperCase();
         if ((target && target !== '_self') || method === 'DIALOG') return;
 
-        let destination;
-        try {
-            destination = new URL(submitter?.formAction || form.action || window.location.href, window.location.href);
-        } catch {
-            return;
-        }
-        if (destination.origin !== window.location.origin) return;
-        if (isMathVerseDownload(destination, form)) return;
-        beginMathVerseProgress({ timeoutMs: 45000 });
-    });
-}, true);
-
-document.addEventListener('click', event => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const anchor = event.target.closest?.('a[href]');
-    if (!anchor || anchor.target && anchor.target !== '_self') return;
-
-    queueMicrotask(() => {
-        if (event.defaultPrevented) return;
-        let destination;
-        try {
-            destination = new URL(anchor.href, window.location.href);
-        } catch {
-            return;
-        }
-        if (destination.origin !== window.location.origin
-            || destination.href === window.location.href
-            || (destination.pathname === window.location.pathname
-                && destination.search === window.location.search
-                && destination.hash)) return;
-        if (isMathVerseDownload(destination, anchor)) return;
-        beginMathVerseProgress({ timeoutMs: 30000 });
+        const finish = beginMathVerseProgress({
+            scope: 'native-navigation',
+            timeoutMs: 30000,
+        });
+        window.addEventListener('pagehide', finish, { once: true });
     });
 }, true);
 
@@ -339,10 +308,7 @@ document.addEventListener('click', event => {
     const action = control.dataset.action;
     if (action === 'navigate') {
         const destination = new URL(control.dataset.destination || '/', window.location.origin);
-        if (destination.origin === window.location.origin) {
-            beginMathVerseProgress({ timeoutMs: 30000 });
-            window.location.assign(destination.href);
-        }
+        if (destination.origin === window.location.origin) window.location.assign(destination.href);
         return;
     }
     if (action === 'closeModalAndSubmit') {

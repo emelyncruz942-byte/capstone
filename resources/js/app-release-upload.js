@@ -79,6 +79,42 @@ function replaceReleaseId(template, releaseId) {
     return String(template || '').replace('__RELEASE_ID__', encodeURIComponent(releaseId));
 }
 
+function tusResponseStatus(error) {
+    const response = error?.originalResponse;
+    const responseStatus = typeof response?.getStatus === 'function'
+        ? Number(response.getStatus())
+        : Number(error?.status || error?.statusCode);
+
+    return Number.isInteger(responseStatus) && responseStatus > 0
+        ? responseStatus
+        : null;
+}
+
+export function uploadFailureMessage(error) {
+    const status = tusResponseStatus(error);
+
+    if (status === 401 || status === 403) {
+        return `The secure upload authorization was rejected (HTTP ${status}). Start the upload again.`;
+    }
+    if (status === 409) {
+        return 'A build already exists for this version (HTTP 409). Use a new version number.';
+    }
+    if (status === 413) {
+        return 'This build exceeds the Supabase Storage file-size limit (HTTP 413). Increase the project Storage limit or upload a smaller build.';
+    }
+    if (status === 415) {
+        return 'Supabase Storage rejected this file type (HTTP 415). Upload a valid APK or IPA.';
+    }
+    if (status === 429) {
+        return 'Supabase Storage is receiving too many uploads (HTTP 429). Wait a moment, then retry.';
+    }
+    if (status !== null) {
+        return `Supabase Storage could not accept the build (HTTP ${status}). Please retry.`;
+    }
+
+    return 'The upload was interrupted before Supabase returned a response. Check the connection and retry.';
+}
+
 export function isSupportedMobileBuild(fileName) {
     return /\.(?:apk|ipa)$/i.test(String(fileName || ''));
 }
@@ -205,11 +241,12 @@ export async function beginUpload(form, dependencies = {}) {
         },
         async onError(error) {
             activeUpload = null;
+            const failureMessage = uploadFailureMessage(error);
             if (form.isConnected) {
-                setUploadUi(form, { status: 'Upload failed.', disabled: false });
+                setUploadUi(form, { status: failureMessage, disabled: false });
             }
-            await failureRecorder(failUrl, error?.message || 'The resumable upload failed.');
-            notifyUser('The mobile build could not be uploaded. Check your connection and try again.', true);
+            await failureRecorder(failUrl, failureMessage);
+            notifyUser(failureMessage, true);
         },
     }));
 
@@ -222,9 +259,10 @@ export async function beginUpload(form, dependencies = {}) {
         upload.start();
     } catch (error) {
         activeUpload = null;
-        setUploadUi(form, { status: 'Upload failed.', disabled: false });
-        await failureRecorder(failUrl, error?.message || 'The resumable upload could not start.');
-        notifyUser('The mobile build upload could not start. Please try again.', true);
+        const failureMessage = uploadFailureMessage(error);
+        setUploadUi(form, { status: failureMessage, disabled: false });
+        await failureRecorder(failUrl, failureMessage);
+        notifyUser(failureMessage, true);
         return null;
     }
 

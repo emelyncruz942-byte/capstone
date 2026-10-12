@@ -48,11 +48,12 @@ function progressFixture(fetchImplementation) {
             hash: '',
         },
     };
+    class HTMLFormElement {}
     const context = vm.createContext({
         document,
         window,
         fetch: fetchImplementation,
-        HTMLFormElement: class HTMLFormElement {},
+        HTMLFormElement,
         URL,
         queueMicrotask,
     });
@@ -60,6 +61,7 @@ function progressFixture(fetchImplementation) {
 
     return {
         body,
+        HTMLFormElement,
         main,
         window,
         dispatchDocument(type, event = {}) {
@@ -159,9 +161,9 @@ test('foreground fetch scopes GET work to the view and clears mutations on abort
     assert.equal(fixture.body.classList.contains('mathverse-navigating'), false);
 });
 
-test('downloads do not leave the global progress bar running', async () => {
+test('ordinary links do not create timer-only progress tokens', async () => {
     const fixture = progressFixture(() => Promise.resolve({ body: null }));
-    const click = href => fixture.dispatchDocument('click', {
+    fixture.dispatchDocument('click', {
         button: 0,
         metaKey: false,
         ctrlKey: false,
@@ -170,13 +172,42 @@ test('downloads do not leave the global progress bar running', async () => {
         defaultPrevented: false,
         target: {
             closest: selector => selector === 'a[href]'
-                ? { href, target: '', hasAttribute: name => name === 'download' }
+                ? { href: 'https://mathverse.test/teacher/quizzes', target: '', hasAttribute: () => false }
                 : null,
         },
     });
-
-    click('https://mathverse.test/downloads/mathverse.apk');
     await Promise.resolve();
 
+    assert.equal(fixture.body.classList.contains('mathverse-navigating'), false);
+});
+
+test('ordinary forms do not create timer-only progress tokens', async () => {
+    const fixture = progressFixture(() => Promise.resolve({ body: null }));
+    fixture.dispatchDocument('submit', {
+        defaultPrevented: false,
+        target: {},
+    });
+    await Promise.resolve();
+
+    assert.equal(fixture.body.classList.contains('mathverse-navigating'), false);
+});
+
+test('explicit native forms use page-lifecycle progress', async () => {
+    const fixture = progressFixture(() => Promise.resolve({ body: null }));
+    const form = new fixture.HTMLFormElement();
+    form.hasAttribute = name => name === 'data-native-navigation';
+    form.checkValidity = () => true;
+    form.method = 'POST';
+    form.target = '';
+
+    fixture.dispatchDocument('submit', {
+        defaultPrevented: false,
+        target: form,
+        submitter: null,
+    });
+    await Promise.resolve();
+
+    assert.equal(fixture.body.classList.contains('mathverse-navigating'), true);
+    fixture.dispatchWindow('pagehide');
     assert.equal(fixture.body.classList.contains('mathverse-navigating'), false);
 });

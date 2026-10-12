@@ -1133,10 +1133,10 @@ class SupabaseService
         if (in_array($scheme, ['http', 'https'], true)
             && preg_match('/^([a-z0-9-]+)\.supabase\.co$/D', $host, $matches) === 1
         ) {
-            return "{$scheme}://{$matches[1]}.storage.supabase.co/storage/v1/upload/resumable";
+            return "{$scheme}://{$matches[1]}.storage.supabase.co/storage/v1/upload/resumable/sign";
         }
 
-        return "{$this->url}/storage/v1/upload/resumable";
+        return "{$this->url}/storage/v1/upload/resumable/sign";
     }
 
     private function assertFilterColumn(string $column): void

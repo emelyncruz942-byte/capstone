@@ -56,7 +56,7 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-D-l7o6Cl.css",
+    "file": "assets/app-dyaiVUYm.css",
     "name": "app",
     "names": [
       "app.css"
@@ -81,7 +81,7 @@
     ]
   },
   "resources/js/app-release-upload.js": {
-    "file": "assets/app-release-upload-DoO96R1s.js",
+    "file": "assets/app-release-upload-cCi8BYuv.js",
     "name": "app-release-upload",
     "src": "resources/js/app-release-upload.js",
     "isEntry": true

@@ -182,7 +182,7 @@ class AppReleaseFlowTest extends TestCase
         )->andReturn([
             'data' => [
                 'token' => 'short-lived-upload-token',
-                'endpoint' => 'https://project.storage.supabase.co/storage/v1/upload/resumable',
+                'endpoint' => 'https://project.storage.supabase.co/storage/v1/upload/resumable/sign',
                 'bucket' => 'unity-releases',
                 'path' => $release['storage_path'],
             ],
@@ -267,6 +267,32 @@ class AppReleaseFlowTest extends TestCase
             ->assertJsonPath('message', 'The new game version is now available.')
             ->assertJsonPath('release.id', self::CURRENT_RELEASE)
             ->assertJsonPath('release.is_active', true);
+    }
+
+    public function test_upload_initiation_explains_when_the_release_migration_is_missing(): void
+    {
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminRpcResult')->once()->withArgs(
+            fn ($function): bool => $function === 'begin_unity_app_release'
+        )->andReturn([
+            'data' => [],
+            'error' => 'Could not find the function public.begin_unity_app_release | PGRST202',
+            'status' => 404,
+        ]);
+        $database->shouldNotReceive('createStorageSignedUpload');
+
+        $this->withSession(['supabase_user' => $this->user('admin')])
+            ->postJson('/admin/game-releases/uploads', [
+                'version' => '2.3.0',
+                'file_name' => 'MathVerse-2.3.0.apk',
+                'file_size' => 75000000,
+                'release_notes' => null,
+            ])
+            ->assertServiceUnavailable()
+            ->assertJsonPath(
+                'message',
+                'Game uploads are not ready. Apply database migration 2026_10_11_versioned_unity_app_releases.sql, then reload the page.',
+            );
     }
 
     public function test_admin_can_retry_publishing_from_the_version_history(): void

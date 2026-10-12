@@ -101,6 +101,12 @@ class AdminAppReleaseController extends Controller
 
         $release = $begin['data'][0] ?? null;
         if (($begin['error'] ?? null) !== null || !is_array($release)) {
+            if ($this->releaseSetupUnavailable($begin)) {
+                return response()->json([
+                    'message' => 'Game uploads are not ready. Apply database migration 2026_10_11_versioned_unity_app_releases.sql, then reload the page.',
+                ], 503);
+            }
+
             return response()->json([
                 'message' => 'The upload could not be started. Check the version and try again.',
             ], 409);
@@ -333,6 +339,19 @@ class AdminAppReleaseController extends Controller
         }
 
         return ($result['error'] ?? null) === null && isset($result['data'][0]['id']);
+    }
+
+    /** @param array{error?: mixed, status?: mixed} $result */
+    private function releaseSetupUnavailable(array $result): bool
+    {
+        $status = filter_var($result['status'] ?? null, FILTER_VALIDATE_INT);
+        $error = strtolower((string) ($result['error'] ?? ''));
+
+        return $status === 404
+            || str_contains($error, 'pgrst202')
+            || str_contains($error, 'could not find the function')
+            || (str_contains($error, 'begin_unity_app_release')
+                && str_contains($error, 'does not exist'));
     }
 
     private function mutationResponse(
