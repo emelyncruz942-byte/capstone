@@ -151,10 +151,10 @@ function addQuestionBlock(text, options, correctIndex) {
         <div class="mb-4 pr-8">
             <label class="input-label opacity-60 question-number">Question ${number}</label>
             <div class="relative">
-                <i class="fas fa-pen-fancy input-icon"></i>
-                <input type="text" name="questions[${index}][question]"
-                       value="${escapeAttribute(text)}" maxlength="1000"
-                       placeholder="Enter question..." class="input-mobile-ultra" required>
+                <textarea name="questions[${index}][question]" rows="4" maxlength="1000"
+                          placeholder="Enter question..."
+                          class="input-mobile-ultra !h-auto !pl-4 min-h-28 py-3 resize-y leading-relaxed"
+                          required>${escapeAttribute(text)}</textarea>
             </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">

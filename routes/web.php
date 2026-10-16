@@ -185,6 +185,9 @@ Route::middleware(['throttle:authenticated', 'auth.supabase:admin'])->group(func
     Route::post('/admin/game-releases/uploads', [AdminAppReleaseController::class, 'initiate'])
         ->middleware('throttle:10,1')
         ->name('admin.app-releases.initiate');
+    Route::post('/admin/game-releases/{releaseId}/parts', [AdminAppReleaseController::class, 'signPart'])
+        ->middleware('throttle:180,1')
+        ->name('admin.app-releases.parts.sign');
     Route::post('/admin/game-releases/{releaseId}/complete', [AdminAppReleaseController::class, 'complete'])
         ->middleware('throttle:30,1')
         ->name('admin.app-releases.complete');

@@ -38,33 +38,31 @@
             @csrf
             <div>
                 <h3 class="font-orbitron font-bold uppercase">Upload a new version</h3>
-                <p class="mt-1 text-xs text-slate-500">Large files upload directly and can resume after a temporary connection loss.</p>
+                <p class="mt-1 text-xs text-slate-500">Large builds upload directly to private Cloudflare R2 storage in retryable parts.</p>
             </div>
 
-            @if(!$releasesReady)
+            @if(!($uploadsReady ?? false))
                 <div class="rounded border border-amber-500/40 bg-amber-500/10 p-4 text-xs leading-relaxed text-amber-200" role="alert">
-                    Game uploads are unavailable because release storage is not ready. Apply
-                    <code class="break-all text-amber-100">2026_10_11_versioned_unity_app_releases.sql</code>,
-                    then reload this page.
+                    {{ $uploadSetupMessage ?? 'Game uploads are unavailable until Cloudflare R2 is configured.' }}
                 </div>
             @endif
 
             <label class="block">
                 <span class="form-label">Version</span>
                 <input class="input-field" type="text" name="version" maxlength="50"
-                       placeholder="1.2.0" autocomplete="off" required @disabled(!$releasesReady)>
+                       placeholder="1.2.0" autocomplete="off" required @disabled(!($uploadsReady ?? false))>
             </label>
 
             <label class="block">
                 <span class="form-label">Android APK or iOS IPA</span>
                 <input class="input-field file:mr-4 file:rounded file:border-0 file:bg-cyan-400 file:px-4 file:py-2 file:text-xs file:font-black file:text-black"
-                       type="file" name="release_file" accept=".apk,.ipa" required @disabled(!$releasesReady)>
+                       type="file" name="release_file" accept=".apk,.ipa" required @disabled(!($uploadsReady ?? false))>
             </label>
 
             <label class="block">
                 <span class="form-label">Release notes</span>
                 <textarea class="input-field min-h-28" name="release_notes" maxlength="5000"
-                          placeholder="What changed in this version?" @disabled(!$releasesReady)></textarea>
+                          placeholder="What changed in this version?" @disabled(!($uploadsReady ?? false))></textarea>
             </label>
 
             <div id="app-release-upload-progress" class="hidden" aria-live="polite">
@@ -77,7 +75,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-rect-primary disabled:cursor-not-allowed disabled:opacity-40" data-upload-submit @disabled(!$releasesReady)>
+            <button type="submit" class="btn-rect-primary disabled:cursor-not-allowed disabled:opacity-40" data-upload-submit @disabled(!($uploadsReady ?? false))>
                 <i class="fas fa-cloud-arrow-up mr-2" aria-hidden="true"></i> Upload and publish
             </button>
         </form>
@@ -158,6 +156,16 @@
                                             </button>
                                         </form>
                                     </div>
+                                @elseif($status === 'failed'
+                                    && ($release['storage_provider'] ?? 'supabase') === 'r2'
+                                    && !empty($release['provider_upload_id']))
+                                    <form method="POST" action="{{ route('admin.app-releases.fail', ['releaseId' => $release['id']]) }}" class="shrink-0">
+                                        @csrf
+                                        <input type="hidden" name="reason" value="Storage cleanup retried by an administrator.">
+                                        <button class="btn-rect-secondary !w-auto !py-2 px-4 text-[10px]" type="submit">
+                                            Retry storage cleanup
+                                        </button>
+                                    </form>
                                 @endif
                             </div>
                         </article>

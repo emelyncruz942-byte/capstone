@@ -27,5 +27,17 @@ return [
         'bucket' => env('UNITY_RELEASE_BUCKET', 'unity-releases'),
         'max_bytes' => (int) env('UNITY_RELEASE_MAX_BYTES', 1073741824),
         'signed_download_ttl' => (int) env('UNITY_RELEASE_SIGNED_DOWNLOAD_TTL', 300),
+        'r2' => [
+            'account_id' => env('R2_ACCOUNT_ID'),
+            'access_key_id' => env('R2_ACCESS_KEY_ID'),
+            'secret_access_key' => env('R2_SECRET_ACCESS_KEY'),
+            'bucket' => env('R2_BUCKET', env('UNITY_RELEASE_BUCKET', 'unity-releases')),
+            'part_size' => (int) env('R2_PART_SIZE', 16777216),
+            'upload_url_ttl' => (int) env('R2_UPLOAD_URL_TTL', 900),
+            'signed_download_ttl' => (int) env(
+                'R2_SIGNED_DOWNLOAD_TTL',
+                env('UNITY_RELEASE_SIGNED_DOWNLOAD_TTL', 300),
+            ),
+        ],
     ],
 ];

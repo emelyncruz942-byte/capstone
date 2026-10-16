@@ -26,6 +26,7 @@ class SecurityHeaders
             "'self'",
             $supabaseOrigin,
             $this->supabaseStorageOrigin((string) config('services.supabase.url')),
+            $this->cloudflareR2UploadOrigin(),
         ]));
         if (!app()->isProduction() && ($hotOrigin = $this->localViteHotOrigin()) !== null) {
             $scriptSources[] = $hotOrigin;
@@ -148,6 +149,20 @@ class SecurityHeaders
         }
 
         return "https://{$matches[1]}.storage.supabase.co";
+    }
+
+    private function cloudflareR2UploadOrigin(): ?string
+    {
+        $accountId = trim((string) config('mathverse.app_releases.r2.account_id'));
+        $bucket = trim((string) config('mathverse.app_releases.r2.bucket'));
+        if (preg_match('/^[a-f0-9]{32}$/D', $accountId) !== 1
+            || preg_match('/^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/D', $bucket) !== 1
+            || str_contains($bucket, '--')
+        ) {
+            return null;
+        }
+
+        return "https://{$bucket}.{$accountId}.r2.cloudflarestorage.com";
     }
 
     private function requestUsesHttps(Request $request): bool

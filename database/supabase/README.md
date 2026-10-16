@@ -519,7 +519,7 @@ of those quizzes retain their session data and have `source_quiz_id` set to
 
 ## Unity VR database access and score submission
 
-After all earlier forward migrations, run these nine files in this exact order:
+After all earlier forward migrations, run these ten files in this exact order:
 
 1. `2026_09_20_vr_legacy_access.sql`
 2. `2026_09_20_vr_score_submission.sql`
@@ -530,6 +530,7 @@ After all earlier forward migrations, run these nine files in this exact order:
 7. `2026_10_03_support_tickets.sql`
 8. `2026_10_11_versioned_unity_app_releases.sql`
 9. `2026_10_12_teacher_quiz_report_revisions.sql`
+10. `2026_10_12_cloudflare_r2_app_releases.sql`
 
 The first migration restores the narrowly scoped anonymous access required by
 the existing Unity client: lookup and status polling for waiting/active rooms,
@@ -636,6 +637,61 @@ report details page and updates matching existing notification links. Use
 the matching teacher routes. It preserves revision timestamps in a forced-RLS
 archive with all runtime privileges revoked.
 
+The tenth migration moves **new** Android and iOS build blobs to a private
+Cloudflare R2 bucket while keeping Supabase as the release metadata registry.
+Existing Supabase Storage releases remain readable and continue to use the
+original RPCs; they are backfilled with `storage_provider = 'supabase'` and are
+not copied or deleted. New rows use `storage_provider = 'r2'`, and uniqueness
+is enforced across provider, bucket, and object path. The opaque multipart
+upload ID is stored while a release is uploading and retained if that release
+fails. It is a durable cleanup marker, not an R2 access key, and only
+`finish_unity_app_release_cleanup_v2` clears it after Laravel confirms the
+external abort/delete cleanup succeeded. The selected multipart part size is
+stored with the release so an upload remains resumable across rolling
+deployments or later configuration changes, and the forced-RLS table remains
+unreadable to browser roles.
+
+Laravel must use this R2 workflow through its Supabase service-role client:
+
+1. Call `begin_unity_app_release_v2` with the active administrator, release
+   details, expected byte size, MIME type, and configured private R2 bucket.
+2. Create the R2 multipart upload for the returned object path, then call
+   `attach_unity_app_release_upload_v2` with its opaque upload ID. R2 access
+   keys stay in server environment secrets and never enter Supabase, browser
+   JavaScript, or Unity.
+3. Sign each R2 part server-side. After all parts are present, complete the
+   multipart upload and use R2 `HeadObject` to verify the exact path, release
+   metadata, content length, and ETag. Only then call
+   `finalize_unity_app_release_v2` with that verified byte size and ETag.
+4. If an upload fails, call `fail_unity_app_release_v2` first to atomically
+   close the database row. This deliberately retains its `provider_upload_id`.
+   Then abort the multipart upload and delete any completed orphan in R2. Call
+   `finish_unity_app_release_cleanup_v2` with the same opaque upload ID only
+   after both cleanup operations succeed; that RPC clears the marker. If R2 is
+   temporarily unavailable, leave the marker in place and surface the safe
+   **Retry storage cleanup** action. Retrying is idempotent, and incomplete
+   multipart data also remains eligible for R2 lifecycle cleanup.
+5. Before reverting to an older R2 release, verify its object again with
+   `HeadObject`, then call `activate_unity_app_release_v2` with the freshly
+   verified exact size and ETag. Supabase-backed legacy rows continue to use
+   `activate_unity_app_release`.
+
+The v2 RPCs are `SECURITY DEFINER`, use a fixed safe search path, verify that
+the supplied profile is an active administrator, and can execute only as
+`service_role`. They deliberately do not read `storage.objects`: Laravel is
+the trusted boundary that verifies private R2 objects before asserting their
+size and ETag. Run `npm run test:sql` before deployment.
+
+Use `2026_10_12_cloudflare_r2_app_releases_rollback.sql` only after rolling
+back the matching Laravel R2 routes. It archives R2 release metadata in a
+forced-RLS table, removes those rows from the live Supabase-only registry, and
+restores the original Supabase constraints. It never deletes external R2
+objects or multipart uploads. The archive retains `provider_upload_id` values
+for failed releases whose cleanup was not confirmed; review those markers
+before any later R2 cleanup. A former active R2 release is not silently replaced
+during rollback, so an administrator must verify and reactivate a retained
+Supabase release if one should become active.
+
 Step 6 is an incompatible, forward-only boundary rather than a rolling update.
 The old Unity client cannot join after anonymous reads are revoked, and the new
 client cannot join before the new RPCs exist. The old Laravel push sender also
@@ -648,7 +704,7 @@ server-calculated score submission, retake, and administrator push. If a check
 fails, keep those paths offline and complete a forward repair; do not restore
 anonymous grants as a compatibility workaround.
 
-All nine migrations register themselves in `mathverse_schema_migrations`.
+All ten migrations register themselves in `mathverse_schema_migrations`.
 After step 6, do not reapply the legacy-access file: it detects the new boundary
 and safely performs no grants. Apply future security changes as new forward
 migrations. The matching Unity project must include the RPC-enabled

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\CloudflareR2Service;
 use App\Services\SupabaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -10,7 +11,10 @@ class AppDownloadController extends Controller
 {
     private const RELEASE_TABLE = 'unity_app_releases';
 
-    public function __construct(private SupabaseService $supabase) {}
+    public function __construct(
+        private SupabaseService $supabase,
+        private CloudflareR2Service $r2,
+    ) {}
 
     public function index(Request $request)
     {
@@ -66,7 +70,7 @@ class AppDownloadController extends Controller
         }
 
         $release = $result['data'][0] ?? null;
-        if (($result['error'] ?? null) !== null || !is_array($release)) {
+        if (($result['error'] ?? null) !== null || ! is_array($release)) {
             return redirect()->route('app-downloads.index')
                 ->with('error', 'The current game download is temporarily unavailable.');
         }
@@ -77,12 +81,22 @@ class AppDownloadController extends Controller
     private function signedDownload(array $release, string $fallback)
     {
         try {
-            $signed = $this->supabase->createStorageSignedDownload(
-                (string) ($release['storage_bucket'] ?? config('mathverse.app_releases.bucket', 'unity-releases')),
-                (string) ($release['storage_path'] ?? ''),
-                (string) ($release['download_name'] ?? 'MathVerse-mobile-game.apk'),
-                (int) config('mathverse.app_releases.signed_download_ttl', 300),
-            );
+            if (($release['storage_provider'] ?? 'supabase') === 'r2') {
+                $url = $this->r2->createSignedDownload(
+                    (string) ($release['storage_bucket'] ?? ''),
+                    (string) ($release['storage_path'] ?? ''),
+                    (string) ($release['download_name'] ?? 'MathVerse-mobile-game.apk'),
+                    (int) config('mathverse.app_releases.r2.signed_download_ttl', 300),
+                );
+                $signed = ['url' => $url, 'error' => null];
+            } else {
+                $signed = $this->supabase->createStorageSignedDownload(
+                    (string) ($release['storage_bucket'] ?? config('mathverse.app_releases.bucket', 'unity-releases')),
+                    (string) ($release['storage_path'] ?? ''),
+                    (string) ($release['download_name'] ?? 'MathVerse-mobile-game.apk'),
+                    (int) config('mathverse.app_releases.signed_download_ttl', 300),
+                );
+            }
         } catch (\Throwable $exception) {
             Log::warning('A Unity app signed download link could not be created.', [
                 'release_id' => $release['id'] ?? null,
@@ -91,7 +105,7 @@ class AppDownloadController extends Controller
             $signed = ['url' => null, 'error' => 'unavailable'];
         }
 
-        if (($signed['error'] ?? null) !== null || !is_string($signed['url'] ?? null)) {
+        if (($signed['error'] ?? null) !== null || ! is_string($signed['url'] ?? null)) {
             return redirect($fallback)
                 ->with('error', 'The download link could not be created. Please try again.');
         }
