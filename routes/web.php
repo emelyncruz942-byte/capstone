@@ -200,6 +200,9 @@ Route::middleware(['throttle:authenticated', 'auth.supabase:admin'])->group(func
     Route::get('/admin/game-releases/{releaseId}/download', [AdminAppReleaseController::class, 'download'])
         ->middleware('throttle:30,1')
         ->name('admin.app-releases.download');
+    Route::delete('/admin/game-releases/{releaseId}', [AdminAppReleaseController::class, 'destroy'])
+        ->middleware('throttle:account-security')
+        ->name('admin.app-releases.destroy');
     Route::delete('/admin/user/{id}', [AdminController::class, 'deleteUser']);
     Route::post('/admin/user/{id}/suspend', [AdminController::class, 'suspendUser']);
     Route::post('/admin/user/{id}/restore', [AdminController::class, 'restoreUser']);

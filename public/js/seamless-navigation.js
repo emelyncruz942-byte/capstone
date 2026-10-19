@@ -6,6 +6,8 @@
     const visibleRefreshMs = 300000;
     const pageRequestTimeoutMs = 20000;
     const formRequestTimeoutMs = 30000;
+    const sharedDashboardPaths = new Set(['/game-download', '/support-tickets']);
+    const supportTicketDetailPath = /^\/support-tickets\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     // Public auth responses must navigate normally so redirects, validation
     // feedback, and one-time token/session changes are not consumed by AJAX.
     const nativeAuthPaths = new Set(['/login', '/register', '/forgot-password', '/update-password', '/auth/confirm', '/logout']);
@@ -111,7 +113,9 @@
         const role = currentRole();
         return Boolean(role)
             && url.origin === window.location.origin
-            && url.pathname.startsWith(`/${role}/`)
+            && (url.pathname.startsWith(`/${role}/`)
+                || sharedDashboardPaths.has(url.pathname)
+                || supportTicketDetailPath.test(url.pathname))
             && !isDownloadUrl(url);
     }
 

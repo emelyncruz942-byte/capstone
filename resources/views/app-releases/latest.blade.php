@@ -71,7 +71,7 @@
                     <a href="{{ route('app-downloads.download', ['releaseId' => $release['id']]) }}"
                        download="{{ $release['download_name'] ?? '' }}"
                        data-native-navigation
-                       class="btn-rect-primary mt-6 px-6 text-center">
+                       class="btn-rect-primary mt-6 flex items-center justify-center px-6 text-center">
                         <i class="fas fa-download mr-2" aria-hidden="true"></i>
                         Download {{ $isIos ? 'for iOS' : 'for Android' }}
                     </a>

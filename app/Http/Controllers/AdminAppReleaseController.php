@@ -331,6 +331,109 @@ class AdminAppReleaseController extends Controller
         return redirect()->away($url)->withHeaders(['Cache-Control' => 'private, no-store, max-age=0', 'Pragma' => 'no-cache']);
     }
 
+    public function destroy(Request $request, string $releaseId)
+    {
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $releaseId) !== 1) {
+            return $this->mutationResponse($request, 'That game version was not found.', 404);
+        }
+
+        $admin = session('supabase_user', []);
+        try {
+            $claimed = $this->supabase->adminRpcResult('begin_unity_app_release_deletion', [
+                'p_release_id' => $releaseId,
+                'p_admin_id' => $admin['id'] ?? null,
+            ]);
+        } catch (\Throwable $exception) {
+            Log::warning('A Unity app release deletion could not be started.', [
+                'release_id' => $releaseId,
+                'exception' => $exception::class,
+            ]);
+            $claimed = ['data' => [], 'error' => 'unavailable'];
+        }
+
+        $release = $claimed['data'][0] ?? null;
+        if (($claimed['error'] ?? null) !== null || ! is_array($release)) {
+            $error = strtolower((string) ($claimed['error'] ?? ''));
+            if ($this->releaseSetupUnavailable($claimed)) {
+                return $this->mutationResponse(
+                    $request,
+                    'Release deletion is not ready. Apply database migration 2026_10_19_deletable_unity_app_releases.sql, then reload the page.',
+                    503,
+                );
+            }
+            if (str_contains($error, 'make another version current') || str_contains($error, 'current unity release')) {
+                return $this->mutationResponse($request, 'Make another version current before deleting this game release.', 409);
+            }
+            if (str_contains($error, 'not found')) {
+                return $this->mutationResponse($request, 'That game version was not found.', 404);
+            }
+
+            return $this->mutationResponse($request, 'The game version could not be prepared for safe deletion. Please try again.', 503);
+        }
+
+        $deletionToken = $release['deletion_token'] ?? null;
+        if (($release['id'] ?? null) !== $releaseId
+            || ! is_string($deletionToken)
+            || preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $deletionToken) !== 1
+            || empty($release['deletion_requested_at'])
+        ) {
+            Log::warning('A Unity app release deletion claim was invalid.', ['release_id' => $releaseId]);
+
+            return $this->mutationResponse($request, 'The game version could not be prepared for safe deletion. Please try again.', 503);
+        }
+
+        if (! $this->deleteReleaseStorage($release)) {
+            return $this->mutationResponse(
+                $request,
+                'Deletion is pending because the release file could not be removed. Use Retry delete to try again.',
+                503,
+            );
+        }
+
+        $providerUploadId = is_string($release['provider_upload_id'] ?? null)
+            && $release['provider_upload_id'] !== ''
+                ? $release['provider_upload_id']
+                : null;
+        try {
+            $finished = $this->supabase->adminRpcResult('finish_unity_app_release_deletion', [
+                'p_release_id' => $releaseId,
+                'p_admin_id' => $admin['id'] ?? null,
+                'p_deletion_token' => $deletionToken,
+                'p_storage_provider' => $release['storage_provider'] ?? null,
+                'p_storage_bucket' => $release['storage_bucket'] ?? null,
+                'p_storage_path' => $release['storage_path'] ?? null,
+                'p_provider_upload_id' => $providerUploadId,
+            ]);
+        } catch (\Throwable $exception) {
+            Log::warning('A Unity app release deletion could not be finalized.', [
+                'release_id' => $releaseId,
+                'exception' => $exception::class,
+            ]);
+            $finished = ['data' => [], 'error' => 'unavailable'];
+        }
+
+        $deleted = $finished['data'][0] ?? null;
+        if (($finished['error'] ?? null) !== null || ! is_array($deleted)) {
+            return $this->mutationResponse(
+                $request,
+                'The release file was removed, but deletion could not be finalized. Use Retry delete to finish safely.',
+                503,
+            );
+        }
+
+        $this->supabase->audit($admin, 'unity_release.deleted', 'unity_app_release', $releaseId, [
+            'version' => $deleted['version'] ?? $release['version'] ?? null,
+            'platform' => $deleted['platform'] ?? $release['platform'] ?? null,
+            'storage_provider' => $deleted['storage_provider'] ?? $release['storage_provider'] ?? null,
+        ]);
+
+        return $this->mutationResponse(
+            $request,
+            'Game version '.($deleted['version'] ?? $release['version'] ?? '').' was deleted.',
+            200,
+        );
+    }
+
     private function completeR2(Request $request, array $release, array $admin)
     {
         $releaseId = (string) $release['id'];
@@ -572,6 +675,45 @@ class AdminAppReleaseController extends Controller
         return ($cleared['error'] ?? null) === null
             && isset($cleared['data'][0]['id'])
             && ($cleared['data'][0]['provider_upload_id'] ?? null) === null;
+    }
+
+    private function deleteReleaseStorage(array $release): bool
+    {
+        $releaseId = (string) ($release['id'] ?? '');
+        $provider = (string) ($release['storage_provider'] ?? '');
+        $bucket = (string) ($release['storage_bucket'] ?? '');
+        $path = (string) ($release['storage_path'] ?? '');
+
+        try {
+            if ($provider === self::R2_PROVIDER) {
+                $uploadId = (string) ($release['provider_upload_id'] ?? '');
+                if ($uploadId !== '') {
+                    $this->r2->abortMultipartUpload($bucket, $path, $uploadId);
+                }
+                $this->r2->deleteObject($bucket, $path);
+
+                return true;
+            }
+
+            if ($provider === 'supabase') {
+                return $this->supabase->deleteStorageObject($bucket, $path);
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('A Unity app release provider object still needs deletion.', [
+                'release_id' => $releaseId,
+                'storage_provider' => $provider,
+                'exception' => $exception::class,
+            ]);
+
+            return false;
+        }
+
+        Log::warning('A Unity app release has an unsupported storage provider.', [
+            'release_id' => $releaseId,
+            'storage_provider' => $provider,
+        ]);
+
+        return false;
     }
 
     private function sameR2StorageLocation(array $expected, mixed $actual): bool

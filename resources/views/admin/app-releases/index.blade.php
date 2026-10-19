@@ -95,6 +95,7 @@
                         @php
                             $status = (string) ($release['status'] ?? 'uploading');
                             $isActive = (bool) ($release['is_active'] ?? false);
+                            $deletionPending = !empty($release['deletion_requested_at']);
                             $platform = strtolower((string) ($release['platform'] ?? 'android'));
                             $sizeBytes = (int) ($release['size_bytes'] ?? $release['expected_size_bytes'] ?? 0);
                             $sizeLabel = $sizeBytes > 0 ? number_format($sizeBytes / 1048576, 1) . ' MB' : 'Pending';
@@ -107,6 +108,8 @@
                                         <h4 class="font-orbitron font-black">Version {{ $release['version'] ?? '—' }}</h4>
                                         @if($isActive)
                                             <span class="rounded-full border border-green-400/40 bg-green-400/10 px-2.5 py-1 text-[8px] font-black uppercase text-green-300">Current</span>
+                                        @elseif($deletionPending)
+                                            <span class="rounded-full border border-red-400/40 bg-red-400/10 px-2.5 py-1 text-[8px] font-black uppercase text-red-300">Deletion pending</span>
                                         @else
                                             <span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[8px] font-black uppercase text-slate-400">{{ $status }}</span>
                                         @endif
@@ -122,10 +125,15 @@
                                             {{ $release['failure_reason'] }}
                                         </p>
                                     @endif
+                                    @if($deletionPending)
+                                        <p class="mt-3 rounded border border-amber-500/20 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200">
+                                            The version is locked while its private file is being removed. Retry deletion to finish safely.
+                                        </p>
+                                    @endif
                                 </div>
 
-                                @if($status === 'ready')
-                                    <div class="flex flex-wrap gap-2 shrink-0">
+                                <div class="flex max-w-full flex-wrap gap-2 shrink-0 sm:justify-end">
+                                @if(!$deletionPending && $status === 'ready')
                                         <a href="{{ route('admin.app-releases.download', ['releaseId' => $release['id']]) }}"
                                            download="{{ $release['download_name'] ?? '' }}" data-native-navigation
                                            class="btn-rect-secondary !w-auto !py-2 px-4 text-[10px]">
@@ -139,9 +147,7 @@
                                                 </button>
                                             </form>
                                         @endunless
-                                    </div>
-                                @elseif($status === 'uploading')
-                                    <div class="flex flex-wrap gap-2 shrink-0">
+                                @elseif(!$deletionPending && $status === 'uploading')
                                         <form method="POST" action="{{ route('admin.app-releases.complete', ['releaseId' => $release['id']]) }}">
                                             @csrf
                                             <button class="btn-rect-primary !w-auto !py-2 px-4 text-[10px]" type="submit">
@@ -155,8 +161,7 @@
                                                 Discard upload
                                             </button>
                                         </form>
-                                    </div>
-                                @elseif($status === 'failed'
+                                @elseif(!$deletionPending && $status === 'failed'
                                     && ($release['storage_provider'] ?? 'supabase') === 'r2'
                                     && !empty($release['provider_upload_id']))
                                     <form method="POST" action="{{ route('admin.app-releases.fail', ['releaseId' => $release['id']]) }}" class="shrink-0">
@@ -167,6 +172,23 @@
                                         </button>
                                     </form>
                                 @endif
+
+                                @if($isActive)
+                                    <button type="button" disabled
+                                            title="Make another version current before deleting this release."
+                                            class="btn-rect-secondary !w-auto !py-2 px-4 text-[10px] !border-red-500/20 text-red-300 opacity-40 disabled:cursor-not-allowed">
+                                        <i class="fas fa-trash-can mr-1" aria-hidden="true"></i> Delete
+                                    </button>
+                                @else
+                                    <button type="button"
+                                            data-action="confirmReleaseDelete"
+                                            data-action-args="{{ json_encode([$release['id'], $release['version'] ?? ''], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
+                                            class="btn-rect-secondary !w-auto !py-2 px-4 text-[10px] !border-red-500/40 text-red-300 hover:!bg-red-500/15">
+                                        <i class="fas fa-trash-can mr-1" aria-hidden="true"></i>
+                                        {{ $deletionPending ? 'Retry delete' : 'Delete' }}
+                                    </button>
+                                @endif
+                                </div>
                             </div>
                         </article>
                     @endforeach
@@ -175,4 +197,23 @@
         </div>
     </div>
 </section>
+
+<div id="releaseDeleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="release-delete-title">
+    <div class="portal-frame !p-8 w-full max-w-md text-center border-red-500/30">
+        <i class="fas fa-trash-can text-4xl text-red-400 mb-4" aria-hidden="true"></i>
+        <h3 id="release-delete-title" class="font-orbitron font-bold uppercase">Delete game version?</h3>
+        <p id="release-delete-version" class="mt-3 text-sm text-slate-300"></p>
+        <p class="mt-2 text-xs leading-5 text-slate-500">
+            Its private APK or IPA file and version record will be permanently removed. The current version is always protected.
+        </p>
+        <form id="releaseDeleteForm" method="POST" class="mt-7">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn-rect-primary !bg-red-600 !text-white">
+                Delete version
+            </button>
+        </form>
+        <button type="button" data-action="closeModal" data-action-args='["releaseDeleteModal"]' class="modal-cancel">Cancel</button>
+    </div>
+</div>
 @endsection

@@ -108,6 +108,58 @@ class SupabaseStorageReleaseTest extends TestCase
         });
     }
 
+    public function test_storage_object_delete_uses_the_service_role_and_exact_encoded_path(): void
+    {
+        Http::fake([
+            'project-ref.supabase.co/storage/v1/object/*' => Http::response([], 200),
+        ]);
+
+        $deleted = $this->service()->deleteStorageObject(
+            'unity-releases',
+            'releases/release-id/MathVerse_2.4.0.apk',
+        );
+
+        $this->assertTrue($deleted);
+        Http::assertSent(function (Request $request): bool {
+            return $request->method() === 'DELETE'
+                && $request->url() === self::PROJECT_URL
+                    . '/storage/v1/object/unity-releases/releases/release-id/MathVerse_2.4.0.apk'
+                && $request->hasHeader('apikey', self::SERVICE_KEY)
+                && $request->hasHeader('Authorization', 'Bearer ' . self::SERVICE_KEY);
+        });
+    }
+
+    public function test_storage_object_delete_treats_an_already_missing_object_as_clean(): void
+    {
+        Http::fake([
+            'project-ref.supabase.co/storage/v1/object/*' => Http::response([
+                'message' => 'Object not found',
+            ], 404),
+        ]);
+
+        $this->assertTrue($this->service()->deleteStorageObject(
+            'unity-releases',
+            'releases/release-id/MathVerse_2.4.0.apk',
+        ));
+    }
+
+    public function test_storage_object_delete_rejects_traversal_before_http(): void
+    {
+        Http::fake();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid Supabase storage location.');
+
+        try {
+            $this->service()->deleteStorageObject(
+                'unity-releases',
+                'releases/../private/MathVerse.apk',
+            );
+        } finally {
+            Http::assertNothingSent();
+        }
+    }
+
     public function test_signed_download_uses_the_requested_ttl_and_safe_download_filename(): void
     {
         Http::fake([

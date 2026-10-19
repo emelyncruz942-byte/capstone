@@ -519,7 +519,7 @@ of those quizzes retain their session data and have `source_quiz_id` set to
 
 ## Unity VR database access and score submission
 
-After all earlier forward migrations, run these ten files in this exact order:
+After all earlier forward migrations, run these eleven files in this exact order:
 
 1. `2026_09_20_vr_legacy_access.sql`
 2. `2026_09_20_vr_score_submission.sql`
@@ -531,6 +531,7 @@ After all earlier forward migrations, run these ten files in this exact order:
 8. `2026_10_11_versioned_unity_app_releases.sql`
 9. `2026_10_12_teacher_quiz_report_revisions.sql`
 10. `2026_10_12_cloudflare_r2_app_releases.sql`
+11. `2026_10_19_deletable_unity_app_releases.sql`
 
 The first migration restores the narrowly scoped anonymous access required by
 the existing Unity client: lookup and status polling for waiting/active rooms,
@@ -692,6 +693,26 @@ before any later R2 cleanup. A former active R2 release is not silently replaced
 during rollback, so an administrator must verify and reactivate a retained
 Supabase release if one should become active.
 
+The eleventh migration adds retry-safe deletion for inactive historical game
+versions. `begin_unity_app_release_deletion` first places a server-only claim
+on the selected row under the same table lock used by activation and
+publication. The current version is rejected, and the claim's database trigger
+prevents the selected version from being activated, finalized, failed, or
+otherwise changed while its private provider file is being removed. Laravel
+then aborts any R2 multipart upload and deletes the exact R2 object, or deletes
+the exact legacy Supabase Storage object through the Storage API. Only after
+that succeeds does it call `finish_unity_app_release_deletion` with the same
+opaque deletion token and exact provider, bucket, path, and multipart ID.
+
+Both deletion RPCs are fixed-search-path `SECURITY DEFINER` functions available
+only to `service_role`; direct table deletion remains revoked. If provider
+cleanup or the final RPC fails, the claimed row remains visible to the admin
+as **Deletion pending** with a **Retry delete** action. The external deletions
+are idempotent, so a retry safely completes the workflow. Apply
+`2026_10_19_deletable_unity_app_releases_rollback.sql` only when there are no
+pending deletions; it deliberately refuses to remove the guard while an
+external cleanup may be unresolved.
+
 Step 6 is an incompatible, forward-only boundary rather than a rolling update.
 The old Unity client cannot join after anonymous reads are revoked, and the new
 client cannot join before the new RPCs exist. The old Laravel push sender also
@@ -704,7 +725,7 @@ server-calculated score submission, retake, and administrator push. If a check
 fails, keep those paths offline and complete a forward repair; do not restore
 anonymous grants as a compatibility workaround.
 
-All ten migrations register themselves in `mathverse_schema_migrations`.
+All eleven migrations register themselves in `mathverse_schema_migrations`.
 After step 6, do not reapply the legacy-access file: it detects the new boundary
 and safely performs no grants. Apply future security changes as new forward
 migrations. The matching Unity project must include the RPC-enabled

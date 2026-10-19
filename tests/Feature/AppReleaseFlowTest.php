@@ -21,6 +21,8 @@ class AppReleaseFlowTest extends TestCase
 
     private const HISTORICAL = '55555555-5555-4555-8555-555555555555';
 
+    private const DELETION_TOKEN = '66666666-6666-4666-8666-666666666666';
+
     private const PART_SIZE = 16777216;
 
     protected function setUp(): void
@@ -59,7 +61,8 @@ class AppReleaseFlowTest extends TestCase
             ->assertOk()
             ->assertViewHas('releases', fn (array $releases): bool => count($releases) === 2)
             ->assertSee('Download for Android')
-            ->assertSee('Download for iOS');
+            ->assertSee('Download for iOS')
+            ->assertSee('btn-rect-primary mt-6 flex items-center justify-center px-6 text-center', false);
     }
 
     public function test_admin_page_reports_when_r2_is_not_configured(): void
@@ -132,6 +135,167 @@ class AppReleaseFlowTest extends TestCase
             ->assertSee('Retry storage cleanup', false)
             ->assertSee(route('admin.app-releases.fail', ['releaseId' => self::RELEASE]), false)
             ->assertDontSee(route('admin.app-releases.fail', ['releaseId' => self::HISTORICAL]), false);
+    }
+
+    public function test_admin_page_offers_delete_for_inactive_versions_and_protects_the_current_version(): void
+    {
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminSelectResult')->once()->andReturn(['data' => [
+            $this->release(),
+            $this->release([
+                'id' => self::HISTORICAL,
+                'version' => '2.0.0',
+                'is_active' => false,
+            ]),
+            $this->release([
+                'id' => '77777777-7777-4777-8777-777777777777',
+                'version' => '1.9.0',
+                'is_active' => false,
+                'deletion_requested_at' => '2026-10-19T08:00:00+00:00',
+                'deletion_requested_by' => self::ADMIN,
+                'deletion_token' => self::DELETION_TOKEN,
+            ]),
+        ], 'error' => null]);
+        $r2 = $this->mock(CloudflareR2Service::class);
+        $r2->shouldReceive('configured')->once()->andReturn(true);
+
+        $this->withSession(['supabase_user' => $this->user('admin')])
+            ->get('/admin/game-releases')
+            ->assertOk()
+            ->assertSee('Make another version current before deleting this release.')
+            ->assertSee('data-action="confirmReleaseDelete"', false)
+            ->assertSee('Retry delete')
+            ->assertSee('Deletion pending');
+    }
+
+    public function test_admin_deletes_an_inactive_r2_release_after_provider_cleanup(): void
+    {
+        $claimed = $this->release([
+            'is_active' => false,
+            'deletion_requested_at' => '2026-10-19T08:00:00+00:00',
+            'deletion_requested_by' => self::ADMIN,
+            'deletion_token' => self::DELETION_TOKEN,
+        ]);
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminRpcResult')->once()->ordered()->with('begin_unity_app_release_deletion', [
+            'p_release_id' => self::RELEASE,
+            'p_admin_id' => self::ADMIN,
+        ])->andReturn(['data' => [$claimed], 'error' => null]);
+        $database->shouldReceive('adminRpcResult')->once()->ordered()->with('finish_unity_app_release_deletion', [
+            'p_release_id' => self::RELEASE,
+            'p_admin_id' => self::ADMIN,
+            'p_deletion_token' => self::DELETION_TOKEN,
+            'p_storage_provider' => 'r2',
+            'p_storage_bucket' => 'unity-releases',
+            'p_storage_path' => $claimed['storage_path'],
+            'p_provider_upload_id' => null,
+        ])->andReturn(['data' => [$claimed], 'error' => null]);
+        $database->shouldReceive('audit')->once()->with(
+            \Mockery::type('array'),
+            'unity_release.deleted',
+            'unity_app_release',
+            self::RELEASE,
+            \Mockery::on(fn (array $metadata): bool => ($metadata['version'] ?? null) === '2.1.0'),
+        )->andReturn(true);
+        $r2 = $this->mock(CloudflareR2Service::class);
+        $r2->shouldReceive('deleteObject')->once()->with('unity-releases', $claimed['storage_path']);
+
+        $this->withSession(['supabase_user' => $this->user('admin')])
+            ->deleteJson('/admin/game-releases/'.self::RELEASE)
+            ->assertOk()
+            ->assertJsonPath('message', 'Game version 2.1.0 was deleted.');
+    }
+
+    public function test_current_release_deletion_is_refused_before_storage_cleanup(): void
+    {
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminRpcResult')->once()->with('begin_unity_app_release_deletion', [
+            'p_release_id' => self::RELEASE,
+            'p_admin_id' => self::ADMIN,
+        ])->andReturn([
+            'data' => [],
+            'error' => 'Make another version current before deleting this Unity release.',
+        ]);
+        $database->shouldNotReceive('deleteStorageObject');
+        $database->shouldNotReceive('audit');
+        $r2 = $this->mock(CloudflareR2Service::class);
+        $r2->shouldNotReceive('abortMultipartUpload');
+        $r2->shouldNotReceive('deleteObject');
+
+        $this->withSession(['supabase_user' => $this->user('admin')])
+            ->deleteJson('/admin/game-releases/'.self::RELEASE)
+            ->assertStatus(409)
+            ->assertJsonPath('message', 'Make another version current before deleting this game release.');
+    }
+
+    public function test_r2_cleanup_failure_leaves_release_deletion_retryable(): void
+    {
+        $claimed = $this->release([
+            'status' => 'uploading',
+            'is_active' => false,
+            'size_bytes' => null,
+            'object_etag' => null,
+            'provider_upload_id' => 'private-multipart-id',
+            'deletion_requested_at' => '2026-10-19T08:00:00+00:00',
+            'deletion_requested_by' => self::ADMIN,
+            'deletion_token' => self::DELETION_TOKEN,
+        ]);
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminRpcResult')->once()->with('begin_unity_app_release_deletion', [
+            'p_release_id' => self::RELEASE,
+            'p_admin_id' => self::ADMIN,
+        ])->andReturn(['data' => [$claimed], 'error' => null]);
+        $database->shouldNotReceive('audit');
+        $r2 = $this->mock(CloudflareR2Service::class);
+        $r2->shouldReceive('abortMultipartUpload')->once()->with(
+            'unity-releases', $claimed['storage_path'], 'private-multipart-id',
+        );
+        $r2->shouldReceive('deleteObject')->once()->andThrow(new RuntimeException('temporary R2 failure'));
+
+        $this->withSession(['supabase_user' => $this->user('admin')])
+            ->deleteJson('/admin/game-releases/'.self::RELEASE)
+            ->assertServiceUnavailable()
+            ->assertJsonPath(
+                'message',
+                'Deletion is pending because the release file could not be removed. Use Retry delete to try again.',
+            );
+    }
+
+    public function test_admin_deletes_an_inactive_legacy_supabase_release(): void
+    {
+        $claimed = $this->release([
+            'id' => self::HISTORICAL,
+            'is_active' => false,
+            'storage_provider' => 'supabase',
+            'storage_path' => 'releases/android/'.self::HISTORICAL.'/mathverse-2.0.0.apk',
+            'provider_upload_id' => null,
+            'object_etag' => null,
+            'multipart_part_size' => null,
+            'deletion_requested_at' => '2026-10-19T08:00:00+00:00',
+            'deletion_requested_by' => self::ADMIN,
+            'deletion_token' => self::DELETION_TOKEN,
+        ]);
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminRpcResult')->once()->ordered()->andReturn(['data' => [$claimed], 'error' => null]);
+        $database->shouldReceive('deleteStorageObject')->once()->ordered()->with(
+            'unity-releases', $claimed['storage_path'],
+        )->andReturn(true);
+        $database->shouldReceive('adminRpcResult')->once()->ordered()->with('finish_unity_app_release_deletion', [
+            'p_release_id' => self::HISTORICAL,
+            'p_admin_id' => self::ADMIN,
+            'p_deletion_token' => self::DELETION_TOKEN,
+            'p_storage_provider' => 'supabase',
+            'p_storage_bucket' => 'unity-releases',
+            'p_storage_path' => $claimed['storage_path'],
+            'p_provider_upload_id' => null,
+        ])->andReturn(['data' => [$claimed], 'error' => null]);
+        $database->shouldReceive('audit')->once()->andReturn(true);
+        $r2 = $this->mock(CloudflareR2Service::class);
+        $r2->shouldNotReceive('deleteObject');
+
+        $this->withSession(['supabase_user' => $this->user('admin')])
+            ->deleteJson('/admin/game-releases/'.self::HISTORICAL)
+            ->assertOk();
     }
 
     #[DataProvider('unsupportedBuilds')]
@@ -621,6 +785,9 @@ class AppReleaseFlowTest extends TestCase
             'release_notes' => 'Faster quiz loading',
             'status' => 'ready',
             'is_active' => true,
+            'deletion_requested_at' => null,
+            'deletion_requested_by' => null,
+            'deletion_token' => null,
             'created_at' => '2026-10-11T12:00:00+00:00',
             'activated_at' => '2026-10-11T12:05:00+00:00',
         ], $overrides);

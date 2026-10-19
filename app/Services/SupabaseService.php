@@ -277,6 +277,23 @@ class SupabaseService
     }
 
     /**
+     * Delete one exact private Storage object with the service role.
+     * A missing object is already clean, which keeps provider cleanup safe to
+     * retry after a lost response or a later database-finalization failure.
+     */
+    public function deleteStorageObject(string $bucket, string $path): bool
+    {
+        $this->assertStorageLocation($bucket, $path);
+        $encodedLocation = $this->encodedStorageLocation($bucket, $path);
+        $response = $this->request()->withHeaders([
+            'apikey' => $this->serviceKey,
+            'Authorization' => "Bearer {$this->serviceKey}",
+        ])->delete("{$this->url}/storage/v1/object/{$encodedLocation}");
+
+        return $response->successful() || $response->status() === 404;
+    }
+
+    /**
      * @return array{url: ?string, error: ?string, status: int}
      */
     public function createStorageSignedDownload(

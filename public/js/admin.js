@@ -31,6 +31,17 @@ function confirmDelete(id, name) {
     openModal('deleteUserModal');
 }
 
+function confirmReleaseDelete(id, version) {
+    const form = document.getElementById('releaseDeleteForm');
+    const versionLabel = document.getElementById('release-delete-version');
+    if (!form || !versionLabel
+        || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id || '')) return;
+
+    form.action = `/admin/game-releases/${encodeURIComponent(id)}`;
+    versionLabel.textContent = version ? `Version ${version}` : 'Selected game version';
+    openModal('releaseDeleteModal');
+}
+
 function confirmSuspend(id, name, section) {
     document.getElementById('suspendUserForm').action = `/admin/user/${id}/suspend`;
     document.getElementById('suspend-user-name').textContent = name || 'Selected user';

@@ -32,7 +32,7 @@ R2_UPLOAD_URL_TTL=900
 R2_SIGNED_DOWNLOAD_TTL=300
 ```
 
-5. Run `database/supabase/2026_10_12_cloudflare_r2_app_releases.sql` in the Supabase SQL editor after `2026_10_11_versioned_unity_app_releases.sql`. This keeps existing Supabase-hosted builds available and sends only new builds to R2.
+5. Run `database/supabase/2026_10_12_cloudflare_r2_app_releases.sql` in the Supabase SQL editor after `2026_10_11_versioned_unity_app_releases.sql`. Then run `database/supabase/2026_10_19_deletable_unity_app_releases.sql`. The first migration keeps existing Supabase-hosted builds available and sends only new builds to R2; the second enables protected, retry-safe deletion of inactive versions.
 6. Deploy the matching application code with production dependencies and assets (`composer install --no-dev --optimize-autoloader`, then `npm ci && npm run build`). Do not enable the upload form before both the migration and R2 secrets are deployed.
 
 `R2_PART_SIZE` is 16 MiB by default and must remain between 5 MiB and 512 MiB in MathVerse. Its value is saved when each release begins, so that release can finish safely even if a later deployment changes the default. Upload and download URLs are short-lived. The Laravel server signs them, but build bytes travel directly between the administrator's browser and R2 instead of passing through PHP or Supabase Storage.
@@ -40,6 +40,15 @@ R2_SIGNED_DOWNLOAD_TTL=300
 When an upload fails, MathVerse first marks the release failed in Supabase. The row deliberately retains its opaque `provider_upload_id` as a durable cleanup marker while the server aborts the multipart upload and deletes any completed orphan. Only after both R2 operations succeed does the server call `finish_unity_app_release_cleanup_v2`, which clears that marker.
 
 Failed releases with an uncleared marker keep a **Retry storage cleanup** action in the administrator's version history. Use it after a temporary R2 error. The retry is safe because abort/delete cleanup is idempotent, the stored upload ID is matched before it can be cleared, and the finish RPC itself is retry-safe after cleanup was already recorded. Do not clear `provider_upload_id` manually: leaving it in place is what makes interrupted cleanup recoverable.
+
+Deleting an old version is also a two-step server workflow. The database first
+claims an inactive release and locks it against activation or publication.
+Laravel then removes the exact private R2 or legacy Supabase Storage object and
+finishes the metadata deletion with the claim's opaque token. The current
+version cannot be deleted; make another ready version current first. If either
+provider cleanup or the final database call is interrupted, use **Retry delete**
+on the **Deletion pending** version. Never delete a release row or a
+`storage.objects` row manually.
 
 The rollback migration archives outstanding `provider_upload_id` values and never deletes R2 objects or multipart uploads. Review those archived markers before performing any later manual cleanup.
 

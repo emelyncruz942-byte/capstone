@@ -263,6 +263,7 @@ const mathVerseDelegatedActions = new Set([
     'closeLobby',
     'closeModal',
     'confirmDelete',
+    'confirmReleaseDelete',
     'confirmSuspend',
     'copyToClipboard',
     'hideToast',

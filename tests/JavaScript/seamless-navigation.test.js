@@ -47,6 +47,7 @@ function fixture(role = 'teacher') {
         get formTarget() { return this.getAttribute('formtarget') || ''; }
         replaceWith(element) { this.isConnected = false; roots.set(this.selector, element); }
         matches() { return false; }
+        closest(selector) { return selector === 'a[href]' && this.hasAttribute('href') ? this : null; }
     }
     class Form extends Element {
         constructor(method = 'POST') {
@@ -156,6 +157,21 @@ function fixture(role = 'teacher') {
         submit(form, submitter) {
             const event = { type: 'submit', target: form, submitter, defaultPrevented: false,
                 preventDefault() { this.defaultPrevented = true; } };
+            document.dispatchEvent(event);
+            return event;
+        },
+        click(anchor) {
+            const event = {
+                type: 'click',
+                target: anchor,
+                button: 0,
+                metaKey: false,
+                ctrlKey: false,
+                shiftKey: false,
+                altKey: false,
+                defaultPrevented: false,
+                preventDefault() { this.defaultPrevented = true; },
+            };
             document.dispatchEvent(event);
             return event;
         },
@@ -340,6 +356,50 @@ test('public auth forms retain native POSTs and their redirect feedback', () => 
         form.action = `https://mathverse.test${path}`;
         const event = f.submit(form, new f.Element());
         assert.equal(event.defaultPrevented, false);
+        assert.equal(f.requests.length, 0);
+    }
+});
+
+test('shared game-download and support pages use seamless dashboard navigation', async () => {
+    const ticket = '22222222-2222-4222-8222-222222222222';
+
+    for (const path of ['/game-download', '/support-tickets?status=open', `/support-tickets/${ticket}`]) {
+        const f = fixture('student');
+        const anchor = new f.Element();
+        anchor.setAttribute('href', path);
+        anchor.href = `https://mathverse.test${path}`;
+        anchor.target = '';
+
+        const event = f.click(anchor);
+
+        assert.equal(event.defaultPrevented, true, `${path} should be handled seamlessly`);
+        assert.equal(f.requests.length, 1);
+        f.response(0);
+        await flush();
+        assert.equal(`${f.window.location.pathname}${f.window.location.search}`, path);
+    }
+});
+
+test('release downloads and unrelated shared subpaths retain native navigation', () => {
+    const release = '33333333-3333-4333-8333-333333333333';
+    const ticket = '22222222-2222-4222-8222-222222222222';
+
+    for (const [path, attributes] of [
+        [`/game-download/${release}`, []],
+        [`/game-download/${release}`, ['download']],
+        [`/game-download/${release}`, ['data-native-navigation']],
+        [`/support-tickets/${ticket}/history`, []],
+    ]) {
+        const f = fixture('teacher');
+        const anchor = new f.Element();
+        anchor.setAttribute('href', path);
+        anchor.href = `https://mathverse.test${path}`;
+        anchor.target = '';
+        attributes.forEach(name => anchor.setAttribute(name, ''));
+
+        const event = f.click(anchor);
+
+        assert.equal(event.defaultPrevented, false, `${path} should retain native navigation`);
         assert.equal(f.requests.length, 0);
     }
 });
