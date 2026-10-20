@@ -48,5 +48,5 @@
 @endsection
 
 @section('modals')
-<div id="logoutModal" class="modal-overlay hidden"><div class="portal-frame !p-10 w-full max-w-xs text-center border-red-500/30"><i class="fas fa-power-off text-4xl text-red-500 mb-4"></i><h3 class="font-orbitron font-bold mb-2 uppercase">Log out?</h3><p class="text-[10px] text-slate-500 mb-8 uppercase tracking-widest">End administrator session</p><form method="POST" action="/logout">@csrf<button type="submit" class="btn-rect-primary !bg-red-600 !text-white">Confirm Logout</button></form><button type="button" data-action="closeModal" data-action-args='["logoutModal"]' class="modal-cancel">Cancel</button></div></div>
+@include('admin.partials.logout-modal')
 @endsection

@@ -51,8 +51,9 @@
                 @endphp
                 <article class="portal-frame !p-7 border-cyan-500/40">
                     <div class="flex items-start gap-5">
-                        <div class="w-16 h-16 rounded-xl border border-cyan-400/30 bg-cyan-400/10 flex items-center justify-center text-cyan-300 shrink-0">
-                            <i class="fab {{ $isIos ? 'fa-apple' : 'fa-android' }} text-3xl" aria-hidden="true"></i>
+                        <div class="w-16 h-16 rounded-xl border border-cyan-400/30 bg-cyan-400/10 flex items-center justify-center text-cyan-300 shrink-0"
+                             role="img" aria-label="{{ $isIos ? 'iOS build' : 'Android build' }}">
+                            <i class="fas {{ $isIos ? 'fa-mobile-screen' : 'fa-robot' }} text-3xl" aria-hidden="true"></i>
                         </div>
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
@@ -88,4 +89,8 @@
         </div>
     @endif
 </section>
+@endsection
+
+@section('modals')
+    @include(($user['role'] ?? '') === 'teacher' ? 'teacher.partials.logout-modal' : 'student.partials.logout-modal')
 @endsection

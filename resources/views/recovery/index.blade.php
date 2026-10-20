@@ -65,5 +65,5 @@
 </div>
 @endsection
 @section('modals')
-<div id="logoutModal" class="modal-overlay hidden"><div class="portal-frame !p-8 w-full max-w-xs text-center"><h3 class="font-orbitron font-bold mb-5">Log out?</h3><form method="POST" action="/logout">@csrf<button class="btn-rect-primary">Confirm Logout</button></form><button type="button" data-action="closeModal" data-action-args='["logoutModal"]' class="modal-cancel">Cancel</button></div></div>
+@include($admin ? 'admin.partials.logout-modal' : 'teacher.partials.logout-modal')
 @endsection

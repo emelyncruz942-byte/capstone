@@ -104,7 +104,8 @@
                             <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                 <div class="min-w-0">
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <i class="fab {{ $platform === 'ios' ? 'fa-apple' : 'fa-android' }} text-cyan-400" aria-hidden="true"></i>
+                                        <i class="fas {{ $platform === 'ios' ? 'fa-mobile-screen' : 'fa-robot' }} text-cyan-400"
+                                           aria-label="{{ $platform === 'ios' ? 'iOS build' : 'Android build' }}"></i>
                                         <h4 class="font-orbitron font-black">Version {{ $release['version'] ?? '—' }}</h4>
                                         @if($isActive)
                                             <span class="rounded-full border border-green-400/40 bg-green-400/10 px-2.5 py-1 text-[8px] font-black uppercase text-green-300">Current</span>
@@ -216,4 +217,8 @@
         <button type="button" data-action="closeModal" data-action-args='["releaseDeleteModal"]' class="modal-cancel">Cancel</button>
     </div>
 </div>
+@endsection
+
+@section('modals')
+@include('admin.partials.logout-modal')
 @endsection

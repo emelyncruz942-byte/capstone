@@ -519,7 +519,7 @@ of those quizzes retain their session data and have `source_quiz_id` set to
 
 ## Unity VR database access and score submission
 
-After all earlier forward migrations, run these eleven files in this exact order:
+After all earlier forward migrations, run these twelve files in this exact order:
 
 1. `2026_09_20_vr_legacy_access.sql`
 2. `2026_09_20_vr_score_submission.sql`
@@ -532,6 +532,7 @@ After all earlier forward migrations, run these eleven files in this exact order
 9. `2026_10_12_teacher_quiz_report_revisions.sql`
 10. `2026_10_12_cloudflare_r2_app_releases.sql`
 11. `2026_10_19_deletable_unity_app_releases.sql`
+12. `2026_10_20_unity_grade_leaderboard.sql`
 
 The first migration restores the narrowly scoped anonymous access required by
 the existing Unity client: lookup and status polling for waiting/active rooms,
@@ -713,6 +714,19 @@ are idempotent, so a retry safely completes the workflow. Apply
 pending deletions; it deliberately refuses to remove the guard while an
 external cleanup may be unresolved.
 
+The twelfth migration replaces Unity's broad client-side profile ranking with
+`get_my_unity_trophy_leaderboard`. The authenticated RPC derives the viewer
+only from `auth.uid()`, verifies an active student profile, and returns only
+same-grade rows. Names and public avatar URLs respect each student's
+`show_on_leaderboard` choice, while trophies and actual profile levels remain
+server-ranked. It also adds an authenticated own-profile SELECT policy plus a
+restrictive client boundary, so an older permissive profile policy cannot be
+used to bypass the RPC; anonymous profile reads are denied by the same
+boundary. Only `authenticated` may execute the leaderboard function; `anon`
+and `service_role` direct execution are revoked. Deploy this migration before
+publishing the matching Unity build. The rollback removes the endpoint and
+these two profile policies, restoring the installation's earlier read rules.
+
 Step 6 is an incompatible, forward-only boundary rather than a rolling update.
 The old Unity client cannot join after anonymous reads are revoked, and the new
 client cannot join before the new RPCs exist. The old Laravel push sender also
@@ -725,7 +739,7 @@ server-calculated score submission, retake, and administrator push. If a check
 fails, keep those paths offline and complete a forward repair; do not restore
 anonymous grants as a compatibility workaround.
 
-All eleven migrations register themselves in `mathverse_schema_migrations`.
+All twelve migrations register themselves in `mathverse_schema_migrations`.
 After step 6, do not reapply the legacy-access file: it detects the new boundary
 and safely performs no grants. Apply future security changes as new forward
 migrations. The matching Unity project must include the RPC-enabled

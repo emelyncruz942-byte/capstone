@@ -62,6 +62,11 @@ class AppReleaseFlowTest extends TestCase
             ->assertViewHas('releases', fn (array $releases): bool => count($releases) === 2)
             ->assertSee('Download for Android')
             ->assertSee('Download for iOS')
+            ->assertSee('id="logoutModal"', false)
+            ->assertSee('Are you sure you want to log out?')
+            ->assertSee('role="img" aria-label="Android build"', false)
+            ->assertSee('role="img" aria-label="iOS build"', false)
+            ->assertDontSee('class="fab ', false)
             ->assertSee('btn-rect-primary mt-6 flex items-center justify-center px-6 text-center', false);
     }
 
@@ -80,6 +85,8 @@ class AppReleaseFlowTest extends TestCase
             ->get('/admin/game-releases')
             ->assertOk()
             ->assertSee('Cloudflare R2 is not configured')
+            ->assertSee('id="logoutModal"', false)
+            ->assertSee('Ending Root Session')
             ->assertSee('disabled', false);
     }
 

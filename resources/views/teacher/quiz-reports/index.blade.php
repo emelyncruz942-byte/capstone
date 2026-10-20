@@ -158,12 +158,5 @@
 @endsection
 
 @section('modals')
-<div id="logoutModal" class="modal-overlay hidden">
-    <div class="portal-frame !p-10 w-full max-w-xs text-center border-red-500/30">
-        <i class="fas fa-sign-out-alt text-4xl text-red-500 mb-4"></i>
-        <h3 class="font-orbitron font-bold mb-6 uppercase">End Session?</h3>
-        <form method="POST" action="/logout">@csrf<button class="btn-rect-primary !bg-red-600 !text-white">Confirm Logout</button></form>
-        <button type="button" data-action="closeModal" data-action-args='["logoutModal"]' class="modal-cancel mt-3">Cancel</button>
-    </div>
-</div>
+@include('teacher.partials.logout-modal')
 @endsection
