@@ -26,19 +26,57 @@ class AuthSecurityFlowTest extends TestCase
             ->assertSee('js/auth.js');
     }
 
-    public function test_legacy_query_reset_links_do_not_expose_or_consume_the_token_on_page_load(): void
+    public function test_query_token_hash_reset_links_are_moved_to_the_encrypted_session(): void
     {
         $this->withoutVite();
         $supabase = $this->mock(SupabaseService::class);
         $supabase->shouldNotReceive('verifyRecoveryToken');
         $supabase->shouldNotReceive('updateAuthUser');
 
-        $this->get('/reset-password?token_hash=synthetic-recovery-credential&type=recovery')
+        $response = $this->get('/reset-password?token_hash=synthetic-recovery-credential&type=recovery');
+
+        $response->assertRedirect('/reset-password')
+            ->assertSessionHas('password_recovery_token', 'synthetic-recovery-credential')
+            ->assertSessionHas('password_recovery_token_type', 'token_hash')
+            ->assertDontSee('synthetic-recovery-credential')
+            ->assertHeader('Referrer-Policy', 'no-referrer');
+
+        $this->get('/reset-password')
             ->assertOk()
             ->assertSee('js/password-reset.js')
             ->assertDontSee('synthetic-recovery-credential')
-            ->assertSee('data-has-recovery-token="false"', false)
+            ->assertSee('data-has-recovery-token="true"', false)
             ->assertHeader('Referrer-Policy', 'no-referrer');
+    }
+
+    public function test_query_access_token_reset_links_are_moved_to_the_encrypted_session(): void
+    {
+        $this->withoutVite();
+        $supabase = $this->mock(SupabaseService::class);
+        $supabase->shouldNotReceive('verifyRecoveryToken');
+        $supabase->shouldNotReceive('updateAuthUser');
+
+        $this->get('/reset-password?access_token=synthetic-access-token&refresh_token=ignored&type=recovery')
+            ->assertRedirect('/reset-password')
+            ->assertSessionHas('password_recovery_token', 'synthetic-access-token')
+            ->assertSessionHas('password_recovery_token_type', 'access_token')
+            ->assertDontSee('synthetic-access-token')
+            ->assertHeader('Referrer-Policy', 'no-referrer');
+    }
+
+    public function test_invalid_query_reset_links_clear_stale_recovery_credentials(): void
+    {
+        $this->withoutVite();
+        $this->mock(SupabaseService::class);
+
+        $this->withSession([
+            'password_recovery_token' => 'stale-token',
+            'password_recovery_token_type' => 'token_hash',
+        ])->get('/reset-password?code=unsupported-code&type=recovery')
+            ->assertRedirect('/reset-password')
+            ->assertSessionMissing('password_recovery_token')
+            ->assertSessionMissing('password_recovery_token_type')
+            ->assertSessionHas('error');
     }
 
     public function test_public_login_page_discards_an_unsupported_legacy_session(): void

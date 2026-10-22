@@ -74,7 +74,11 @@ class SeoMetadataTest extends TestCase
     {
         $response = $this->get('/reset-password?token=secret');
 
-        $response->assertOk()
+        $response->assertRedirect('/reset-password')
+            ->assertDontSee('secret', false);
+
+        $this->get('/reset-password')
+            ->assertOk()
             ->assertSee('<meta name="robots" content="noindex, nofollow, noarchive">', false)
             ->assertSee('<link rel="canonical" href="https://mathmetaverse.space/reset-password">', false)
             ->assertDontSee('secret', false)

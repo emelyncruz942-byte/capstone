@@ -42,7 +42,7 @@ Route::view('/terms-and-conditions', 'legal.terms-and-conditions')->name('terms-
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:password-recovery');
-Route::get('/reset-password', function () { return view('auth.reset'); });
+Route::get('/reset-password', [AuthController::class, 'showResetPassword']);
 Route::post('/update-password', [AuthController::class, 'updatePassword'])->middleware('throttle:password-reset');
 Route::get('/auth/confirm', function () { return view('auth.confirm'); });
 Route::post('/auth/confirm', [AuthController::class, 'confirmEmail'])->middleware('throttle:email-confirmation');

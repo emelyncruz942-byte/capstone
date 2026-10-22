@@ -360,6 +360,66 @@ class AuthController extends Controller
         return back()->with('success', 'Reset email sent if that email address is registered to a MathVerse account.');
     }
 
+    public function showResetPassword(Request $request)
+    {
+        $credentialParameters = ['token', 'token_hash', 'access_token', 'refresh_token', 'code'];
+        $hasQueryCredential = collect($credentialParameters)
+            ->contains(fn (string $parameter): bool => $request->query->has($parameter));
+        $hasAuthError = collect(['error', 'error_code', 'error_description'])
+            ->contains(fn (string $parameter): bool => $request->query->has($parameter));
+
+        if (!$hasQueryCredential && !$hasAuthError) {
+            return view('auth.reset');
+        }
+
+        // Some Supabase configurations and email clients return recovery
+        // credentials in the query string instead of the preferred fragment.
+        // Move a supported credential into the encrypted server session, then
+        // immediately redirect so it is not retained in browser history or
+        // exposed by the rendered page. Verification still happens only after
+        // the user submits a new password.
+        $request->session()->forget([
+            'password_recovery_token',
+            'password_recovery_token_type',
+        ]);
+
+        $linkType = $request->query('type');
+        $candidates = array_filter([
+            'token_hash' => $request->query('token_hash'),
+            'token' => $request->query('token'),
+            'access_token' => $request->query('access_token'),
+        ], fn (mixed $value): bool => is_string($value) && $value !== '');
+
+        if ($hasAuthError
+            || ($linkType !== null && $linkType !== 'recovery')
+            || count($candidates) !== 1
+        ) {
+            return redirect('/reset-password')->with(
+                'error',
+                'This password reset link is invalid or expired. Please request a new one.'
+            );
+        }
+
+        $parameter = (string) array_key_first($candidates);
+        $credential = $candidates[$parameter];
+        $credentialType = $parameter === 'access_token' ? 'access_token' : 'token_hash';
+        $maximumLength = $credentialType === 'access_token' ? 8192 : 2048;
+
+        if (strlen($credential) > $maximumLength
+            || preg_match('/[\x00-\x20\x7F]/', $credential) === 1
+        ) {
+            return redirect('/reset-password')->with(
+                'error',
+                'This password reset link is invalid or expired. Please request a new one.'
+            );
+        }
+
+        $request->session()->put('password_recovery_token', $credential);
+        $request->session()->put('password_recovery_token_type', $credentialType);
+
+        return redirect('/reset-password');
+    }
+
     public function confirmEmail(Request $request)
     {
         $validated = $request->validate([
