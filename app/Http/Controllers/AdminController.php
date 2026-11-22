@@ -520,12 +520,10 @@ class AdminController extends Controller
         // Group UTC database instants by the same local day as the chart labels.
         $registrationCounts = \App\Support\AppDate::countsByDay($profiles);
         $attemptCounts = \App\Support\AppDate::countsByDay($allResults);
-        $historyStartDates = array_merge(
-            array_column($profiles, 'created_at'),
-            array_column($quizzes, 'created_at')
-        );
-        $registrationsPerDay = \App\Support\AppDate::historySeries($registrationCounts, $historyStartDates);
-        $attemptsPerDay = \App\Support\AppDate::historySeries($attemptCounts, $historyStartDates);
+        // Each chart starts with its own recorded events. Account or library
+        // creation must not add unrelated days before the first quiz attempt.
+        $registrationsPerDay = \App\Support\AppDate::historySeries($registrationCounts);
+        $attemptsPerDay = \App\Support\AppDate::historySeries($attemptCounts);
 
         // Role breakdown
         $roleBreakdown = [

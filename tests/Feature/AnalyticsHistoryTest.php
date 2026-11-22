@@ -163,33 +163,56 @@ class AnalyticsHistoryTest extends TestCase
         $this->assertSame('eq.owner', $request['student_id']);
     }
 
-    public function test_teacher_chart_includes_old_and_archived_class_activity_through_today(): void
+    public function test_teacher_quiz_chart_starts_on_october_12_and_includes_archived_class_activity_through_today(): void
     {
         $this->withoutMiddleware(SupabaseAuth::class);
         $teacher = ['id' => '11111111-1111-4111-8111-111111111111', 'role' => 'teacher'];
         $database = $this->mock(SupabaseService::class);
         $database->shouldReceive('adminSelectHistory')->once()->with('classes', 'id,class_name,archived_at', ['teacher_id' => $teacher['id']])
-            ->andReturn([['id' => 'old', 'class_name' => 'Previous Class', 'archived_at' => '2026-10-01'], ['id' => 'new', 'class_name' => 'Current Class', 'archived_at' => null]]);
+            ->andReturn([['id' => 'old', 'class_name' => 'Previous Class', 'archived_at' => '2026-11-01'], ['id' => 'new', 'class_name' => 'Current Class', 'archived_at' => null]]);
         $database->shouldReceive('adminSelectHistory')->once()->with('quiz_sessions', 'id,topic,created_at,class_id', [
             'class_id' => ['operator' => 'in', 'value' => '(old,new)'],
-        ])->andReturn([['id' => 'early', 'class_id' => 'old', 'created_at' => '2026-09-01T00:00:00Z'], ['id' => 'late', 'class_id' => 'new', 'created_at' => '2026-11-22T00:00:00Z']]);
+        ])->andReturn([['id' => 'early', 'class_id' => 'old', 'created_at' => '2026-10-11T14:44:00Z'], ['id' => 'late', 'class_id' => 'new', 'created_at' => '2026-11-22T00:00:00Z']]);
         $database->shouldReceive('adminSelectHistory')->once()->with('quiz_results', 'correct_answers,total_questions,created_at,session_id,student_id', [
             'session_id' => ['operator' => 'in', 'value' => '(early,late)'], 'is_counted' => true, 'order' => 'created_at.asc',
         ])->andReturn([
-            ['session_id' => 'early', 'correct_answers' => 1, 'total_questions' => 5, 'created_at' => '2026-09-02T00:00:00Z'],
+            ['session_id' => 'early', 'correct_answers' => 1, 'total_questions' => 5, 'created_at' => '2026-10-11T16:10:00Z'],
             ['session_id' => 'late', 'correct_answers' => 4, 'total_questions' => 5, 'created_at' => '2026-11-22T01:00:00Z'],
         ]);
 
         $response = $this->withSession(['supabase_user' => $teacher])->get('/teacher/stats')->assertOk();
         $response->assertJsonPath('totalAttempts', 2)->assertJsonPath('classAccuracy.0.attempts', 1);
         $days = $response->json('attemptsPerDay');
-        $this->assertSame('2026-09-01', $days[0]['iso_date']);
+        $this->assertSame('2026-10-12', $days[0]['iso_date']);
         $this->assertSame('2026-11-22', end($days)['iso_date']);
         $this->assertSame(2, array_sum(array_column($days, 'count')));
-        $this->assertGreaterThan(14, count($days));
+        $this->assertCount(42, $days);
+        $this->assertArrayNotHasKey('2026-10-11', array_column($days, 'count', 'iso_date'));
+        $this->assertSame(0, array_column($days, 'count', 'iso_date')['2026-10-13']);
     }
 
-    public function test_admin_charts_share_the_first_recorded_local_day_and_include_current_activity(): void
+    public function test_teacher_attempt_chart_does_not_invent_history_from_an_unanswered_session(): void
+    {
+        $this->withoutMiddleware(SupabaseAuth::class);
+        $teacher = ['id' => '11111111-1111-4111-8111-111111111111', 'role' => 'teacher'];
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminSelectHistory')->once()->with('classes', 'id,class_name,archived_at', ['teacher_id' => $teacher['id']])
+            ->andReturn([['id' => 'class', 'class_name' => 'Grade 4', 'archived_at' => null]]);
+        $database->shouldReceive('adminSelectHistory')->once()->with('quiz_sessions', 'id,topic,created_at,class_id', [
+            'class_id' => ['operator' => 'in', 'value' => '(class)'],
+        ])->andReturn([['id' => 'waiting', 'class_id' => 'class', 'created_at' => '2026-10-11T14:44:00Z']]);
+        $database->shouldReceive('adminSelectHistory')->once()->with('quiz_results', 'correct_answers,total_questions,created_at,session_id,student_id', [
+            'session_id' => ['operator' => 'in', 'value' => '(waiting)'], 'is_counted' => true, 'order' => 'created_at.asc',
+        ])->andReturn([]);
+
+        $response = $this->withSession(['supabase_user' => $teacher])->get('/teacher/stats')->assertOk();
+        $response->assertJsonPath('totalAttempts', 0)->assertJsonPath('totalQuizzes', 1);
+        $this->assertSame([
+            ['date' => 'Nov 22, 2026', 'iso_date' => '2026-11-22', 'count' => 0],
+        ], $response->json('attemptsPerDay'));
+    }
+
+    public function test_admin_quiz_chart_starts_on_october_12_independently_of_earlier_registration_and_library_dates(): void
     {
         $this->withoutMiddleware(SupabaseAuth::class);
         $admin = ['id' => '11111111-1111-4111-8111-111111111111', 'role' => 'admin'];
@@ -197,7 +220,7 @@ class AnalyticsHistoryTest extends TestCase
         $database->shouldReceive('adminSelectHistory')->once()->with('quiz_results',
             'correct_answers,total_questions,created_at,session_id,student_id', ['is_counted' => true, 'order' => 'created_at.asc'])
             ->andReturn([
-                ['correct_answers' => 1, 'total_questions' => 5, 'created_at' => '2026-09-01T16:10:00Z'],
+                ['correct_answers' => 1, 'total_questions' => 5, 'created_at' => '2026-10-11T16:10:00Z'],
                 ['correct_answers' => 4, 'total_questions' => 5, 'created_at' => '2026-11-22T01:00:00Z'],
             ]);
         $database->shouldReceive('adminSelectHistory')->once()->with('quizzes', 'id,topic,teacher_id,created_at')
@@ -212,10 +235,12 @@ class AnalyticsHistoryTest extends TestCase
         $response->assertJsonPath('totalAttempts', 2)->assertJsonPath('totalUsers', 2);
         $attempts = $response->json('attemptsPerDay');
         $registrations = $response->json('registrationsPerDay');
-        $this->assertSame('2026-08-15', $attempts[0]['iso_date']);
+        $this->assertSame('2026-10-12', $attempts[0]['iso_date']);
         $this->assertSame('2026-08-15', $registrations[0]['iso_date']);
         $this->assertSame('2026-11-22', end($attempts)['iso_date']);
-        $this->assertSame(1, array_column($attempts, 'count', 'iso_date')['2026-09-02']);
+        $this->assertSame(1, array_column($attempts, 'count', 'iso_date')['2026-10-12']);
+        $this->assertSame(0, array_column($attempts, 'count', 'iso_date')['2026-10-13']);
+        $this->assertCount(42, $attempts);
         $this->assertSame(2, array_sum(array_column($attempts, 'count')));
         $this->assertSame(2, array_sum(array_column($registrations, 'count')));
     }

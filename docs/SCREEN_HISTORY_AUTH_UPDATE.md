@@ -47,4 +47,27 @@ Deploy the changed website files, including `public/js/auth-submission.js`, the 
 - Unity reports: `tmp/android-screen-verified-tests.xml`, `tmp/android-screen-backdrop-tests.xml` and `docs/data/singleplayer/android-screen-layout-audit.json` in the Unity project.
 - Website results: `tmp/website-final-phpunit.xml`, `tmp/all-website-javascript-tests.log` and `tmp/website-push-sql-tests.log` in the shared project.
 
-No APK rebuild or physical Android-device test was performed. Recorded quiz scores, practice answers and activity logs are preserved.
+No APK rebuild or physical Android-device test was performed for the screen/history/authentication update above. That update preserved recorded scores and activity; the separately approved development-data update below supersedes those records within its specified scope.
+
+## Development presentation update — 23 November 2026
+
+The explicitly approved grade 4–6 development fixture import is applied to the connected Math Metaverse project. The three classes now contain all 55 intended developer profiles, respecting their account and membership dates. Each grade has 23 quizzes: 69 assignments and 1,224 results in total. Every quiz has at least three distinct scores, with scores spanning 0–5 overall.
+
+Live result-date averages progress from 1.50/5 during October 12–25 to 2.07, 2.33, 2.77 and 3.33 across the four following weeks, then 4.23 for the November 23–27 post-tests. The weekly schedule contains three, two, three and two quizzes per grade; each grade also has one post-test daily November 23–27. The post-tests retain low results: 232 of 275 scores are 4 or 5.
+
+Learning Hub, Math Arcade, Number Guess and Unity NPC completion records each cover all 36 days from October 26 through November 30. Source questions and earlier practice history are retained. Rewards, mastery, game rankings and profile totals agree with those records. Future-dated fixtures keep their ordinary dates; analytics retain their real current-time cutoff.
+
+Repeatable fixture provenance is retained outside application screens. Local generation uses `tools/generate_development_presentation.py`; import packaging and rehearsal use `tools/build_development_presentation_import.py` and `tools/rehearse_development_presentation_import.mjs`. Private payloads and backups belong in the shared project's `tmp/development-presentation-20261122` directory, not Git. The live verification summary is `cloud-verification.json` there.
+
+Already-applied, server-versioned migrations:
+
+- `supabase/migrations/20261122122623_development_presentation_private_staging.sql`
+- `supabase/migrations/20261122203130_development_presentation_activity.sql`
+
+The private staging and backup schema is inaccessible to application roles. The transaction captured 7,777 original rows before replacement. Only the notification delivery bridge was briefly paused to prevent historical email/push delivery; it is enabled again, as are all public business triggers. Existing notification read states were retained, and pending result receipt text was corrected. Recovery is provided by `tmp/development-presentation-20261122/import/04_atomic_rollback.sql`; its conflict checks refuse to overwrite later changes or a subsequently sent receipt.
+
+Both admin and teacher quiz chart axes now use actual result dates. A quiz created on October 11 whose first answer is on October 12 starts its answer timeline on October 12. Deploy the PHP controller changes to publish this chart correction.
+
+Unity's unavailable/offline replies now match the current role and location of all 60 NPCs: 465 Yarn-source replies and 405 active database replies. The existing question and routing graph is retained. Include the new `NpcOfflineDialogueInstaller` and tests with their matching `.meta` files, the importer/generator hooks, the updated Yarn files and `MAIN.asset`. Rebuild and install the Android app for these dialogue changes; no Inspector setup is required.
+
+Validation: 10 fixture-generator tests, 13 import/recovery checks, 16 website tests with 85 assertions plus PHP static analysis, and 39 Unity tests passed. Live checks found no invalid scores, duplicate counted results, results before account creation, or disabled public triggers. Health checks have no findings. There are no new security warning/error findings; three informational RLS-without-policy notices describe the intentionally owner-only private backup tables, whose application privileges are revoked. See the [Supabase linter explanation](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).

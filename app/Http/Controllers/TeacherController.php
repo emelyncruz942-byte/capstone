@@ -205,10 +205,9 @@ class TeacherController extends Controller
         }
 
         $attemptCounts = \App\Support\AppDate::countsByDay($allResults);
-        $attemptsPerDay = \App\Support\AppDate::historySeries(
-            $attemptCounts,
-            array_column($quizzes, 'created_at')
-        );
+        // Preparing a session can precede its first answer. The attempt chart
+        // follows recorded results, including their Philippine calendar day.
+        $attemptsPerDay = \App\Support\AppDate::historySeries($attemptCounts);
 
         // Score distribution
         $distribution = [0, 0, 0, 0];
