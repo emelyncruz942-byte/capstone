@@ -117,14 +117,14 @@ class StudentClassController extends Controller
             'class_customizations', '*', ['class_id' => $id]
         )[0] ?? [], '#22c55e');
 
-        $sessions = $this->supabase->adminSelect('quiz_sessions', '*', ['class_id' => $id, 'order' => 'created_at.desc']);
+        $sessions = $this->supabase->adminSelectHistory('quiz_sessions', '*', ['class_id' => $id, 'order' => 'created_at.desc']);
         $sessionIds = array_column($sessions, 'id');
-        $results = $this->supabase->adminSelect(
+        $results = $this->supabase->adminSelectHistory(
             'quiz_results',
             'session_id,correct_answers,total_questions,created_at',
             ['student_id' => $user['id'], 'is_counted' => true, 'order' => 'created_at.asc']
         );
-        $attemptRows = $this->supabase->adminSelect(
+        $attemptRows = $this->supabase->adminSelectHistory(
             'quiz_results', 'session_id', ['student_id' => $user['id']]
         );
         $attemptCounts = [];
@@ -140,7 +140,7 @@ class StudentClassController extends Controller
             }
         }
 
-        $eligibilityRows = empty($sessionIds) ? [] : $this->supabase->adminSelect(
+        $eligibilityRows = empty($sessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_session_students',
             'session_id,eligibility_status,allowed_attempts,excuse_reason,retake_due_at',
             [

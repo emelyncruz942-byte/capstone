@@ -15,7 +15,7 @@
     $backQuery = array_filter([
         'class_id' => $analytics['selected_class_id'] ?: null,
         'days' => (int) $analytics['period_days'],
-    ]);
+    ], fn ($value) => $value !== null && $value !== '');
     $backUrl = '/teacher/learning-hub';
     if ($backQuery !== []) $backUrl .= '?' . http_build_query($backQuery);
 @endphp
@@ -35,6 +35,7 @@
             @endif
             <label class="sr-only" for="solo-learning-days-filter">Period</label>
             <select id="solo-learning-days-filter" name="days" class="input-field !py-2.5 !text-xs">
+                <option value="0" @selected((int) $analytics['period_days'] === 0)>All history</option>
                 @foreach([7, 30, 90, 180] as $days)
                     <option value="{{ $days }}" @selected((int) $analytics['period_days'] === $days)>{{ $days }} days</option>
                 @endforeach
@@ -58,7 +59,7 @@
             <div>
                 <p class="analytics-kicker text-cyan-300">Student profile</p>
                 <h3 id="solo-profile-title" class="font-orbitron font-bold mt-1">{{ $student['name'] ?: 'Student' }}</h3>
-                <p class="text-xs text-slate-400 mt-2">Grade {{ $student['grade_level'] ?? '—' }} · {{ (int) $analytics['period_days'] }}-day monitoring period</p>
+                <p class="text-xs text-slate-400 mt-2">Grade {{ $student['grade_level'] ?? '—' }} · {{ (int) $analytics['period_days'] === 0 ? 'All recorded activity through today' : $analytics['period_days'] . '-day monitoring period' }}</p>
             </div>
             <div class="solo-class-list" aria-label="Enrolled classes in this view">
                 @forelse($analytics['classes'] as $class)

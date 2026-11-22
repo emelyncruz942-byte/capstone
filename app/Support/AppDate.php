@@ -49,6 +49,26 @@ final class AppDate
         return $counts;
     }
 
+    /** Every local calendar day from the first recorded event through today. */
+    public static function historySeries(array $counts, array $startDates = []): array
+    {
+        $today = CarbonImmutable::now(self::timezone())->startOfDay();
+        $first = $today;
+        foreach (array_merge(array_keys($counts), $startDates) as $value) {
+            $day = self::parse($value)?->startOfDay();
+            if ($day !== null && $day->lessThan($first)) $first = $day;
+        }
+        $series = [];
+        for ($day = $first; $day->lessThanOrEqualTo($today); $day = $day->addDay()) {
+            $series[] = [
+                'date' => $day->format('M d, Y'),
+                'iso_date' => $day->toDateString(),
+                'count' => (int) ($counts[$day->toDateString()] ?? 0),
+            ];
+        }
+        return $series;
+    }
+
     /** A date filter is a local calendar day, not midnight UTC. */
     public static function dayBoundaryUtc(string $day, bool $exclusiveEnd = false): ?string
     {

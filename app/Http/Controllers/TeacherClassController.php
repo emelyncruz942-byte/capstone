@@ -63,7 +63,7 @@ class TeacherClassController extends Controller
         $this->advanceScheduledSessions($id, $user);
 
         $customization = $this->customization($id);
-        $members = $this->supabase->adminSelect(
+        $members = $this->supabase->adminSelectHistory(
             'class_members',
             'student_id,joined_at,profiles(id,username,last_name,email,first_name,grade_level,level)',
             ['class_id' => $id, 'order' => 'joined_at.asc']
@@ -78,7 +78,7 @@ class TeacherClassController extends Controller
         }
         unset($member);
 
-        $sessions = $this->supabase->adminSelect(
+        $sessions = $this->supabase->adminSelectHistory(
             'quiz_sessions',
             '*',
             ['class_id' => $id, 'teacher_id' => $user['id'], 'order' => 'created_at.desc']
@@ -1068,7 +1068,7 @@ class TeacherClassController extends Controller
             return [];
         }
 
-        $results = $this->supabase->adminSelect(
+        $results = $this->supabase->adminSelectHistory(
             'quiz_results',
             'session_id,student_id,correct_answers,total_questions,created_at',
             [
@@ -1078,7 +1078,7 @@ class TeacherClassController extends Controller
             ]
         );
 
-        $eligibility = $this->supabase->adminSelect(
+        $eligibility = $this->supabase->adminSelectHistory(
             'quiz_session_students', 'session_id,student_id,eligibility_status', [
                 'session_id' => ['operator' => 'in', 'value' => '('.implode(',', $sessionIds).')'],
             ]
@@ -1127,7 +1127,7 @@ class TeacherClassController extends Controller
             return [];
         }
 
-        $results = empty($sessionIds) ? [] : $this->supabase->adminSelect(
+        $results = empty($sessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_results',
             'session_id,student_id,correct_answers,total_questions,created_at',
             [
@@ -1136,7 +1136,7 @@ class TeacherClassController extends Controller
                 'order' => 'created_at.asc',
             ]
         );
-        $eligibility = empty($sessionIds) ? [] : $this->supabase->adminSelect(
+        $eligibility = empty($sessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_session_students', 'session_id,student_id,eligibility_status', [
                 'session_id' => ['operator' => 'in', 'value' => '('.implode(',', $sessionIds).')'],
             ]

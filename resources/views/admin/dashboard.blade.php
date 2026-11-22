@@ -43,13 +43,13 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <div class="portal-frame !p-6">
                 <h4 class="font-orbitron text-xs text-cyan-400 uppercase tracking-widest mb-4">
-                    <i class="fas fa-chart-line mr-2"></i> Quiz Attempts (14 days)
+                    <i class="fas fa-chart-line mr-2"></i> Quiz Attempts (All history)
                 </h4>
                 <canvas id="chart-attempts" height="200"></canvas>
             </div>
             <div class="portal-frame !p-6">
                 <h4 class="font-orbitron text-xs text-green-400 uppercase tracking-widest mb-4">
-                    <i class="fas fa-user-plus mr-2"></i> New Registrations (14 days)
+                    <i class="fas fa-user-plus mr-2"></i> New Registrations (All history)
                 </h4>
                 <canvas id="chart-registrations" height="200"></canvas>
             </div>

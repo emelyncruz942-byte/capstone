@@ -546,6 +546,152 @@ class SupabaseService
         return $this->adminSelectResult($table, $query, $filters)['data'];
     }
 
+    /** Read a complete report, preserving its ownership and soft-delete filters. */
+    public function adminSelectHistory(string $table, string $query = '*', array $filters = []): array
+    {
+        $this->assertResourceIdentifier($table, 'table');
+        $this->assertSelectExpression($query);
+        if (isset($filters['limit']) || isset($filters['offset'])) {
+            throw new \InvalidArgumentException('A complete history query cannot have a row limit or offset.');
+        }
+
+        // A future-dated completion must not count as activity that already happened.
+        $timestampColumn = match ($table) {
+            'profiles', 'classes', 'quizzes', 'quiz_sessions', 'quiz_results' => 'created_at',
+            'class_members' => 'joined_at',
+            'quiz_session_students' => 'eligible_at',
+            default => null,
+        };
+        if ($timestampColumn !== null) {
+            $cutoff = \Carbon\CarbonImmutable::now()->utc()->toIso8601String();
+            if (!isset($filters[$timestampColumn])) {
+                $filters[$timestampColumn] = ['operator' => 'lte', 'value' => $cutoff];
+            } else {
+                $clause = $timestampColumn . '.lte.' . $cutoff;
+                $filters['and'] = isset($filters['and'])
+                    ? substr($filters['and'], 0, -1) . ',' . $clause . ')'
+                    : '(' . $clause . ')';
+            }
+        }
+
+        // Stable ties prevent records moving between pages when timestamps match.
+        $keys = match ($table) {
+            'quiz_session_students' => ['session_id', 'student_id'],
+            'class_members' => ['class_id', 'student_id'],
+            'class_customizations' => ['class_id'],
+            default => ['id'],
+        };
+        $order = (string) ($filters['order'] ?? '');
+        foreach ($keys as $key) {
+            if (!preg_match('/(?:^|,)' . preg_quote($key, '/') . '(?:\.|,|$)/', $order)) {
+                $order .= ($order === '' ? '' : ',') . $key . '.asc';
+            }
+        }
+        $filters['order'] = $order;
+        foreach ($filters as $column => $filter) {
+            if (!is_array($filter) || ($filter['operator'] ?? null) !== 'in'
+                || !is_string($filter['value'] ?? null) || strlen($filter['value']) <= 2000) continue;
+            if (!preg_match('/^\([a-z0-9_-]+(?:,[a-z0-9_-]+)*\)$/iD', $filter['value'])) {
+                throw new \InvalidArgumentException('Invalid Supabase in-filter value.');
+            }
+            // Keep long class/session lists within the existing validated URL bounds.
+            $chunks = []; $chunk = []; $length = 2;
+            foreach (array_unique(explode(',', substr($filter['value'], 1, -1))) as $value) {
+                $this->validatedOperatorValue('in', '(' . $value . ')');
+                $cost = strlen($value) + ($chunk === [] ? 0 : 1);
+                if ($length + $cost > 2000) {
+                    $chunks[] = $chunk; $chunk = []; $length = 2;
+                }
+                $length += strlen($value) + ($chunk === [] ? 0 : 1);
+                $chunk[] = $value;
+            }
+            $chunks[] = $chunk;
+            $selected = $this->historySelectedColumns($query);
+            $sortColumns = array_map(fn (string $part): string => explode('.', $part)[0], explode(',', $order));
+            $extra = $query === '*' ? [] : array_values(array_diff($sortColumns, $selected));
+            $readQuery = $query . ($extra === [] ? '' : ',' . implode(',', $extra));
+            $rows = [];
+            foreach ($chunks as $values) {
+                $scope = $filters;
+                $scope[$column]['value'] = '(' . implode(',', $values) . ')';
+                $rows = array_merge($rows, $this->adminSelectHistory($table, $readQuery, $scope));
+            }
+            $rows = $this->sortHistoryRows($rows, $order);
+            if ($extra !== []) {
+                foreach ($rows as &$row) foreach ($extra as $name) unset($row[$name]);
+                unset($row);
+            }
+            return $rows;
+        }
+        $params = $this->buildAdminSelectParams($query, $this->activeRecordFilters($table, $filters));
+        $params['limit'] = 1000;
+        $params['offset'] = 0;
+        $rows = [];
+        $expectedTotal = null;
+        do {
+            $response = $this->adminReadResponse($table, $params, $filters, true);
+            if (!$response->successful()) {
+                throw new \RuntimeException('The complete report could not be loaded. Please try again.');
+            }
+            $page = $this->responseRows($response);
+            $received = count($page);
+            $contentRange = trim((string) $response->header('Content-Range'));
+            if ($received === 0) {
+                if ($params['offset'] > 0 || (preg_match('/\/(\d+)$/', $contentRange, $total) && (int) $total[1] > 0)) {
+                    throw new \RuntimeException('The report data changed while loading. Please try again.');
+                }
+                break;
+            }
+            if (!preg_match('/^(\d+)-(\d+)\/(\d+)$/D', $contentRange, $range)
+                || (int) $range[1] !== $params['offset']
+                || (int) $range[2] !== $params['offset'] + $received - 1
+                || (int) $range[3] <= (int) $range[2]
+                || ($expectedTotal !== null && $expectedTotal !== (int) $range[3])) {
+                throw new \RuntimeException('The report data service returned an inconsistent page. Please try again.');
+            }
+            $expectedTotal = (int) $range[3];
+            $rows = array_merge($rows, $page);
+            $params['offset'] += $received;
+            // Advance by the returned count: the project may cap pages below 1000.
+        } while ($params['offset'] < $expectedTotal);
+
+        return $rows;
+    }
+
+    private function historySelectedColumns(string $query): array
+    {
+        $columns = []; $token = ''; $depth = 0;
+        foreach (str_split($query . ',') as $character) {
+            if ($character === ',' && $depth === 0) {
+                $columns[] = explode('(', $token)[0]; $token = ''; continue;
+            }
+            $token .= $character;
+            if ($character === '(') $depth++;
+            if ($character === ')') $depth--;
+        }
+        return $columns;
+    }
+
+    private function sortHistoryRows(array $rows, string $order): array
+    {
+        $parts = array_map(fn (string $part): array => explode('.', $part), explode(',', $order));
+        usort($rows, static function (array $left, array $right) use ($parts): int {
+            foreach ($parts as $part) {
+                $a = $left[$part[0]] ?? null; $b = $right[$part[0]] ?? null;
+                if ($a === $b) continue;
+                $descending = in_array('desc', $part, true);
+                $nullsFirst = in_array('nullsfirst', $part, true)
+                    || ($descending && !in_array('nullslast', $part, true));
+                if ($a === null) return $nullsFirst ? -1 : 1;
+                if ($b === null) return $nullsFirst ? 1 : -1;
+                $comparison = $a <=> $b;
+                if ($comparison !== 0) return $descending ? -$comparison : $comparison;
+            }
+            return 0;
+        });
+        return $rows;
+    }
+
     public function adminSelectResult(string $table, string $query = '*', array $filters = []): array
     {
         $this->assertResourceIdentifier($table, 'table');

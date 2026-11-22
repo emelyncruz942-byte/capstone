@@ -505,16 +505,19 @@ class SecuritySourceTest extends TestCase
 
     public function test_admin_logout_confirmation_is_a_real_form_submit(): void
     {
-        $dashboard = (string) file_get_contents($this->projectPath(
-            'resources/views/admin/dashboard.blade.php'
-        ));
         $sharedScript = (string) file_get_contents($this->projectPath('public/js/shared.js'));
 
-        $this->assertMatchesRegularExpression(
-            '/<form id="logoutForm"[^>]*action="\/logout"[\s\S]*?<button type="submit"[^>]*>Confirm Logout<\/button>/',
-            $dashboard
-        );
-        $this->assertStringNotContainsString('data-action="handleLogout"', $dashboard);
+        foreach (['admin', 'teacher', 'student'] as $role) {
+            $dashboard = (string) file_get_contents($this->projectPath("resources/views/{$role}/dashboard.blade.php"));
+            $modal = (string) file_get_contents($this->projectPath("resources/views/{$role}/partials/logout-modal.blade.php"));
+            $this->assertStringContainsString("@include('{$role}.partials.logout-modal')", $dashboard);
+            $this->assertMatchesRegularExpression(
+                '/<form id="logoutForm"[^>]*method="POST"[^>]*action="\/logout"[\s\S]*?<button type="submit"[^>]*>Confirm Logout<\/button>/',
+                $modal
+            );
+            $this->assertStringContainsString('@csrf', $modal);
+            $this->assertStringNotContainsString('data-action="handleLogout"', $modal);
+        }
         $this->assertStringNotContainsString("'handleLogout'", $sharedScript);
     }
 

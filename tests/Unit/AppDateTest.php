@@ -40,4 +40,21 @@ class AppDateTest extends TestCase
         $this->assertNull(AppDate::dayBoundaryUtc('2026-02-30'));
         $this->assertNull(AppDate::dayBoundaryUtc(''));
     }
+
+    public function test_history_series_keeps_early_activity_and_empty_days_but_stops_today(): void
+    {
+        \Carbon\CarbonImmutable::setTestNow('2026-11-22T10:00:00+08:00');
+        try {
+            $series = AppDate::historySeries([
+                '2026-09-13' => 2, '2026-11-22' => 3, '2026-11-23' => 99,
+            ], ['2026-09-01T00:00:00Z']);
+            $this->assertSame('2026-09-01', $series[0]['iso_date']);
+            $this->assertSame('2026-11-22', end($series)['iso_date']);
+            $this->assertSame(5, array_sum(array_column($series, 'count')));
+            $this->assertSame(83, count($series));
+            $this->assertSame('Sep 01, 2026', $series[0]['date']);
+        } finally {
+            \Carbon\CarbonImmutable::setTestNow();
+        }
+    }
 }

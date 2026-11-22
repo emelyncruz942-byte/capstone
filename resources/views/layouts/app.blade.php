@@ -85,6 +85,7 @@
     </button>
 
     <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/shared.js') }}?v={{ filemtime(public_path('js/shared.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/auth-submission.js') }}?v={{ filemtime(public_path('js/auth-submission.js')) }}"></script>
     <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/back-to-top.js') }}?v={{ filemtime(public_path('js/back-to-top.js')) }}"></script>
 
     @stack('scripts')

@@ -40,7 +40,7 @@ class StudentController extends Controller
             ];
         }
 
-        $memberships = $this->supabase->adminSelect(
+        $memberships = $this->supabase->adminSelectHistory(
             'class_members',
             'class_id,joined_at',
             ['student_id' => $user['id']]
@@ -50,7 +50,7 @@ class StudentController extends Controller
             $membershipMap[$membership['class_id']] = $membership['joined_at'] ?? null;
         }
         $membershipClassIds = array_keys($membershipMap);
-        $classRows = empty($membershipClassIds) ? [] : $this->supabase->adminSelect(
+        $classRows = empty($membershipClassIds) ? [] : $this->supabase->adminSelectHistory(
             'classes', '*', [
                 'id' => ['operator' => 'in', 'value' => '(' . implode(',', $membershipClassIds) . ')'],
             ]
@@ -58,7 +58,7 @@ class StudentController extends Controller
         $allClasses = array_column($classRows, null, 'id');
 
         $classIds = array_keys($allClasses);
-        $endedSessions = empty($classIds) ? [] : $this->supabase->adminSelect(
+        $endedSessions = empty($classIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_sessions',
             'id,class_id,topic,room_code,status,retake_mode,created_at,ended_at',
             [
@@ -68,7 +68,7 @@ class StudentController extends Controller
             ]
         );
         $endedSessionIds = array_column($endedSessions, 'id');
-        $eligibilityRows = empty($endedSessionIds) ? [] : $this->supabase->adminSelect(
+        $eligibilityRows = empty($endedSessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_session_students', 'session_id,eligibility_status,allowed_attempts,excuse_reason,retake_due_at', [
                 'student_id' => $user['id'],
                 'session_id' => ['operator' => 'in', 'value' => '(' . implode(',', $endedSessionIds) . ')'],
@@ -76,7 +76,7 @@ class StudentController extends Controller
         );
         $eligibilityMap = array_column($eligibilityRows, null, 'session_id');
 
-        $attemptRows = empty($endedSessionIds) ? [] : $this->supabase->adminSelect(
+        $attemptRows = empty($endedSessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_results', 'session_id', [
                 'student_id' => $user['id'],
                 'session_id' => ['operator' => 'in', 'value' => '(' . implode(',', $endedSessionIds) . ')'],
@@ -112,7 +112,7 @@ class StudentController extends Controller
         }
         unset($session);
 
-        $results = $this->supabase->adminSelect(
+        $results = $this->supabase->adminSelectHistory(
             'quiz_results',
             'id,session_id,correct_answers,total_questions,created_at',
             ['student_id' => $user['id'], 'is_counted' => true, 'order' => 'created_at.asc']
@@ -200,12 +200,12 @@ class StudentController extends Controller
         $user = session('supabase_user');
         $format = $request->query('format', 'pdf');
 
-        $eligibilityRows = $this->supabase->adminSelect(
+        $eligibilityRows = $this->supabase->adminSelectHistory(
             'quiz_session_students',
             'session_id,eligibility_status,excuse_reason',
             ['student_id' => $user['id']]
         );
-        $resultRows = $this->supabase->adminSelect(
+        $resultRows = $this->supabase->adminSelectHistory(
             'quiz_results',
             'session_id,correct_answers,total_questions,created_at',
             [
@@ -218,7 +218,7 @@ class StudentController extends Controller
             array_column($eligibilityRows, 'session_id'),
             array_column($resultRows, 'session_id')
         )));
-        $sessions = empty($sessionIds) ? [] : $this->supabase->adminSelect(
+        $sessions = empty($sessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_sessions',
             'id,class_id,topic,room_code,status,created_at,ended_at',
             [
@@ -229,7 +229,7 @@ class StudentController extends Controller
         );
 
         $classIds = array_values(array_unique(array_filter(array_column($sessions, 'class_id'))));
-        $classes = empty($classIds) ? [] : $this->supabase->adminSelect(
+        $classes = empty($classIds) ? [] : $this->supabase->adminSelectHistory(
             'classes',
             'id,class_name',
             ['id' => ['operator' => 'in', 'value' => '(' . implode(',', $classIds) . ')']]

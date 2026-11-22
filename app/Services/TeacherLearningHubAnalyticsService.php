@@ -2,16 +2,18 @@
 
 namespace App\Services;
 
+use App\Support\AppDate;
 use App\Support\PracticeCurriculum;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 
 class TeacherLearningHubAnalyticsService
 {
     public function __construct(private SupabaseService $supabase) {}
 
-    public function dashboard(array $teacher, ?string $classId = null, int $days = 30): array
+    public function dashboard(array $teacher, ?string $classId = null, int $days = 0): array
     {
-        $days = in_array($days, [7, 30, 90, 180], true) ? $days : 30;
+        $days = in_array($days, [0, 7, 30, 90, 180], true) ? $days : 0;
         try {
             $result = $this->supabase->adminRpcResult('teacher_learning_hub_analytics', [
                 'p_teacher_id' => (string) ($teacher['id'] ?? ''),
@@ -53,6 +55,7 @@ class TeacherLearningHubAnalyticsService
         foreach (['available_classes', 'classes', 'students', 'weak_topics', 'daily_activity', 'recent_activity'] as $key) {
             if (is_array($payload[$key] ?? null)) $state[$key] = $this->rows($payload[$key]);
         }
+        $state['daily_activity'] = $this->dailyActivitySeries($state['daily_activity'], $payload);
         $defaults = [
             'available_classes' => ['id' => '', 'name' => 'Class', 'grade_level' => null],
             'classes' => ['id' => '', 'class_name' => 'Class', 'grade_level' => null, 'students' => 0, 'active_students' => 0],
@@ -75,9 +78,9 @@ class TeacherLearningHubAnalyticsService
         array $teacher,
         string $studentId,
         ?string $classId = null,
-        int $days = 30
+        int $days = 0
     ): array {
-        $days = in_array($days, [7, 30, 90, 180], true) ? $days : 30;
+        $days = in_array($days, [0, 7, 30, 90, 180], true) ? $days : 0;
         try {
             $result = $this->supabase->adminRpcResult('teacher_learning_hub_student_analytics', [
                 'p_teacher_id' => (string) ($teacher['id'] ?? ''),
@@ -141,6 +144,7 @@ class TeacherLearningHubAnalyticsService
                 $state[$key] = $this->rows($payload[$key]);
             }
         }
+        $state['daily_activity'] = $this->dailyActivitySeries($state['daily_activity'], $payload);
 
         $defaults = [
             'classes' => ['id' => '', 'name' => 'Class', 'grade_level' => null],
@@ -177,6 +181,39 @@ class TeacherLearningHubAnalyticsService
             : null;
 
         return $state;
+    }
+
+    /** Keep the complete reporting calendar visible even after the last active day. */
+    private function dailyActivitySeries(array $rows, array $payload): array
+    {
+        $start = AppDate::parse($payload['period_start'] ?? null)?->startOfDay();
+        $end = AppDate::parse($payload['period_end'] ?? null)?->startOfDay();
+        if ($start === null || $end === null) return $rows;
+        $today = CarbonImmutable::now(AppDate::timezone())->startOfDay();
+        if ($end->greaterThan($today)) $end = $today;
+        if ($start->greaterThan($end)) return [];
+
+        $byDay = [];
+        foreach ($rows as $row) {
+            $day = AppDate::parse($row['activity_date'] ?? null)?->startOfDay();
+            if ($day !== null && $day->betweenIncluded($start, $end)) {
+                $byDay[$day->toDateString()] = $row;
+            }
+        }
+        $series = [];
+        for ($day = $start; $day->lessThanOrEqualTo($end); $day = $day->addDay()) {
+            $date = $day->toDateString();
+            $actual = $byDay[$date] ?? [];
+            $row = array_replace([
+                'activity_date' => $date, 'answers' => 0, 'correct' => 0, 'hints_used' => 0, 'accuracy' => 0,
+            ], $actual);
+            $row['activity_date'] = $date;
+            if (!array_key_exists('accuracy', $actual) && (int) $row['answers'] > 0) {
+                $row['accuracy'] = round(100 * (int) $row['correct'] / (int) $row['answers'], 1);
+            }
+            $series[] = $row;
+        }
+        return $series;
     }
 
     private function rows(mixed $value): array

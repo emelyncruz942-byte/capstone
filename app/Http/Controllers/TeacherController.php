@@ -163,19 +163,19 @@ class TeacherController extends Controller
     {
         $user = session('supabase_user');
 
-        $classes = $this->supabase->adminSelect(
+        $classes = $this->supabase->adminSelectHistory(
             'classes',
             'id,class_name,archived_at',
-            ['teacher_id' => $user['id'], 'archived_at' => ['operator' => 'is', 'value' => 'null']]
+            ['teacher_id' => $user['id']]
         );
         $classIds = array_column($classes, 'id');
-        $quizzes = empty($classIds) ? [] : $this->supabase->adminSelect(
+        $quizzes = empty($classIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_sessions',
             'id,topic,created_at,class_id',
             ['class_id' => ['operator' => 'in', 'value' => '(' . implode(',', $classIds) . ')']]
         );
         $quizIds    = array_column($quizzes, 'id');
-        $allResults = empty($quizIds) ? [] : $this->supabase->adminSelect(
+        $allResults = empty($quizIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_results', 'correct_answers,total_questions,created_at,session_id,student_id', [
                 'session_id' => ['operator' => 'in', 'value' => '(' . implode(',', $quizIds) . ')'],
                 'is_counted' => true,
@@ -183,7 +183,7 @@ class TeacherController extends Controller
             ]
         );
 
-        // Average accuracy for each non-archived class.
+        // Preserve completed activity from archived as well as current owned classes.
         $classAccuracy = [];
         foreach ($classes as $class) {
             $sessionIds = array_column(array_values(array_filter(
@@ -204,16 +204,11 @@ class TeacherController extends Controller
             ];
         }
 
-        // Attempts per day (last 14 days)
-        $attemptsPerDay = [];
         $attemptCounts = \App\Support\AppDate::countsByDay($allResults);
-        $today = \Carbon\CarbonImmutable::now(\App\Support\AppDate::timezone())->startOfDay();
-        for ($i = 13; $i >= 0; $i--) {
-            $day = $today->subDays($i);
-            $label = $day->format('M d');
-            $count = $attemptCounts[$day->toDateString()] ?? 0;
-            $attemptsPerDay[] = ['date' => $label, 'count' => $count];
-        }
+        $attemptsPerDay = \App\Support\AppDate::historySeries(
+            $attemptCounts,
+            array_column($quizzes, 'created_at')
+        );
 
         // Score distribution
         $distribution = [0, 0, 0, 0];
@@ -248,10 +243,10 @@ class TeacherController extends Controller
         $user    = session('supabase_user');
         $format  = $request->query('format', 'pdf');
 
-        $quizzes    = $this->supabase->adminSelect('quiz_sessions', 'id,topic,room_code,created_at,class_id', ['teacher_id' => $user['id']]);
+        $quizzes    = $this->supabase->adminSelectHistory('quiz_sessions', 'id,topic,room_code,created_at,class_id', ['teacher_id' => $user['id']]);
         $quizzes    = array_values(array_filter($quizzes, fn ($quiz) => !empty($quiz['class_id'])));
         $quizIds    = array_column($quizzes, 'id');
-        $allResults = empty($quizIds) ? [] : $this->supabase->adminSelect(
+        $allResults = empty($quizIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_results', 'correct_answers,total_questions,created_at,session_id,student_id', [
                 'session_id' => ['operator' => 'in', 'value' => '(' . implode(',', $quizIds) . ')'],
                 'is_counted' => true,
@@ -307,9 +302,9 @@ class TeacherController extends Controller
         $format = $request->query('format', 'pdf');
 
         // Get all students from teacher's classes
-        $classes    = $this->supabase->adminSelect('classes', 'id,class_name', ['teacher_id' => $user['id']]);
+        $classes    = $this->supabase->adminSelectHistory('classes', 'id,class_name', ['teacher_id' => $user['id']]);
         $classIds   = array_column($classes, 'id');
-        $members = empty($classIds) ? [] : $this->supabase->adminSelect(
+        $members = empty($classIds) ? [] : $this->supabase->adminSelectHistory(
             'class_members',
             'student_id,class_id,profiles(first_name,last_name,grade_level,trophies)',
             ['class_id' => ['operator' => 'in', 'value' => '(' . implode(',', $classIds) . ')']]
@@ -324,14 +319,14 @@ class TeacherController extends Controller
 
         $classSessions = empty($classIds)
             ? []
-            : $this->supabase->adminSelect(
+            : $this->supabase->adminSelectHistory(
                 'quiz_sessions',
                 'id',
                 ['class_id' => ['operator' => 'in', 'value' => '(' . implode(',', $classIds) . ')']]
             );
         $classSessionIds = array_column($classSessions, 'id');
 
-        $allResults = empty($classSessionIds) ? [] : $this->supabase->adminSelect(
+        $allResults = empty($classSessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_results',
             'correct_answers,total_questions,student_id,session_id,created_at',
             [
@@ -392,9 +387,9 @@ class TeacherController extends Controller
         $user   = session('supabase_user');
         $format = $request->query('format', 'pdf');
 
-        $classes = $this->supabase->adminSelect('classes', '*', ['teacher_id' => $user['id']]);
+        $classes = $this->supabase->adminSelectHistory('classes', '*', ['teacher_id' => $user['id']]);
         $classIds = array_column($classes, 'id');
-        $members = empty($classIds) ? [] : $this->supabase->adminSelect(
+        $members = empty($classIds) ? [] : $this->supabase->adminSelectHistory(
             'class_members', 'student_id,class_id,profiles(first_name,last_name)', [
                 'class_id' => ['operator' => 'in', 'value' => '(' . implode(',', $classIds) . ')'],
             ]
@@ -456,7 +451,7 @@ class TeacherController extends Controller
         $user   = session('supabase_user');
 
         // Quiz details
-        $quiz = $this->supabase->adminSelect('quiz_sessions', '*', ['id' => $id]);
+        $quiz = $this->supabase->adminSelectHistory('quiz_sessions', '*', ['id' => $id]);
         $quiz = $quiz[0] ?? null;
 
         if (!$quiz || ($quiz['teacher_id'] ?? null) !== $user['id'] || empty($quiz['class_id'])) {
@@ -464,7 +459,7 @@ class TeacherController extends Controller
         }
 
         // Questions
-        $questions = $this->supabase->adminSelect('questions', '*', [
+        $questions = $this->supabase->adminSelectHistory('questions', '*', [
             'session_id' => $id,
             'order' => 'created_at.asc',
         ]);
@@ -478,18 +473,18 @@ class TeacherController extends Controller
 
         // Eligibility is the assignment-time roster. Fall back to current class
         // members only for legacy sessions created before eligibility snapshots.
-        $members = $this->supabase->adminSelect(
+        $members = $this->supabase->adminSelectHistory(
             'class_members',
             'student_id,joined_at',
             ['class_id' => $quiz['class_id'], 'order' => 'joined_at.asc']
         );
-        $results = $this->supabase->adminSelect(
+        $results = $this->supabase->adminSelectHistory(
             'quiz_results',
             'correct_answers,total_questions,created_at,student_id,session_id',
             ['session_id' => $id, 'is_counted' => true, 'order' => 'created_at.asc']
         );
         $resultMap = array_column($results, null, 'student_id');
-        $eligibility = $this->supabase->adminSelect(
+        $eligibility = $this->supabase->adminSelectHistory(
             'quiz_session_students',
             'student_id,eligibility_status,allowed_attempts,retake_due_at,excuse_reason',
             ['session_id' => $id]
@@ -512,7 +507,7 @@ class TeacherController extends Controller
             $assignedStudentIds,
             array_column($results, 'student_id')
         )));
-        $profiles = empty($studentIds) ? [] : $this->supabase->adminSelect(
+        $profiles = empty($studentIds) ? [] : $this->supabase->adminSelectHistory(
             'profiles',
             'id,first_name,last_name,grade_level',
             ['id' => ['operator' => 'in', 'value' => '(' . implode(',', $studentIds) . ')']]
@@ -675,7 +670,7 @@ class TeacherController extends Controller
         $user   = session('supabase_user');
 
         // Class details
-        $class = $this->supabase->adminSelect('classes', '*', ['id' => $id]);
+        $class = $this->supabase->adminSelectHistory('classes', '*', ['id' => $id]);
         $class = $class[0] ?? null;
 
         if (!$class || ($class['teacher_id'] ?? null) !== $user['id']) {
@@ -683,16 +678,16 @@ class TeacherController extends Controller
         }
 
         // Members
-        $members = $this->supabase->adminSelect(
+        $members = $this->supabase->adminSelectHistory(
             'class_members',
             'student_id,joined_at,profiles(first_name,last_name,grade_level,trophies,level)',
             ['class_id' => $id]
         );
 
         // Only results produced by quiz sessions assigned to this class.
-        $classSessions = $this->supabase->adminSelect('quiz_sessions', 'id', ['class_id' => $id]);
+        $classSessions = $this->supabase->adminSelectHistory('quiz_sessions', 'id', ['class_id' => $id]);
         $classSessionIds = array_column($classSessions, 'id');
-        $allResults = empty($classSessionIds) ? [] : $this->supabase->adminSelect(
+        $allResults = empty($classSessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_results',
             'correct_answers,total_questions,student_id,session_id,created_at',
             [

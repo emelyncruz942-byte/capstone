@@ -121,6 +121,22 @@ class TeacherLearningHubInsightsTest extends TestCase
         $database->shouldReceive('adminRpcResult')->once()->andThrow(new \RuntimeException('Network unavailable'));
         $this->withSession(['supabase_user' => $this->teacher])->get('/teacher/learning-hub')
             ->assertOk()->assertSee('data-configured="false"', false)
-            ->assertSeeText('temporarily unavailable')->assertSeeText('All active classes');
+            ->assertSeeText('temporarily unavailable')->assertSeeText('All classes');
+    }
+
+    public function test_all_history_is_the_default_and_remains_selected_in_student_links(): void
+    {
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminRpcResult')->once()->with('teacher_learning_hub_analytics', [
+            'p_teacher_id' => $this->teacher['id'], 'p_class_id' => null, 'p_days' => 0,
+        ])->andReturn(['error' => null, 'data' => [[
+            'timezone' => 'Asia/Manila',
+            'students' => [['id' => '22222222-2222-4222-8222-222222222222', 'name' => 'Mira']],
+            'daily_activity' => [['activity_date' => '2026-09-13', 'answers' => 8], ['activity_date' => '2026-11-22', 'answers' => 12]],
+        ]]]);
+
+        $this->withSession(['supabase_user' => $this->teacher])->get('/teacher/learning-hub')
+            ->assertOk()->assertSeeText('All history')->assertSeeText('Sep 13')->assertSeeText('Nov 22')
+            ->assertSee('/teacher/learning-hub/students/22222222-2222-4222-8222-222222222222?days=0', false);
     }
 }

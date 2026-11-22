@@ -14,13 +14,13 @@ class TeacherLearningHubController extends Controller
     {
         $validated = $request->validate([
             'class_id' => 'nullable|uuid',
-            'days' => 'nullable|integer|in:7,30,90,180',
+            'days' => 'nullable|integer|in:0,7,30,90,180',
         ]);
         $user = session('supabase_user');
         $analytics = $this->analytics->dashboard(
             $user,
             $validated['class_id'] ?? null,
-            (int) ($validated['days'] ?? 30)
+            (int) ($validated['days'] ?? 0)
         );
         $activePage = 'learning-analytics';
 
@@ -31,14 +31,14 @@ class TeacherLearningHubController extends Controller
     {
         $validated = $request->validate([
             'class_id' => 'nullable|uuid',
-            'days' => 'nullable|integer|in:7,30,90,180',
+            'days' => 'nullable|integer|in:0,7,30,90,180',
         ]);
         $user = session('supabase_user');
         $analytics = $this->analytics->studentDashboard(
             $user,
             $studentId,
             $validated['class_id'] ?? null,
-            (int) ($validated['days'] ?? 30)
+            (int) ($validated['days'] ?? 0)
         );
         $activePage = 'learning-analytics';
 

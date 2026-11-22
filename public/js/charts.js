@@ -34,7 +34,7 @@ function buildLineChart(canvasId, labels, data, label, color) {
                 backgroundColor:      color + '20',
                 borderWidth:          2,
                 pointBackgroundColor: color,
-                pointRadius:          3,
+                pointRadius:          labels.length > 45 ? 0 : 3,
                 pointHoverRadius:     5,
                 fill:                 true,
                 tension:              0.4,
@@ -56,7 +56,7 @@ function buildLineChart(canvasId, labels, data, label, color) {
             scales: {
                 x: {
                     grid:  { color: CHART_DEFAULTS.color.grid },
-                    ticks: { color: CHART_DEFAULTS.color.text, maxRotation: 45 }
+                    ticks: { color: CHART_DEFAULTS.color.text, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
                 },
                 y: {
                     beginAtZero: true,

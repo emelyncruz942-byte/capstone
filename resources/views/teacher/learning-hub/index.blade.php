@@ -14,19 +14,20 @@
         <div>
             <p class="text-[9px] uppercase tracking-[0.3em] font-bold text-green-400">Adaptive practice evidence</p>
             <h2 class="font-orbitron font-black text-2xl md:text-3xl mt-2">Learning Hub <span class="text-cyan-400">Insights</span></h2>
-            <p class="text-sm text-slate-400 mt-3 max-w-2xl">See class-wide trends, then open secure solo statistics for any student enrolled in your active classes.</p>
+            <p class="text-sm text-slate-400 mt-3 max-w-2xl">See class-wide trends, then open secure solo statistics for any student enrolled in your classes.</p>
             <p class="text-[10px] text-slate-500 mt-2">Calendar timezone: {{ $analytics['timezone'] }}</p>
         </div>
         <form method="GET" action="/teacher/learning-hub" class="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 w-full xl:w-auto" data-seamless-form>
             <label class="sr-only" for="learning-class-filter">Class</label>
             <select id="learning-class-filter" name="class_id" class="input-field !py-2.5 !text-xs min-w-0">
-                <option value="">All active classes</option>
+                <option value="">All classes</option>
                 @foreach($analytics['available_classes'] as $class)
                     <option value="{{ $class['id'] ?? '' }}" @selected($analytics['selected_class_id'] === ($class['id'] ?? null))>{{ $class['name'] ?? 'Class' }} · Grade {{ $class['grade_level'] ?? '—' }}</option>
                 @endforeach
             </select>
             <label class="sr-only" for="learning-days-filter">Period</label>
             <select id="learning-days-filter" name="days" class="input-field !py-2.5 !text-xs">
+                <option value="0" @selected((int) $analytics['period_days'] === 0)>All history</option>
                 @foreach([7, 30, 90, 180] as $days)<option value="{{ $days }}" @selected((int) $analytics['period_days'] === $days)>{{ $days }} days</option>@endforeach
             </select>
             <button class="btn-rect-primary !w-auto !px-4" type="submit">Apply</button>
@@ -50,7 +51,7 @@
     </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <section class="portal-frame !p-5 md:!p-6" aria-labelledby="class-comparison-title"><h3 id="class-comparison-title" class="font-orbitron font-bold mb-4">Class Comparison</h3><div class="space-y-3">@forelse($analytics['classes'] as $class)<article class="analytics-compact-row"><div><strong>{{ $class['class_name'] }}</strong><p>Grade {{ $class['grade_level'] }} · {{ $class['active_students'] }}/{{ $class['students'] }} active</p></div><div class="text-right"><strong>{{ number_format((float) ($class['mastery'] ?? 0), 1) }}%</strong><p>{{ (int) ($class['answers'] ?? 0) }} answers</p></div></article>@empty<p class="analytics-empty">No active classes found.</p>@endforelse</div></section>
+        <section class="portal-frame !p-5 md:!p-6" aria-labelledby="class-comparison-title"><h3 id="class-comparison-title" class="font-orbitron font-bold mb-4">Class Comparison</h3><div class="space-y-3">@forelse($analytics['classes'] as $class)<article class="analytics-compact-row"><div><strong>{{ $class['class_name'] }}</strong><p>Grade {{ $class['grade_level'] }} · {{ $class['active_students'] }}/{{ $class['students'] }} active</p></div><div class="text-right"><strong>{{ number_format((float) ($class['mastery'] ?? 0), 1) }}%</strong><p>{{ (int) ($class['answers'] ?? 0) }} answers</p></div></article>@empty<p class="analytics-empty">No classes found.</p>@endforelse</div></section>
         <section class="portal-frame !p-5 md:!p-6" aria-labelledby="daily-activity-title">
             <div class="flex items-center justify-between gap-3 mb-5"><div><p class="analytics-kicker text-cyan-300">Practice volume</p><h3 id="daily-activity-title" class="font-orbitron font-bold mt-1">Daily Activity</h3></div><i class="fas fa-chart-line text-cyan-400"></i></div>
             @php
@@ -78,7 +79,7 @@
                     $soloQuery = array_filter([
                         'class_id' => $analytics['selected_class_id'] ?: null,
                         'days' => (int) $analytics['period_days'],
-                    ]);
+                    ], fn ($value) => $value !== null && $value !== '');
                     $soloUrl = '/teacher/learning-hub/students/' . ($student['id'] ?? '');
                     if ($soloQuery !== []) $soloUrl .= '?' . http_build_query($soloQuery);
                 @endphp

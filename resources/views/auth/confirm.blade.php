@@ -55,7 +55,7 @@
 
         document.getElementById('confirmation-token').value = token;
         document.getElementById('confirmation-type').value = type;
-        form.submit();
+        form.requestSubmit();
     }, { once: true });
 </script>
 @endpush

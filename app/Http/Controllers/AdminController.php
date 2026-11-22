@@ -508,35 +508,24 @@ class AdminController extends Controller
 
     public function stats()
     {
-        // All 3 calls happen as fast as possible — no loops making extra calls
-        $allResults = $this->supabase->adminSelect(
+        // Read complete datasets in pages, without one request per student.
+        $allResults = $this->supabase->adminSelectHistory(
             'quiz_results',
             'correct_answers,total_questions,created_at,session_id,student_id',
             ['is_counted' => true, 'order' => 'created_at.asc']
         );
-        $quizzes    = $this->supabase->adminSelect('quizzes', 'id,topic,teacher_id,created_at');
-        $profiles   = $this->supabase->adminSelect('profiles', 'id,role,created_at');
+        $quizzes    = $this->supabase->adminSelectHistory('quizzes', 'id,topic,teacher_id,created_at');
+        $profiles   = $this->supabase->adminSelectHistory('profiles', 'id,role,created_at');
 
         // Group UTC database instants by the same local day as the chart labels.
         $registrationCounts = \App\Support\AppDate::countsByDay($profiles);
         $attemptCounts = \App\Support\AppDate::countsByDay($allResults);
-        $today = \Carbon\CarbonImmutable::now(\App\Support\AppDate::timezone())->startOfDay();
-        $registrationsPerDay = [];
-        for ($i = 13; $i >= 0; $i--) {
-            $day = $today->subDays($i);
-            $label = $day->format('M d');
-            $count = $registrationCounts[$day->toDateString()] ?? 0;
-            $registrationsPerDay[] = ['date' => $label, 'count' => $count];
-        }
-
-        // Attempts per day
-        $attemptsPerDay = [];
-        for ($i = 13; $i >= 0; $i--) {
-            $day = $today->subDays($i);
-            $label = $day->format('M d');
-            $count = $attemptCounts[$day->toDateString()] ?? 0;
-            $attemptsPerDay[] = ['date' => $label, 'count' => $count];
-        }
+        $historyStartDates = array_merge(
+            array_column($profiles, 'created_at'),
+            array_column($quizzes, 'created_at')
+        );
+        $registrationsPerDay = \App\Support\AppDate::historySeries($registrationCounts, $historyStartDates);
+        $attemptsPerDay = \App\Support\AppDate::historySeries($attemptCounts, $historyStartDates);
 
         // Role breakdown
         $roleBreakdown = [
@@ -579,7 +568,7 @@ class AdminController extends Controller
     public function reportStudents(Request $request)
     {
         $format   = $request->query('format', 'pdf');
-        $profiles = $this->supabase->adminSelect('profiles', '*', ['role' => 'student']);
+        $profiles = $this->supabase->adminSelectHistory('profiles', '*', ['role' => 'student']);
 
         $rows = array_map(fn($p) => [
             'name'     => ($p['last_name'] ?? '') . ', ' . ($p['first_name'] ?? ''),
@@ -613,10 +602,10 @@ class AdminController extends Controller
     public function reportTeachers(Request $request)
     {
         $format   = $request->query('format', 'pdf');
-        $profiles = $this->supabase->adminSelect('profiles', '*', ['role' => 'teacher']);
+        $profiles = $this->supabase->adminSelectHistory('profiles', '*', ['role' => 'teacher']);
 
         // Get quiz count per teacher
-        $allQuizzes = $this->supabase->adminSelect('quizzes', 'id,teacher_id');
+        $allQuizzes = $this->supabase->adminSelectHistory('quizzes', 'id,teacher_id');
 
         $rows = array_map(function($p) use ($allQuizzes) {
             $quizCount = count(array_filter($allQuizzes, fn($q) => $q['teacher_id'] === $p['id']));
@@ -652,9 +641,9 @@ class AdminController extends Controller
     public function reportSummary(Request $request)
     {
         $format     = $request->query('format', 'pdf');
-        $profiles   = $this->supabase->adminSelect('profiles', '*');
-        $quizzes    = $this->supabase->adminSelect('quizzes', 'id');
-        $allResults = $this->supabase->adminSelect(
+        $profiles   = $this->supabase->adminSelectHistory('profiles', '*');
+        $quizzes    = $this->supabase->adminSelectHistory('quizzes', 'id');
+        $allResults = $this->supabase->adminSelectHistory(
             'quiz_results',
             'correct_answers,total_questions,student_id,session_id,created_at',
             ['is_counted' => true, 'order' => 'created_at.asc']
@@ -727,7 +716,7 @@ class AdminController extends Controller
     public function reportQuizzes(Request $request)
     {
         $format = $request->query('format', 'pdf');
-        $sessions = $this->supabase->adminSelect(
+        $sessions = $this->supabase->adminSelectHistory(
             'quiz_sessions',
             'id,teacher_id,class_id,topic,room_code,status,created_at,ended_at',
             [
@@ -739,7 +728,7 @@ class AdminController extends Controller
         $classIds = array_values(array_unique(array_filter(array_column($sessions, 'class_id'))));
         $teacherIds = array_values(array_unique(array_filter(array_column($sessions, 'teacher_id'))));
 
-        $results = empty($sessionIds) ? [] : $this->supabase->adminSelect(
+        $results = empty($sessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_results',
             'session_id,correct_answers,total_questions',
             [
@@ -747,17 +736,17 @@ class AdminController extends Controller
                 'is_counted' => true,
             ]
         );
-        $questions = empty($sessionIds) ? [] : $this->supabase->adminSelect(
+        $questions = empty($sessionIds) ? [] : $this->supabase->adminSelectHistory(
             'questions',
             'id,session_id',
             ['session_id' => ['operator' => 'in', 'value' => '(' . implode(',', $sessionIds) . ')']]
         );
-        $classes = empty($classIds) ? [] : $this->supabase->adminSelect(
+        $classes = empty($classIds) ? [] : $this->supabase->adminSelectHistory(
             'classes',
             'id,class_name',
             ['id' => ['operator' => 'in', 'value' => '(' . implode(',', $classIds) . ')']]
         );
-        $teachers = empty($teacherIds) ? [] : $this->supabase->adminSelect(
+        $teachers = empty($teacherIds) ? [] : $this->supabase->adminSelectHistory(
             'profiles',
             'id,first_name,last_name',
             ['id' => ['operator' => 'in', 'value' => '(' . implode(',', $teacherIds) . ')']]
@@ -815,21 +804,21 @@ class AdminController extends Controller
     public function reportClassrooms(Request $request)
     {
         $format = $request->query('format', 'pdf');
-        $classes = $this->supabase->adminSelect('classes', '*', ['order' => 'created_at.desc']);
+        $classes = $this->supabase->adminSelectHistory('classes', '*', ['order' => 'created_at.desc']);
         $classIds = array_column($classes, 'id');
         $teacherIds = array_values(array_unique(array_filter(array_column($classes, 'teacher_id'))));
-        $members = empty($classIds) ? [] : $this->supabase->adminSelect(
+        $members = empty($classIds) ? [] : $this->supabase->adminSelectHistory(
             'class_members',
             'class_id,student_id',
             ['class_id' => ['operator' => 'in', 'value' => '(' . implode(',', $classIds) . ')']]
         );
-        $sessions = empty($classIds) ? [] : $this->supabase->adminSelect(
+        $sessions = empty($classIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_sessions',
             'id,class_id',
             ['class_id' => ['operator' => 'in', 'value' => '(' . implode(',', $classIds) . ')']]
         );
         $sessionIds = array_column($sessions, 'id');
-        $results = empty($sessionIds) ? [] : $this->supabase->adminSelect(
+        $results = empty($sessionIds) ? [] : $this->supabase->adminSelectHistory(
             'quiz_results',
             'session_id,correct_answers,total_questions',
             [
@@ -837,7 +826,7 @@ class AdminController extends Controller
                 'is_counted' => true,
             ]
         );
-        $teachers = empty($teacherIds) ? [] : $this->supabase->adminSelect(
+        $teachers = empty($teacherIds) ? [] : $this->supabase->adminSelectHistory(
             'profiles',
             'id,first_name,last_name',
             ['id' => ['operator' => 'in', 'value' => '(' . implode(',', $teacherIds) . ')']]

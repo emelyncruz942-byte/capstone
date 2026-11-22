@@ -627,6 +627,7 @@
         void submission.finally(() => {
             if (form.isConnected) form.dataset.mathverseSubmitting = 'false';
             if (submitter?.isConnected) submitter.disabled = false;
+            window.mathVerseReleaseAuthForm?.(form);
         });
     });
 
