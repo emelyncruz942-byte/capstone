@@ -1,5 +1,5 @@
-const CHART_DEFAULTS = {
-    color: {
+const CHART_PALETTES = {
+    light: {
         cyan:   '#2563eb',
         purple: '#7c3aed',
         pink:   '#be185d',
@@ -7,18 +7,35 @@ const CHART_DEFAULTS = {
         orange: '#b45309',
         red:    '#dc2626',
         grid:   '#e2e8f0',
-        text:   '#64748b',
+        text:   '#526078',
         heading: '#0f172a',
         surface: '#ffffff',
+        body: '#475569',
+    },
+    dark: {
+        cyan: '#22d3ee', purple: '#a78bfa', pink: '#f472b6',
+        green: '#4ade80', orange: '#fbbf24', red: '#fb7185',
+        grid: '#2c3c54', text: '#c4d2e7', heading: '#f1f5f9',
+        surface: '#111c2e', body: '#c4d2e7',
     }
 };
+const currentChartTheme = () => document.documentElement?.dataset?.theme === 'light' ? 'light' : 'dark';
+const CHART_DEFAULTS = { color: CHART_PALETTES[currentChartTheme()] };
+const themedCharts = new Map();
+
+function rememberChart(chart, kind, colors) {
+    const keys = colors.map(color => Object.keys(CHART_DEFAULTS.color).find(key => CHART_DEFAULTS.color[key] === color) || color);
+    themedCharts.set(chart, { kind, colors: keys });
+    return chart;
+}
 
 function applyChartDefaults() {
+    CHART_DEFAULTS.color = CHART_PALETTES[currentChartTheme()];
     if (typeof Chart === 'undefined') return;
     Chart.defaults.color       = CHART_DEFAULTS.color.text;
     Chart.defaults.borderColor = CHART_DEFAULTS.color.grid;
     Chart.defaults.font.family = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    Chart.defaults.font.size   = 13;
+    Chart.defaults.font.size   = 14;
     const reduceMotion = typeof globalThis.matchMedia === 'function'
         && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
     Chart.defaults.animation = reduceMotion ? false : { duration: 320 };
@@ -30,9 +47,9 @@ function chartTooltip(color = CHART_DEFAULTS.color.grid) {
         borderColor: color,
         borderWidth: 1,
         titleColor: CHART_DEFAULTS.color.heading,
-        bodyColor: '#475569',
+        bodyColor: CHART_DEFAULTS.color.body,
         titleFont: { size: 14, weight: '600' },
-        bodyFont: { size: 13 },
+        bodyFont: { size: 14 },
         cornerRadius: 10,
         padding: 12,
         displayColors: false,
@@ -56,7 +73,7 @@ function buildLineChart(canvasId, labels, data, label, color) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
     describeChart(ctx, label, labels, data);
-    return new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels,
@@ -94,13 +111,14 @@ function buildLineChart(canvasId, labels, data, label, color) {
             }
         }
     });
+    return rememberChart(chart, 'line', [color]);
 }
 
 function buildBarChart(canvasId, labels, data, label, color) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
     describeChart(ctx, label, labels, data);
-    return new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels,
@@ -132,7 +150,7 @@ function buildBarChart(canvasId, labels, data, label, color) {
                     ticks: {
                         color:       CHART_DEFAULTS.color.text,
                         maxRotation: 45,
-                        font:        { size: 12 },
+                        font:        { size: 14 },
                         autoSkip:    true,
                     }
                 },
@@ -149,13 +167,14 @@ function buildBarChart(canvasId, labels, data, label, color) {
             }
         }
     });
+    return rememberChart(chart, 'bar', [color]);
 }
 
 function buildDoughnutChart(canvasId, labels, data, colors) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
     describeChart(ctx, 'Distribution', labels, data);
-    return new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels,
@@ -176,9 +195,9 @@ function buildDoughnutChart(canvasId, labels, data, colors) {
                     display:  true,
                     position: 'bottom',
                     labels: {
-                        color:     '#475569',
+                        color:     CHART_DEFAULTS.color.body,
                         padding:   18,
-                        font:      { size: 13 },
+                        font:      { size: 14 },
                         usePointStyle: true,
                         pointStyle: 'circle',
                         boxWidth:  10,
@@ -189,6 +208,39 @@ function buildDoughnutChart(canvasId, labels, data, colors) {
             }
         }
     });
+    return rememberChart(chart, 'doughnut', colors);
+}
+
+function refreshChartTheme() {
+    applyChartDefaults();
+    const palette = CHART_DEFAULTS.color;
+    for (const [chart, details] of themedCharts) {
+        if (!chart.canvas || chart.canvas.isConnected === false || chart.ctx === null) {
+            themedCharts.delete(chart);
+            continue;
+        }
+        const colors = details.colors.map(key => palette[key] || key);
+        const dataset = chart.data.datasets[0];
+        if (details.kind === 'doughnut') {
+            dataset.backgroundColor = colors;
+            dataset.borderColor = palette.surface;
+        } else {
+            dataset.borderColor = colors[0];
+            dataset.backgroundColor = colors[0] + (details.kind === 'line' ? '12' : 'cc');
+            if (details.kind === 'line') dataset.pointBackgroundColor = colors[0];
+        }
+        // Preserve data, callbacks, selection, and cached history. Only repaint
+        // the existing chart's presentation; theme changes never fetch records.
+        const tooltip = chart.options.plugins.tooltip;
+        Object.assign(tooltip, chartTooltip(details.kind === 'doughnut' ? palette.grid : colors[0]));
+        const labels = chart.options.plugins.legend?.labels;
+        if (labels) { labels.color = palette.body; labels.font = { ...labels.font, size: 14 }; }
+        for (const axis of Object.values(chart.options.scales || {})) {
+            if (axis.grid) axis.grid.color = palette.grid;
+            if (axis.ticks) axis.ticks.color = palette.text;
+        }
+        chart.update('none');
+    }
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -197,7 +249,7 @@ function destroyCharts(ids) {
     if (typeof Chart === 'undefined') return;
     ids.forEach(id => {
         const existing = Chart.getChart(id);
-        if (existing) existing.destroy();
+        if (existing) { themedCharts.delete(existing); existing.destroy(); }
     });
 }
 
@@ -424,3 +476,4 @@ document.addEventListener('mathverse:before-navigate', () => {
     ]);
 });
 document.addEventListener('mathverse:data-changed', clearStatsCache);
+document.addEventListener('mathverse:themechange', refreshChartTheme);

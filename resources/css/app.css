@@ -1,4 +1,8 @@
 @import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+@import '@fontsource/orbitron/latin-700.css';
+@import '@fontsource/orbitron/latin-900.css';
+@import '@fontsource/rajdhani/latin-500.css';
+@import '@fontsource/rajdhani/latin-700.css';
 @import 'tailwindcss';
 
 /* Load only the solid and regular icon weights MathVerse uses. The upstream
@@ -41,6 +45,7 @@
 @source '../**/*.js';
 
 @theme {
+    --font-orbitron: 'Orbitron', ui-sans-serif, system-ui, sans-serif;
     --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }

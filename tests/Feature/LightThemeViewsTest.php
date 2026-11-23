@@ -14,7 +14,7 @@ class LightThemeViewsTest extends TestCase
     }
 
     #[DataProvider('workspaces')]
-    public function test_role_pages_render_the_shared_light_shell_and_private_rosters_keep_identity(string $role): void
+    public function test_role_pages_keep_the_game_shell_with_a_theme_switch_and_staff_identity_access(string $role): void
     {
         request()->setLaravelSession(app('session')->driver());
         view()->share('errors', new ViewErrorBag());
@@ -35,11 +35,12 @@ class LightThemeViewsTest extends TestCase
             $data += ['releasesReady' => true, 'releases' => [['id' => '55555555-5555-4555-8555-555555555555', 'platform' => 'android', 'version' => '2.0', 'size_bytes' => 120000000, 'release_notes' => 'Explore MathVerse, take on classroom quizzes, and practice with your NPC guides. Includes improved controls and a clearer interface.']]];
         }
         $html = view($view, $data)->render();
-        $this->assertStringContainsString('data-theme="light"', $html);
+        $this->assertStringContainsString('data-theme="dark"', $html);
+        $this->assertStringContainsString('data-theme-toggle', $html);
         $this->assertStringContainsString('css/modern-light.css', $html);
         $this->assertStringContainsString('js/avatar-cropper.js', $html);
         $this->assertStringContainsString('data-dashboard-role="'.$role.'"', $html);
-        $this->assertStringNotContainsString('class="stars-container"', $html);
+        $this->assertStringContainsString('class="stars-container"', $html);
         if ($role === 'teacher') {
             $this->assertStringContainsString('Cruz, Maria', $html);
             $this->assertStringContainsString('src="http://127.0.0.1:8790/logo-180.png"', $html);

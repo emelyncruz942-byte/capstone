@@ -5,7 +5,9 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../../public/js/charts.js', import.meta.url), 'utf8');
 
-function fixture({ reduceMotion = false } = {}) {
+function fixture({ reduceMotion = false, theme = 'dark' } = {}) {
+    const listeners = new Map();
+    const documentElement = { dataset: { theme } };
     const canvas = {
         attributes: new Map(),
         setAttribute(name, value) { this.attributes.set(name, value); },
@@ -13,18 +15,29 @@ function fixture({ reduceMotion = false } = {}) {
     function Chart(element, configuration) {
         this.canvas = element;
         this.config = configuration;
+        this.data = configuration.data;
+        this.options = configuration.options;
+        this.updates = [];
+        this.update = mode => this.updates.push(mode);
+        this.destroy = () => { this.canvas = null; };
+        Chart.created.push(this);
     }
     Chart.defaults = { font: {} };
+    Chart.created = [];
+    Chart.getChart = () => Chart.created.find(chart => chart.canvas !== null);
     const context = vm.createContext({
         Chart,
         document: {
+            documentElement,
             getElementById: id => id === 'chart' ? canvas : null,
-            addEventListener() {},
+            addEventListener(name, listener) { listeners.set(name, listener); },
         },
         matchMedia: () => ({ matches: reduceMotion }),
+        fetch() { throw new Error('Theme switching must never fetch reporting data'); },
     });
     vm.runInContext(source, context);
-    return { context, canvas, Chart, palette: vm.runInContext('CHART_DEFAULTS.color', context) };
+    return { context, canvas, Chart, palette: vm.runInContext('CHART_DEFAULTS.color', context),
+        changeTheme(value) { documentElement.dataset.theme = value; listeners.get('mathverse:themechange')({ detail: { theme: value } }); } };
 }
 
 function contrast(first, second) {
@@ -37,16 +50,16 @@ function contrast(first, second) {
     return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
 }
 
-test('chart labels and data colors remain readable against the light surface', () => {
-    const { context, palette, Chart } = fixture();
+for (const theme of ['light', 'dark']) test(`chart labels and data colors remain readable in ${theme} mode`, () => {
+    const { context, palette, Chart } = fixture({ theme });
     context.applyChartDefaults();
     assert.ok(contrast(Chart.defaults.color, palette.surface) >= 4.5);
     assert.ok(contrast(palette.heading, palette.surface) >= 4.5);
     for (const name of ['cyan', 'purple', 'pink', 'green', 'orange', 'red']) {
-        assert.ok(contrast(palette[name], palette.surface) >= 3, `${name} must remain visible on white`);
+        assert.ok(contrast(palette[name], palette.surface) >= 3, `${name} must remain visible in ${theme}`);
     }
     assert.match(Chart.defaults.font.family, /system-ui/);
-    assert.ok(Chart.defaults.font.size >= 13);
+    assert.ok(Chart.defaults.font.size >= 14);
 });
 
 for (const reduceMotion of [false, true]) {
@@ -59,7 +72,7 @@ for (const reduceMotion of [false, true]) {
 }
 
 test('line, bar and doughnut charts retain their complete reporting data and responsive rendering', () => {
-    const { context, palette, canvas } = fixture();
+    const { context, palette, canvas } = fixture({ theme: 'light' });
     const labels = ['Grade 4', 'Grade 5', 'Grade 6'];
     const values = [25, 67, 90];
     const charts = [
@@ -100,4 +113,46 @@ test('optional charts are skipped when their canvas is absent', () => {
     assert.equal(context.buildLineChart('absent', [], [], 'Attempts', palette.cyan), null);
     assert.equal(context.buildBarChart('absent', [], [], 'Accuracy', palette.purple), null);
     assert.equal(context.buildDoughnutChart('absent', [], [], []), null);
+});
+
+test('live theme changes repaint every existing chart without changing data or callbacks', () => {
+    const f = fixture({ theme: 'dark' });
+    f.context.applyChartDefaults();
+    const labels = ['October', 'November'], values = [12, 38];
+    const line = f.context.buildLineChart('chart', labels, values, 'Attempts', f.palette.cyan);
+    const bar = f.context.buildBarChart('chart', labels, values, 'Accuracy', f.palette.purple);
+    const doughnut = f.context.buildDoughnutChart('chart', labels, values, [f.palette.cyan, f.palette.green]);
+    const callback = bar.options.plugins.tooltip.callbacks.label;
+    f.changeTheme('light');
+    const light = vm.runInContext('CHART_DEFAULTS.color', f.context);
+    for (const chart of [line, bar, doughnut]) {
+        assert.equal(chart.data.labels, labels);
+        assert.equal(chart.data.datasets[0].data, values);
+        assert.equal(chart.options.plugins.tooltip.backgroundColor, light.surface);
+        assert.deepEqual(chart.updates, ['none']);
+    }
+    assert.equal(line.data.datasets[0].borderColor, light.cyan);
+    assert.equal(bar.data.datasets[0].borderColor, light.purple);
+    assert.equal(doughnut.data.datasets[0].backgroundColor[0], light.cyan);
+    assert.equal(doughnut.data.datasets[0].backgroundColor[1], light.green);
+    assert.equal(doughnut.options.plugins.legend.labels.color, light.body);
+    assert.equal(line.options.scales.x.ticks.color, light.text);
+    assert.equal(line.options.scales.y.grid.color, light.grid);
+    assert.equal(bar.options.plugins.tooltip.callbacks.label, callback);
+    assert.equal(callback({ parsed: { y: 38 } }), ' 38%');
+    assert.equal(f.Chart.created.length, 3);
+    f.changeTheme('dark');
+    assert.equal(line.data.datasets[0].borderColor, f.palette.cyan);
+    assert.equal(line.options.plugins.tooltip.backgroundColor, f.palette.surface);
+    assert.equal(line.updates.length, 2);
+    assert.equal(line.data.datasets[0].data, values);
+});
+
+test('destroyed charts are forgotten and cannot be updated by later theme changes', () => {
+    const f = fixture();
+    const chart = f.context.buildLineChart('chart', ['Day 1'], [4], 'Attempts', f.palette.cyan);
+    f.context.destroyCharts(['chart']);
+    f.changeTheme('light');
+    assert.equal(chart.updates.length, 0);
+    assert.equal(vm.runInContext('themedCharts.size', f.context), 0);
 });

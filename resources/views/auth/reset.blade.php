@@ -1,28 +1,32 @@
 @extends('layouts.app')
 
 @section('title', 'Reset Password')
-@section('body-class', 'auth-page auth-single-page')
 
 @section('content')
-<main class="auth-single-shell w-full max-w-sm z-20 transition-all duration-500" id="main-content">
+<div class="w-full max-w-sm z-20 transition-all duration-500" id="main-content">
 
     <div class="text-center mb-8">
-        <a href="{{ route('login') }}" class="public-brand" aria-label="MathVerse home">
-            <img src="{{ asset('logo-180.png') }}" width="40" height="40" alt="" aria-hidden="true">
-            <span>Math<span class="public-brand-accent">Verse</span></span>
-        </a>
+        <h1 class="font-orbitron text-4xl font-black tracking-tighter text-white glitch-title leading-none">
+            MATH<span class="text-cyan-400">VERSE</span>
+        </h1>
+        <p class="text-slate-400 uppercase text-[9px] tracking-[0.4em] mt-2 font-bold">Official Academic Gateway</p>
     </div>
 
-    <div class="portal-frame auth-card relative">
+    <div class="portal-frame relative">
+        <div class="corner top-0 left-0 border-r-0 border-b-0"></div>
+        <div class="corner top-0 right-0 border-l-0 border-b-0"></div>
+        <div class="corner bottom-0 left-0 border-r-0 border-t-0"></div>
+        <div class="corner bottom-0 right-0 border-l-0 border-t-0"></div>
 
         <div class="p-6">
 
             {{-- PASSWORD RECOVERY PANEL --}}
             <div id="regMod">
-                <div class="auth-panel-heading">
-                    <span class="auth-panel-icon" aria-hidden="true"><i class="fas fa-key"></i></span>
-                    <h1>Choose a new password</h1>
-                    <p>Use a strong password to keep your account safe.</p>
+                <div class="flex justify-between items-center mb-6 border-b border-purple-500/30 pb-4">
+                    <h2 class="text-2xl font-orbitron font-black text-white tracking-tighter uppercase">
+                        Reset <span class="text-purple-500">Password</span>
+                    </h2>
+                    <i class="fas fa-key text-2xl text-purple-500/40"></i>
                 </div>
 
                 <form id="resetForm" method="POST" action="/update-password" class="space-y-4"
@@ -41,8 +45,7 @@
                                    title="Use 8 or more characters with uppercase, lowercase, a number, and a symbol."
                                    autocomplete="new-password" placeholder="Enter new password" required
                                    class="input-mobile-ultra pr-12">
-                            <button type="button" data-action="tglPass" data-action-args='["rPass","rIco"]'
-                                    aria-label="Show or hide new password"
+                            <button type="button" data-action="tglPass" data-action-args='["rPass","rIco"]' aria-label="Show or hide new password"
                                     class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-8 flex items-center justify-center text-slate-500">
                                 <i id="rIco" class="fas fa-eye-slash"></i>
                             </button>
@@ -58,8 +61,7 @@
                                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}"
                                    title="Use 8 or more characters with uppercase, lowercase, a number, and a symbol." autocomplete="new-password"
                                    placeholder="Re-type password" required class="input-mobile-ultra pr-12">
-                            <button type="button" data-action="tglPass" data-action-args='["rcPass","rcIco"]'
-                                    aria-label="Show or hide password confirmation"
+                            <button type="button" data-action="tglPass" data-action-args='["rcPass","rcIco"]' aria-label="Show or hide password confirmation"
                                     class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-8 flex items-center justify-center text-slate-500">
                                 <i id="rcIco" class="fas fa-eye-slash"></i>
                             </button>
@@ -71,7 +73,7 @@
 
                 <button type="button" data-action="navigate" data-destination="/"
                         class="mt-6 w-full text-slate-500 text-[9px] font-bold uppercase tracking-widest">
-                    Return to sign in
+                    <i class="fas fa-arrow-left mr-1"></i> Return to Login
                 </button>
             </div>
 
@@ -79,7 +81,7 @@
     </div>
 
     @include('partials.public-footer')
-</main>
+</div>
 
 @endsection
 

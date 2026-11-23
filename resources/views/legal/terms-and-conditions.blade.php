@@ -2,19 +2,22 @@
 
 @section('title', 'Terms and Conditions')
 @section('description', 'Read the terms for using MathVerse accounts, classrooms, quizzes, learning activities, and the connected quiz game.')
-@section('body-class', 'public-page legal-page')
+@section('body-class', 'min-h-screen p-4 sm:p-6 lg:p-10')
 
 @section('content')
-<main class="public-content relative z-20 mx-auto w-full max-w-4xl" aria-labelledby="terms-title">
-    <header class="public-brand-bar">
-        <a href="{{ route('login') }}" class="public-brand" aria-label="MathVerse home">
-            <img src="{{ asset('logo-180.png') }}" width="40" height="40" alt="" aria-hidden="true">
-            <span>Math<span class="public-brand-accent">Verse</span></span>
+<main class="relative z-20 mx-auto w-full max-w-4xl" aria-labelledby="terms-title">
+    <header class="mb-6 text-center">
+        <a href="{{ route('login') }}" class="inline-block font-orbitron text-3xl font-black tracking-tighter text-white">
+            MATH<span class="text-purple-400">VERSE</span>
         </a>
-        <a href="{{ route('login') }}" class="public-header-link">Sign in</a>
+        <p class="mt-2 text-[9px] font-bold uppercase tracking-[0.35em] text-slate-500">Public Information</p>
     </header>
 
-    <article class="public-article portal-frame relative p-6 sm:p-10">
+    <article class="portal-frame relative p-6 sm:p-10">
+        <div class="corner top-0 left-0 border-r-0 border-b-0" aria-hidden="true"></div>
+        <div class="corner top-0 right-0 border-l-0 border-b-0" aria-hidden="true"></div>
+        <div class="corner bottom-0 left-0 border-r-0 border-t-0" aria-hidden="true"></div>
+        <div class="corner bottom-0 right-0 border-l-0 border-t-0" aria-hidden="true"></div>
 
         <div class="border-b border-purple-500/20 pb-6">
             <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-400">Platform rules</p>

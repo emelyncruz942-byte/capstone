@@ -36,21 +36,21 @@
     </a>
 </div>
 
-<header class="portal-frame overflow-hidden mb-8" style="border-color: {{ $themeColor }}66;">
+<header class="portal-frame classroom-banner overflow-hidden mb-8" style="--classroom-color: {{ $themeColor }}; border-color: {{ $themeColor }}66;">
     <div class="relative p-6 md:p-10 min-h-[210px] flex items-end"
          style="background-color: {{ $themeColor }}22; background-image: {{ $patternStyle }}">
-        <div class="absolute top-7 right-7 w-16 h-16 rounded-xl flex items-center justify-center text-3xl"
+        <div class="classroom-accent absolute top-7 right-7 w-16 h-16 rounded-xl flex items-center justify-center text-3xl"
              style="color: {{ $themeColor }}; background: {{ $themeColor }}22; border: 1px solid {{ $themeColor }}66;">
             <i class="fas {{ $classIcon }}"></i>
         </div>
         <div>
-            <p class="text-[10px] uppercase tracking-[0.25em] font-bold mb-2" style="color: {{ $themeColor }};">
+            <p class="classroom-accent text-[10px] uppercase tracking-[0.25em] font-bold mb-2" style="color: {{ $themeColor }};">
                 Grade {{ $class['grade_level'] }} Classroom
             </p>
             <h1 class="text-2xl md:text-4xl font-orbitron font-black text-white pr-20">{{ $class['class_name'] }}</h1>
             <div class="flex items-center gap-3 mt-5">
                 <span class="text-[9px] text-slate-400 uppercase tracking-widest">Join Code</span>
-                <code class="text-lg font-bold tracking-[0.2em] px-3 py-1 rounded bg-black/40" style="color: {{ $themeColor }};">
+                <code class="classroom-accent text-lg font-bold tracking-[0.2em] px-3 py-1 rounded bg-black/40" style="color: {{ $themeColor }};">
                     {{ $class['join_code'] }}
                 </code>
                 <button type="button" data-action="copyToClipboard" data-action-args="{{ json_encode([$class['join_code']], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}" class="text-slate-400 hover:text-white" title="Copy join code">
