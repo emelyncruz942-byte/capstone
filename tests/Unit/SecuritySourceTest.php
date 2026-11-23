@@ -482,8 +482,7 @@ class SecuritySourceTest extends TestCase
 
         $this->assertStringContainsString("form?.querySelector('[data-avatar-preview]')", $sharedScript);
         $this->assertStringNotContainsString('[data-current-user-avatar], #avatar-preview', $sharedScript);
-        $this->assertStringContainsString("@include('partials.user-avatar'", $profileMenu);
-        $this->assertStringContainsString('data-current-user-avatar', (string) file_get_contents($this->projectPath('resources/views/partials/user-avatar.blade.php')));
+        $this->assertStringContainsString('data-current-user-avatar', $profileMenu);
     }
 
     public function test_profile_menu_buttons_can_reach_the_delegated_action_handler(): void

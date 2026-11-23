@@ -37,7 +37,7 @@
                     <input type="hidden" id="token-type" name="token_type" value="token_hash">
 
                     <div class="form-group">
-                        <label for="rPass" class="input-label">New Password</label>
+                        <label class="input-label">New Password</label>
                         <div class="relative">
                             <i class="fas fa-key input-icon"></i>
                             <input type="password" id="rPass" name="password" minlength="8" maxlength="128"
@@ -45,7 +45,7 @@
                                    title="Use 8 or more characters with uppercase, lowercase, a number, and a symbol."
                                    autocomplete="new-password" placeholder="Enter new password" required
                                    class="input-mobile-ultra pr-12">
-                            <button type="button" data-action="tglPass" data-action-args='["rPass","rIco"]' aria-label="Show or hide new password"
+                            <button type="button" data-action="tglPass" data-action-args='["rPass","rIco"]'
                                     class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-8 flex items-center justify-center text-slate-500">
                                 <i id="rIco" class="fas fa-eye-slash"></i>
                             </button>
@@ -54,14 +54,14 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="rcPass" class="input-label">Confirm New Password</label>
+                        <label class="input-label">Confirm New Password</label>
                         <div class="relative">
                             <i class="fas fa-shield-alt input-icon"></i>
                             <input type="password" id="rcPass" name="password_confirmation" minlength="8" maxlength="128"
                                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}"
                                    title="Use 8 or more characters with uppercase, lowercase, a number, and a symbol." autocomplete="new-password"
                                    placeholder="Re-type password" required class="input-mobile-ultra pr-12">
-                            <button type="button" data-action="tglPass" data-action-args='["rcPass","rcIco"]' aria-label="Show or hide password confirmation"
+                            <button type="button" data-action="tglPass" data-action-args='["rcPass","rcIco"]'
                                     class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-8 flex items-center justify-center text-slate-500">
                                 <i id="rcIco" class="fas fa-eye-slash"></i>
                             </button>

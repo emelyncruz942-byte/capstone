@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('body-class', 'dashboard-page flex min-h-screen')
+@section('body-class', 'flex min-h-screen text-white bg-black')
 
 @section('content')
 
@@ -16,7 +16,7 @@
         </p>
     </div>
 
-    <nav class="flex-1 space-y-2 overflow-y-auto" aria-label="{{ ucfirst($user['role'] ?? 'student') }} workspace">
+    <nav class="flex-1 space-y-2 overflow-y-auto">
         @yield('sidebar-nav')
     </nav>
 
@@ -39,10 +39,8 @@
     </div>
 
     <div class="desktop-notification-bar hidden md:flex items-center justify-end gap-3 mb-4">
-        <div class="flex items-center gap-3 shrink-0">
-            @include('partials.notifications')
-            @include('partials.profile-menu')
-        </div>
+        @include('partials.notifications')
+        @include('partials.profile-menu')
     </div>
 
     <div id="dashboard-content"

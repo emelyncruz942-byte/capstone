@@ -7,8 +7,6 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "ext-gd": "*",
-        "ext-exif": "*",
         "aws/aws-sdk-php": "^3.400.1",
         "barryvdh/laravel-dompdf": "^3.1",
         "guzzlehttp/guzzle": "^7.10",

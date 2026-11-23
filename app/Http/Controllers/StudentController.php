@@ -341,19 +341,12 @@ class StudentController extends Controller
             'last_name' => 'required|string|max:100',
             'grade_level' => 'required|integer|between:1,6',
             'leaderboard_alias' => 'nullable|string|min:2|max:30',
-            'anonymous_profile' => 'nullable|boolean',
             'show_on_leaderboard' => 'nullable|boolean',
         ]);
 
         $user = session('supabase_user');
         $userId = $user['id'];
         $newGrade = (int) $validated['grade_level'];
-        // The new form expresses privacy positively. Keep old open tabs
-        // compatible; an unrelated edit must not resend a stale session flag.
-        $hasPrivacyChoice = $request->has('anonymous_profile') || $request->has('show_on_leaderboard');
-        $showOnLeaderboard = $request->has('anonymous_profile')
-            ? !$request->boolean('anonymous_profile')
-            : $request->boolean('show_on_leaderboard', (bool) ($user['show_on_leaderboard'] ?? false));
 
         try {
             if ($newGrade !== (int) ($user['grade_level'] ?? 0)) {
@@ -371,16 +364,13 @@ class StudentController extends Controller
                 }
             }
 
-            $profileChanges = [
+            $profileUpdated = $this->supabase->updateProfile($userId, [
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
                 'grade_level' => $newGrade,
                 'leaderboard_alias' => trim((string) ($validated['leaderboard_alias'] ?? '')) ?: null,
-            ];
-            if ($hasPrivacyChoice) {
-                $profileChanges['show_on_leaderboard'] = $showOnLeaderboard;
-            }
-            $profileUpdated = $this->supabase->updateProfile($userId, $profileChanges);
+                'show_on_leaderboard' => $request->boolean('show_on_leaderboard'),
+            ]);
         } catch (\Throwable $exception) {
             Log::warning('A student profile could not be updated.', [
                 'user_id' => $userId,
@@ -422,8 +412,7 @@ class StudentController extends Controller
         $updated['last_name'] = $validated['last_name'];
         $updated['grade_level'] = $newGrade;
         $updated['leaderboard_alias'] = trim((string) ($validated['leaderboard_alias'] ?? '')) ?: null;
-        $updated['show_on_leaderboard'] = (bool) ($profileUpdated[0]['show_on_leaderboard']
-            ?? ($hasPrivacyChoice ? $showOnLeaderboard : ($user['show_on_leaderboard'] ?? false)));
+        $updated['show_on_leaderboard'] = $request->boolean('show_on_leaderboard');
         if ($avatarUrl) {
             $updated['avatar_url'] = $avatarUrl;
         }

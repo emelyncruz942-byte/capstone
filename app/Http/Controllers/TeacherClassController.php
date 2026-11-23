@@ -65,7 +65,7 @@ class TeacherClassController extends Controller
         $customization = $this->customization($id);
         $members = $this->supabase->adminSelectHistory(
             'class_members',
-            'student_id,joined_at,profiles(id,username,last_name,email,first_name,grade_level,level,avatar_url)',
+            'student_id,joined_at,profiles(id,username,last_name,email,first_name,grade_level,level)',
             ['class_id' => $id, 'order' => 'joined_at.asc']
         );
         $mismatchedMembers = 0;
@@ -429,7 +429,7 @@ class TeacherClassController extends Controller
 
         $participants = $this->supabase->adminSelect(
             'quiz_participants',
-            'student_id,profiles(first_name,last_name,level,avatar_url)',
+            'student_id,profiles(first_name,last_name,level)',
             ['session_id' => $sessionId]
         );
 
@@ -460,7 +460,7 @@ class TeacherClassController extends Controller
 
         $eligibility = $this->supabase->adminSelect(
             'quiz_session_students',
-            'student_id,eligibility_status,allowed_attempts,excuse_reason,retake_due_at,profiles!quiz_session_students_student_id_fkey(first_name,last_name,email,avatar_url)',
+            'student_id,eligibility_status,allowed_attempts,excuse_reason,retake_due_at,profiles!quiz_session_students_student_id_fkey(first_name,last_name,email)',
             ['session_id' => $sessionId]
         );
 

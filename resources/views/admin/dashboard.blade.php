@@ -198,7 +198,7 @@
                         @php $studentName = trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '')); @endphp
                         <tr class="border-b border-white/5 hover:bg-white/5 {{ !empty($p['suspended_at']) ? 'opacity-70 bg-red-500/5' : '' }}">
                             <td class="py-4 font-mono text-cyan-400">{{ $p['email'] ?? substr($p['id'],0,8) }}</td>
-                            <td class="py-4"><div class="user-identity">@include('partials.user-avatar', ['avatarUser' => $p, 'avatarSize' => 36, 'avatarDecorative' => true])<span class="user-identity-name">{{ $p['last_name'] ?? '—' }}, {{ $p['first_name'] ?? '—' }}</span></div></td>
+                            <td class="py-4">{{ $p['last_name'] ?? '—' }}, {{ $p['first_name'] ?? '—' }}</td>
                             <td class="py-4 text-cyan-400">Grade {{ $p['grade_level'] ?? 'N/A' }}</td>
                             <td class="py-4">
                                 <span class="text-[9px] uppercase font-bold {{ !empty($p['suspended_at']) ? 'text-red-400' : 'text-green-400' }}">{{ !empty($p['suspended_at']) ? 'Suspended' : 'Active' }}</span>
@@ -264,7 +264,7 @@
                         @php $teacherName = trim(($p['first_name'] ?? '') . ' ' . ($p['last_name'] ?? '')); @endphp
                         <tr class="border-b border-white/5 hover:bg-white/5 {{ !empty($p['suspended_at']) ? 'opacity-70 bg-red-500/5' : '' }}">
                             <td class="py-4 font-mono text-blue-400">{{ $p['email'] ?? substr($p['id'],0,8) }}</td>
-                            <td class="py-4"><div class="user-identity">@include('partials.user-avatar', ['avatarUser' => $p, 'avatarSize' => 36, 'avatarDecorative' => true])<span class="user-identity-name">{{ $p['last_name'] ?? '—' }}, {{ $p['first_name'] ?? '—' }}</span></div></td>
+                            <td class="py-4">{{ $p['last_name'] ?? '—' }}, {{ $p['first_name'] ?? '—' }}</td>
                             <td class="py-4 text-slate-400">{{ isset($p['created_at']) ? \App\Support\AppDate::format($p['created_at'], 'M d, Y') : 'N/A' }}</td>
                             <td class="py-4"><span class="text-[9px] uppercase font-bold {{ !empty($p['suspended_at']) ? 'text-red-400' : 'text-green-400' }}">{{ !empty($p['suspended_at']) ? 'Suspended' : 'Active' }}</span>@if(!empty($p['suspension_reason']))<p class="text-[9px] text-slate-500 mt-1 max-w-[220px] truncate" title="{{ $p['suspension_reason'] }}">{{ $p['suspension_reason'] }}</p>@endif</td>
                             <td class="py-4 text-right">
@@ -369,7 +369,9 @@
             @forelse($pendingTeachers as $pt)
                 <div class="flex flex-col sm:flex-row justify-between items-center p-4 bg-white/5 border border-white/10 rounded gap-4">
                     <div class="flex items-center gap-4">
-                        @include('partials.user-avatar', ['avatarUser' => $pt, 'avatarSize' => 48, 'avatarDecorative' => true])
+                        <div class="w-12 h-12 rounded bg-purple-500/20 flex items-center justify-center text-purple-400 text-xl">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
                         <div>
                             <p class="font-bold">{{ $pt['last_name'] ?? '—' }}, {{ $pt['first_name'] ?? '—' }}</p>
                             <p class="text-[9px] text-slate-500 uppercase font-bold">Teacher Application</p>
@@ -418,7 +420,17 @@
                 <label class="input-label">Profile Picture</label>
                 <div class="flex items-center gap-4">
                     {{-- Preview circle --}}
-                    @include('partials.user-avatar', ['avatarUser' => $user, 'avatarSize' => 64, 'avatarPreview' => true])
+                    <div class="w-16 h-16 rounded-full border-2 border-white/10 bg-white/5 flex items-center justify-center overflow-hidden shrink-0" id="avatar-preview-wrap" data-avatar-preview-wrap>
+                        <img id="avatar-preview"
+                            data-avatar-preview
+                            src="{{ $user['avatar_url'] ?: asset('default.png') }}"
+                            alt="Current profile picture"
+                            width="64"
+                            height="64"
+                            loading="lazy"
+                            decoding="async"
+                            class="w-full h-full object-cover">
+                        </div>
                         <div class="flex-1">
                             <label for="avatar-input"
                                 class="cursor-pointer block w-full text-center border border-white/10 bg-white/5 hover:bg-white/10 transition-all rounded px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white">
@@ -426,7 +438,7 @@
                             </label>
                             <input type="file" id="avatar-input" name="avatar"
                                 accept="image/jpeg,image/png,image/webp" class="hidden">
-                            <p class="text-[9px] text-slate-600 mt-1 text-center">JPG, PNG, WebP • 2 MB or less</p>
+                            <p class="text-[9px] text-slate-600 mt-1 text-center">JPG, PNG • 2 MB or less</p>
                         </div>
                     </div>
                 </div>

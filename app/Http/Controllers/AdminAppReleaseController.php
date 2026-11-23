@@ -19,6 +19,7 @@ class AdminAppReleaseController extends Controller
 
     private const ALLOWED_ARTIFACTS = [
         'apk' => ['platform' => 'android', 'mime' => 'application/vnd.android.package-archive'],
+        'ipa' => ['platform' => 'ios', 'mime' => 'application/x-itunes-ipa'],
     ];
 
     public function __construct(
@@ -33,14 +34,14 @@ class AdminAppReleaseController extends Controller
             $result = $this->supabase->adminSelectResult(
                 self::RELEASE_TABLE,
                 '*,storage_provider,provider_upload_id,object_etag,multipart_part_size',
-                ['platform' => 'android', 'order' => 'created_at.desc', 'limit' => 100],
+                ['order' => 'created_at.desc', 'limit' => 100],
             );
         } catch (\Throwable $exception) {
             Log::warning('Unity app releases could not be listed.', ['exception' => $exception::class]);
             $result = ['data' => [], 'error' => 'unavailable'];
         }
 
-        $releases = array_values(array_filter(is_array($result['data'] ?? null) ? $result['data'] : [], fn (array $release): bool => ($release['platform'] ?? 'android') === 'android'));
+        $releases = is_array($result['data'] ?? null) ? $result['data'] : [];
         $releasesReady = ($result['error'] ?? null) === null;
         $uploadsReady = $releasesReady && $this->r2->configured();
         $uploadSetupMessage = ! $releasesReady
@@ -80,7 +81,7 @@ class AdminAppReleaseController extends Controller
         $artifact = self::ALLOWED_ARTIFACTS[$extension] ?? null;
         if ($artifact === null) {
             return response()->json([
-                'message' => 'Upload an Android APK build.',
+                'message' => 'Upload an Android APK or an iOS IPA build.',
                 'errors' => ['file_name' => ['Only APK and IPA game builds are supported.']],
             ], 422);
         }
@@ -756,7 +757,7 @@ class AdminAppReleaseController extends Controller
         }
         $release = $result['data'][0] ?? null;
 
-        return ($result['error'] ?? null) === null && is_array($release) && ($release['platform'] ?? 'android') === 'android' ? $release : null;
+        return ($result['error'] ?? null) === null && is_array($release) ? $release : null;
     }
 
     private function markFailed(string $releaseId, array $admin, string $reason, bool $isR2 = false): bool

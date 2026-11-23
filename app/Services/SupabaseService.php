@@ -145,10 +145,8 @@ class SupabaseService
             return null;
         }
 
-        // JPEG is decoded by Unity on Android/iOS as well as web browsers.
-        // Keep every newly saved avatar square, bounded, and cacheable.
-        $content = \App\Support\SquareAvatarImage::encode($realPath, $detectedMime, 'image/jpeg');
-        if (!is_string($content) || strlen($content) > self::MAX_AVATAR_SIZE_BYTES) {
+        $content = file_get_contents($realPath);
+        if (!is_string($content) || strlen($content) !== $size) {
             return null;
         }
 
@@ -158,14 +156,14 @@ class SupabaseService
             return null;
         }
 
-        $path = 'avatars/' . strtolower($userId) . "_{$randomName}.jpg";
+        $path = 'avatars/' . strtolower($userId) . "_{$randomName}.{$extension}";
 
         $upload = $this->request()->withHeaders([
             'apikey'        => $this->serviceKey,
             'Authorization' => "Bearer {$this->serviceKey}",
-            'Content-Type'  => 'image/jpeg',
+            'Content-Type'  => $detectedMime,
             'Cache-Control' => 'public, max-age=31536000, immutable',
-        ])->withBody($content, 'image/jpeg')
+        ])->withBody($content, $detectedMime)
           ->post("{$this->url}/storage/v1/object/{$path}");
 
         if ($upload->successful()) {

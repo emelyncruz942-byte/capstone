@@ -36,7 +36,7 @@ async function fetchLobby(showProgress = false) {
             const profile = participant.profiles ?? {};
             const name = `${profile.last_name ?? ''}, ${profile.first_name ?? 'Unknown'}`;
             return `<tr class="border-b border-white/5">
-                <td class="p-4"><div class="user-identity">${globalThis.mathVerseAvatar?.markup(profile, 36) ?? ''}<span class="user-identity-name">${escapeClassroomHtml(name)}</span></div></td>
+                <td class="p-4"><i class="fas fa-vr-cardboard text-purple-400 mr-3"></i>${escapeClassroomHtml(name)}</td>
                 <td class="p-4 text-right text-cyan-400 font-mono text-xs">Level ${Number(profile.level ?? 1)}</td>
             </tr>`;
         }).join('');
@@ -104,7 +104,7 @@ async function openResults(classId, sessionId, topic) {
                 : '';
 
             return `<tr class="border-b border-white/5">
-                <td class="py-4 font-bold"><div class="user-identity">${globalThis.mathVerseAvatar?.markup(profile, 36) ?? ''}<span class="user-identity-name">${escapeClassroomHtml(name)}</span></div></td>
+                <td class="py-4 font-bold">${escapeClassroomHtml(name)}</td>
                 <td class="py-4 font-bold ${statusColors[assignmentStatus] ?? 'text-slate-400'}">${escapeClassroomHtml(statusLabels[assignmentStatus] ?? assignmentStatus)}</td>
                 <td class="py-4 text-cyan-400 font-mono">${result ? `${correct} / ${total}` : '—'}</td>
                 <td class="py-4 font-bold ${color}">${accuracy === null ? '—' : `${accuracy}%`}</td>

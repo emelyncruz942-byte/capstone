@@ -157,7 +157,7 @@
                 @forelse($leaderboard as $row)
                     <tr class="border-b border-white/5 {{ $row['student_id'] === $user['id'] ? 'bg-cyan-500/5' : '' }}">
                         <td class="py-4 font-mono text-yellow-400">#{{ $row['rank'] }}</td>
-                        <td class="py-4 font-bold"><div class="user-identity">@include('partials.user-avatar', ['avatarUser' => ['display_name' => $row['name']], 'avatarSize' => 36, 'avatarDecorative' => true])<span class="user-identity-name">{{ $row['name'] }} {{ $row['student_id'] === $user['id'] ? '(You)' : '' }}</span></div></td>
+                        <td class="py-4 font-bold">{{ $row['name'] }} {{ $row['student_id'] === $user['id'] ? '(You)' : '' }}</td>
                         <td class="py-4 text-slate-400">{{ $row['quizzes'] }}/{{ $row['eligible'] }}</td>
                         <td class="py-4 text-blue-400">{{ $row['completion_rate'] }}%</td>
                         <td class="py-4 {{ $row['average'] >= 75 ? 'text-green-400' : 'text-red-400' }} font-bold">{{ $row['average'] }}%</td>

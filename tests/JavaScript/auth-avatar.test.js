@@ -151,55 +151,6 @@ test('a late image read cannot overwrite a newer selection or a disconnected for
     assert.equal(f.preview.src, 'second-draft');
 });
 
-function croppedFixture() {
-    const fixture = sharedFixture();
-    const requests = [];
-    fixture.context.window.MathVerseAvatarCropper = { crop: file => new Promise(resolve => requests.push({ file, resolve })) };
-    fixture.context.DataTransfer = class {
-        constructor() { this.files = []; this.items = { add: file => this.files.push(file) }; }
-    };
-    return { ...fixture, requests };
-}
-
-test('cropping replaces the submitted file and preview while keeping saved header photos intact', async () => {
-    const f = croppedFixture();
-    f.select(photo('portrait.png'));
-    assert.equal(f.input.dataset.avatarCropPending, 'true');
-    let prevented = false;
-    f.form.listeners.get('submit')({ preventDefault() { prevented = true; }, stopImmediatePropagation() {} });
-    assert.equal(prevented, true);
-    const square = photo('square.png');
-    f.requests[0].resolve(square);
-    await new Promise(setImmediate);
-    assert.equal(f.input.files[0], square);
-    assert.equal(f.readers[0].file, square);
-    assert.equal(f.input.dataset.avatarCropPending, 'false');
-    f.complete(0);
-    assert.equal(f.preview.src, 'data:image/png;base64,fixture-0');
-    assert.deepEqual(f.headers.map(image => image.src), ['/saved-avatar.png', '/saved-avatar.png']);
-});
-
-test('cancelling a crop restores the saved picture and never submits the original new file', async () => {
-    const f = croppedFixture();
-    f.select(photo('portrait.png')); f.requests[0].resolve(null);
-    await new Promise(setImmediate);
-    assert.equal(f.input.files.length, 0);
-    assert.equal(f.preview.src, '/saved-avatar.png');
-    assert.equal(f.input.dataset.avatarCropPending, 'false');
-    assert.equal(f.readers.length, 0);
-});
-
-test('a stale crop result cannot replace a newer file selection', async () => {
-    const f = croppedFixture();
-    f.select(photo('first.png')); f.select(photo('second.png'));
-    const stale = photo('old-square.png'), latest = photo('latest-square.png');
-    f.requests[0].resolve(stale); f.requests[1].resolve(latest);
-    await new Promise(setImmediate);
-    assert.equal(f.input.files[0], latest);
-    assert.equal(f.readers.length, 1);
-    assert.equal(f.readers[0].file, latest);
-});
-
 test('hidden avatar placeholders override icon display rules and images fill the circle', () => {
     assert.match(styles, /\[data-avatar-placeholder\]\[hidden\]\s*\{\s*display:\s*none\s*!important/);
     const imageRule = styles.match(/\[data-avatar-preview\]\s*\{([^}]*)\}/)?.[1];

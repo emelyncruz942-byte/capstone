@@ -1,6 +1,6 @@
 # Cloudflare R2 app-release storage
 
-MathVerse stores Android APK build files in a private Cloudflare R2 bucket. Supabase remains the source of truth for users, permissions, version metadata, and which release is active. The website accepts and publishes Android builds only.
+MathVerse stores only Android APK and iOS IPA build files in a private Cloudflare R2 bucket. Supabase remains the source of truth for users, permissions, version metadata, and which release is active.
 
 ## One-time Cloudflare setup
 

@@ -214,10 +214,8 @@
                         <tr class="border-b border-white/5 {{ $isMe ? 'bg-cyan-400/5' : '' }}">
                             <td class="py-4 font-mono {{ $isMe ? 'text-cyan-400' : '' }}">#{{ $p['rank'] }}</td>
                             <td class="py-4 {{ $isMe ? 'font-bold' : '' }}">
-                                <div class="user-identity">
-                                    @include('partials.user-avatar', ['avatarUser' => ['display_name' => $p['display_name']], 'avatarSize' => 36, 'avatarDecorative' => true])
-                                    <span class="user-identity-name">{{ $p['display_name'] }} {{ $isMe ? '(You)' : '' }}</span>
-                                </div>
+                                {{ $p['display_name'] }}
+                                {{ $isMe ? '(You)' : '' }}
                             </td>
                             <td class="py-4">Level {{ $p['level'] ?? 1 }}</td>
                             <td class="py-4 {{ $isMe ? 'font-bold' : '' }}">
@@ -248,7 +246,17 @@
                 <label class="input-label">Profile Picture</label>
                 <div class="flex items-center gap-4">
                     {{-- Preview circle --}}
-                    @include('partials.user-avatar', ['avatarUser' => $user, 'avatarSize' => 64, 'avatarPreview' => true])
+                    <div class="w-16 h-16 rounded-full border-2 border-white/10 bg-white/5 flex items-center justify-center overflow-hidden shrink-0" id="avatar-preview-wrap" data-avatar-preview-wrap>
+                        <img id="avatar-preview"
+                            data-avatar-preview
+                            src="{{ $user['avatar_url'] ?: asset('default.png') }}"
+                            alt="Current profile picture"
+                            width="64"
+                            height="64"
+                            loading="lazy"
+                            decoding="async"
+                            class="w-full h-full object-cover">
+                        </div>
                         <div class="flex-1">
                             <label for="avatar-input"
                                 class="cursor-pointer block w-full text-center border border-white/10 bg-white/5 hover:bg-white/10 transition-all rounded px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white">
@@ -256,7 +264,7 @@
                             </label>
                             <input type="file" id="avatar-input" name="avatar"
                                 accept="image/jpeg,image/png,image/webp" class="hidden">
-                            <p class="text-[9px] text-slate-600 mt-1 text-center">JPG, PNG, WebP • 2 MB or less</p>
+                            <p class="text-[9px] text-slate-600 mt-1 text-center">JPG, PNG • 2 MB or less</p>
                         </div>
                     </div>
                 </div>
@@ -279,13 +287,13 @@
                     </div>
                 </div>
                 <label class="form-group flex items-center gap-3 p-4 rounded border border-white/10 bg-white/5 cursor-pointer">
-                    <input type="hidden" name="anonymous_profile" value="0">
-                    <input type="checkbox" name="anonymous_profile" value="1"
-                           {{ old('anonymous_profile', !($profile['show_on_leaderboard'] ?? false)) ? 'checked' : '' }}
+                    <input type="hidden" name="show_on_leaderboard" value="0">
+                    <input type="checkbox" name="show_on_leaderboard" value="1"
+                           {{ old('show_on_leaderboard', $profile['show_on_leaderboard'] ?? true) ? 'checked' : '' }}
                            class="w-4 h-4 accent-cyan-500">
                     <span>
-                        <span class="block text-xs font-bold text-white">Anonymous profile</span>
-                        <span class="block text-[9px] text-slate-500 mt-1">Other students see “Anonymous Student” without your photo. You can turn this off to show your chosen name. Teachers can still see your real name.</span>
+                        <span class="block text-xs font-bold text-white">Show my chosen name on leaderboards</span>
+                        <span class="block text-[9px] text-slate-500 mt-1">When disabled, other students see “Anonymous Student.” Teachers still see your real name.</span>
                     </span>
                 </label>
                 <div class="form-group">

@@ -16,10 +16,10 @@ test('mobile builds use private R2 multipart uploads without exposing credential
     assert.doesNotMatch(source, /tus-js-client|x-signature|Supabase Storage/i);
 });
 
-test('the admin upload surface accepts only Android APK files', () => {
-    assert.match(adminView, /accept="\.apk"/);
+test('the admin upload surface accepts only installable Android and iOS artifacts', () => {
+    assert.match(adminView, /accept="\.apk,\.ipa"/);
     assert.equal(uploadModule.isSupportedMobileBuild('MathVerse.apk'), true);
-    assert.equal(uploadModule.isSupportedMobileBuild('MathVerse.IPA'), false);
+    assert.equal(uploadModule.isSupportedMobileBuild('MathVerse.IPA'), true);
     assert.equal(uploadModule.isSupportedMobileBuild('MathVerse.aab'), false);
 });
 
@@ -65,6 +65,6 @@ test('large transfer progress stays local while start and completion use foregro
 test('R2 upload failures give useful, provider-accurate messages', () => {
     assert.match(uploadModule.uploadFailureMessage({ status: 403 }), /R2 upload authorization.*HTTP 403/i);
     assert.match(uploadModule.uploadFailureMessage({ status: 413 }), /configured game upload limit.*HTTP 413/i);
-    assert.match(uploadModule.uploadFailureMessage({ status: 415 }), /valid Android APK/i);
+    assert.match(uploadModule.uploadFailureMessage({ status: 415 }), /valid APK or IPA/i);
     assert.match(uploadModule.uploadFailureMessage({}), /before Cloudflare R2 returned a response/i);
 });

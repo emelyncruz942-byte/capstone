@@ -121,7 +121,6 @@
                         @forelse($gameState['leaderboard'] as $entry)
                             <li class="number-guess-rank {{ $entry['is_current'] ? 'is-current' : '' }}" data-rank="{{ $entry['rank'] }}">
                                 <span class="number-guess-rank-number">#{{ $entry['rank'] }}</span>
-                                @include('partials.user-avatar', ['avatarUser' => ['display_name' => $entry['display_name']], 'avatarSize' => 32, 'avatarDecorative' => true])
                                 <span class="min-w-0 flex-1">
                                     <strong class="block truncate">{{ $entry['display_name'] }}{{ $entry['is_current'] ? ' (You)' : '' }}</strong>
                                     <small>Streak {{ $entry['best_streak'] }} · {{ $entry['games_played'] }} runs</small>

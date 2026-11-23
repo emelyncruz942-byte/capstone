@@ -46,7 +46,7 @@ class AppReleaseFlowTest extends TestCase
         $database->shouldReceive('adminSelectResult')->once()->with(
             'unity_app_releases',
             '*',
-            ['status' => 'ready', 'platform' => 'android', 'is_active' => true, 'order' => 'activated_at.desc', 'limit' => 2],
+            ['status' => 'ready', 'is_active' => true, 'order' => 'activated_at.desc', 'limit' => 2],
         )->andReturn(['data' => [$this->release(), $this->release([
             'id' => self::HISTORICAL,
             'platform' => 'ios',
@@ -59,13 +59,13 @@ class AppReleaseFlowTest extends TestCase
         $this->withSession(['supabase_user' => $this->user($role)])
             ->get('/game-download')
             ->assertOk()
-            ->assertViewHas('releases', fn (array $releases): bool => count($releases) === 1)
+            ->assertViewHas('releases', fn (array $releases): bool => count($releases) === 2)
             ->assertSee('Download for Android')
-            ->assertDontSee('Download for iOS')
+            ->assertSee('Download for iOS')
             ->assertSee('id="logoutModal"', false)
             ->assertSee('Are you sure you want to log out?')
             ->assertSee('role="img" aria-label="Android build"', false)
-            ->assertDontSee('role="img" aria-label="iOS build"', false)
+            ->assertSee('role="img" aria-label="iOS build"', false)
             ->assertDontSee('class="fab ', false)
             ->assertSee('btn-rect-primary mt-6 flex items-center justify-center px-6 text-center', false);
     }
@@ -76,7 +76,7 @@ class AppReleaseFlowTest extends TestCase
         $database->shouldReceive('adminSelectResult')->once()->with(
             'unity_app_releases',
             '*,storage_provider,provider_upload_id,object_etag,multipart_part_size',
-            ['platform' => 'android', 'order' => 'created_at.desc', 'limit' => 100],
+            ['order' => 'created_at.desc', 'limit' => 100],
         )->andReturn(['data' => [$this->release()], 'error' => null]);
         $r2 = $this->mock(CloudflareR2Service::class);
         $r2->shouldReceive('configured')->once()->andReturn(false);
@@ -96,7 +96,7 @@ class AppReleaseFlowTest extends TestCase
         $database->shouldReceive('adminSelectResult')->once()->with(
             'unity_app_releases',
             '*,storage_provider,provider_upload_id,object_etag,multipart_part_size',
-            ['platform' => 'android', 'order' => 'created_at.desc', 'limit' => 100],
+            ['order' => 'created_at.desc', 'limit' => 100],
         )->andReturn([
             'data' => [],
             'error' => 'column unity_app_releases.storage_provider does not exist',
@@ -117,7 +117,7 @@ class AppReleaseFlowTest extends TestCase
         $database->shouldReceive('adminSelectResult')->once()->with(
             'unity_app_releases',
             '*,storage_provider,provider_upload_id,object_etag,multipart_part_size',
-            ['platform' => 'android', 'order' => 'created_at.desc', 'limit' => 100],
+            ['order' => 'created_at.desc', 'limit' => 100],
         )->andReturn(['data' => [
             $this->release([
                 'status' => 'failed',
@@ -685,7 +685,7 @@ class AppReleaseFlowTest extends TestCase
         $release = $this->release();
         $database = $this->mock(SupabaseService::class);
         $database->shouldReceive('adminSelectResult')->once()->with(
-            'unity_app_releases', '*', ['id' => self::RELEASE, 'status' => 'ready', 'is_active' => true, 'platform' => 'android'],
+            'unity_app_releases', '*', ['id' => self::RELEASE, 'status' => 'ready', 'is_active' => true],
         )->andReturn(['data' => [$release], 'error' => null]);
         $database->shouldNotReceive('createStorageSignedDownload');
         $r2 = $this->mock(CloudflareR2Service::class);
@@ -749,7 +749,7 @@ class AppReleaseFlowTest extends TestCase
     /** @return array<string, array{string}> */
     public static function unsupportedBuilds(): array
     {
-        return ['unsupported mobile format' => ['MathVerse.ipa'], 'bundle' => ['MathVerse.aab'], 'archive' => ['MathVerse.zip'], 'executable' => ['MathVerse.exe']];
+        return ['bundle' => ['MathVerse.aab'], 'archive' => ['MathVerse.zip'], 'executable' => ['MathVerse.exe']];
     }
 
     /** @return array<string, array{string,string,string,string}> */
@@ -757,6 +757,7 @@ class AppReleaseFlowTest extends TestCase
     {
         return [
             'Android APK' => ['MathVerse-2.2.0.apk', 'android', 'apk', 'application/vnd.android.package-archive'],
+            'iOS IPA' => ['MathVerse-2.2.0.ipa', 'ios', 'ipa', 'application/x-itunes-ipa'],
         ];
     }
 
