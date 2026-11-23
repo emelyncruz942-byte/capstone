@@ -1,12 +1,14 @@
 @extends('layouts.app')
 @section('title', 'Request unavailable')
+@section('body-class', 'auth-page auth-single-page')
 @section('content')
 @php
     $incidentUser = request()->hasSession() ? request()->session()->get('supabase_user') : null;
     $canOpenSupportTicket = is_array($incidentUser)
         && in_array($incidentUser['role'] ?? null, ['student', 'teacher'], true);
 @endphp
-<main class="max-w-xl mx-auto p-8 text-center text-white">
+<main class="auth-single-shell status-page portal-frame auth-card max-w-xl mx-auto p-8 text-center text-white">
+    <span class="auth-panel-icon" aria-hidden="true"><i class="fas fa-life-ring"></i></span>
     <h1 class="font-orbitron text-xl mb-4">Request unavailable</h1>
     <p class="text-slate-300">{{ $message }}</p>
     <p class="text-sm text-slate-400 mt-4">Share this reference with an administrator: <code>{{ $reference }}</code></p>

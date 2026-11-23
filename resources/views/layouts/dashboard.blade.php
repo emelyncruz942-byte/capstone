@@ -1,22 +1,21 @@
 @extends('layouts.app')
 
-@section('body-class', 'flex min-h-screen text-white bg-black')
+@section('body-class', 'dashboard-page flex min-h-screen')
 
 @section('content')
 
 <button type="button" id="sidebar-overlay" class="fixed inset-0 bg-black/80 z-40 hidden md:hidden" data-action="toggleSidebar" data-action-args='[false]' aria-label="Close navigation"></button>
 
 <aside id="sidebar" data-dashboard-role="{{ $user['role'] ?? '' }}" aria-label="Primary navigation" class="dashboard-sidebar fixed inset-y-0 left-0 w-64 border-r @yield('sidebar-border', 'border-white/10') backdrop-blur-xl bg-black/60 flex flex-col p-6 z-50 transform -translate-x-full transition-transform duration-300 md:sticky md:top-0 md:h-screen md:translate-x-0">
-    <div class="mb-10 text-center">
-        <h1 class="font-orbitron text-xl font-black tracking-tighter text-white">
-            MATH<span class="@yield('accent-color', 'text-cyan-400')">VERSE</span>
-        </h1>
-        <p class="text-[9px] @yield('sidebar-subtitle-color', 'text-slate-500') tracking-[0.3em] uppercase font-bold">
+    <a href="/{{ in_array($user['role'] ?? '', ['student', 'teacher', 'admin'], true) ? $user['role'] : 'student' }}/dashboard" class="dashboard-brand" aria-label="MathVerse dashboard">
+        <span class="dashboard-brand-mark" aria-hidden="true"><i class="fas fa-shapes"></i></span>
+        <span><span class="dashboard-brand-name">Math<span>Verse</span></span>
+        <span class="dashboard-brand-subtitle">
             @yield('sidebar-subtitle')
-        </p>
-    </div>
+        </span></span>
+    </a>
 
-    <nav class="flex-1 space-y-2 overflow-y-auto">
+    <nav class="flex-1 space-y-2 overflow-y-auto" aria-label="{{ ucfirst($user['role'] ?? 'student') }} workspace">
         @yield('sidebar-nav')
     </nav>
 
@@ -38,9 +37,15 @@
         </div>
     </div>
 
-    <div class="desktop-notification-bar hidden md:flex items-center justify-end gap-3 mb-4">
-        @include('partials.notifications')
-        @include('partials.profile-menu')
+    <div class="desktop-notification-bar hidden md:flex items-center justify-between gap-3 mb-4">
+        <div class="workspace-heading">
+            <p>{{ ucfirst($user['role'] ?? 'student') }} workspace</p>
+            <span>MathVerse</span>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+            @include('partials.notifications')
+            @include('partials.profile-menu')
+        </div>
     </div>
 
     <div id="dashboard-content"

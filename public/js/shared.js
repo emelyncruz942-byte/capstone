@@ -166,7 +166,7 @@ const reducedMotionQuery = typeof window.matchMedia === 'function'
 let particleTimer = null;
 
 function syncBackgroundMotion() {
-    if (reducedMotionQuery.matches) {
+    if (reducedMotionQuery.matches || !document.getElementById('particle-container')) {
         clearInterval(particleTimer);
         particleTimer = null;
         const particleContainer = document.getElementById('particle-container');
@@ -639,6 +639,7 @@ function avatarPreviewState(input) {
         src: preview.getAttribute('src'),
         hidden: preview.hidden || preview.classList.contains('hidden'),
         placeholderHidden: placeholder?.hidden || placeholder?.classList.contains('hidden') || false,
+        cropSequence: 0,
     };
     avatarPreviewStates.set(input, state);
     return state;
@@ -655,6 +656,11 @@ function resetAvatarPreview(input) {
         state.placeholder.hidden = state.placeholderHidden;
         state.placeholder.classList.toggle('hidden', state.placeholderHidden);
     }
+    window.mathVerseAvatar?.syncImage(state.preview);
+}
+
+function clearPendingAvatarCrop(input) {
+    input.dataset.avatarCropPending = 'false';
 }
 
 function avatarValidationError(file) {
@@ -733,7 +739,7 @@ onMathVerseReady(() => {
         }));
 
         form.addEventListener('submit', event => {
-            if (!validateAvatarSize(input)) {
+            if (input.dataset.avatarCropPending === 'true' || !validateAvatarSize(input)) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
             }
@@ -745,10 +751,34 @@ function previewAvatar(input) {
     const file = input.files?.[0];
     const state = avatarPreviewState(input);
     if (!state) return;
+    const sequence = ++state.cropSequence;
     if (!validateAvatarSize(input) || !file) {
+        clearPendingAvatarCrop(input);
         resetAvatarPreview(input);
         return;
     }
+
+    const cropper = window.MathVerseAvatarCropper;
+    if (cropper && typeof cropper.crop === 'function') {
+        input.dataset.avatarCropPending = 'true';
+        Promise.resolve(cropper.crop(file)).then(cropped => {
+            if (!input.isConnected || state.cropSequence !== sequence || input.files?.[0] !== file) return;
+            clearPendingAvatarCrop(input);
+            if (!cropped) { input.value = ''; resetAvatarPreview(input); return; }
+            const transfer = new DataTransfer(); transfer.items.add(cropped); input.files = transfer.files;
+            if (!validateAvatarSize(input)) { input.value = ''; resetAvatarPreview(input); return; }
+            readAvatarPreview(input, state, cropped);
+        }).catch(() => {
+            if (!input.isConnected || state.cropSequence !== sequence || input.files?.[0] !== file) return;
+            clearPendingAvatarCrop(input); input.value = ''; resetAvatarPreview(input);
+            showToast('This photo could not be prepared. Please choose another image.', true);
+        });
+        return;
+    }
+    readAvatarPreview(input, state, file);
+}
+
+function readAvatarPreview(input, state, file) {
 
     const reader = new FileReader();
     reader.onload = e => {
@@ -762,6 +792,7 @@ function previewAvatar(input) {
             state.placeholder.hidden = true;
             state.placeholder.classList.add('hidden');
         }
+        window.mathVerseAvatar?.syncImage(state.preview);
     };
     reader.readAsDataURL(file);
 }

@@ -93,14 +93,14 @@ export function uploadFailureMessage(error) {
     if (status === 401 || status === 403) return `The secure R2 upload authorization was rejected (HTTP ${status}). Start the upload again.`;
     if (status === 409) return 'A build already exists for this version (HTTP 409). Use a new version number.';
     if (status === 413) return 'This build is larger than the configured game upload limit (HTTP 413).';
-    if (status === 415) return 'The storage service rejected this file type (HTTP 415). Upload a valid APK or IPA.';
+    if (status === 415) return 'The storage service rejected this file type (HTTP 415). Upload a valid Android APK.';
     if (status === 429) return 'The upload service is receiving too many requests (HTTP 429). Wait a moment, then retry.';
     if (status !== null) return `Cloudflare R2 could not accept the build (HTTP ${status}). Please retry.`;
     return 'The upload was interrupted before Cloudflare R2 returned a response. Check the connection and retry.';
 }
 
 export function isSupportedMobileBuild(fileName) {
-    return /\.(?:apk|ipa)$/i.test(String(fileName || ''));
+    return /\.apk$/i.test(String(fileName || ''));
 }
 
 export function putR2Part(url, blob, { onProgress = () => {}, signal, XMLHttpRequestConstructor } = {}) {
@@ -236,7 +236,7 @@ export async function beginUpload(form, dependencies = {}) {
         return null;
     }
     if (!isSupportedMobileBuild(file.name)) {
-        notifyUser('Choose an Android APK or an iOS IPA file.', true);
+        notifyUser('Choose an Android APK file.', true);
         return null;
     }
 

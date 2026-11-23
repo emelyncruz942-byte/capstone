@@ -242,7 +242,9 @@ function initializeNumberGuessGame() {
         const score = document.createElement('strong');
         score.className = 'number-guess-rank-score';
         score.textContent = String(row.best_score);
-        item.append(rank, identity, score);
+        const avatar = globalThis.mathVerseAvatar?.element({ display_name: row.display_name }, 32);
+        if (avatar) item.append(rank, avatar, identity, score);
+        else item.append(rank, identity, score);
 
         return item;
     }

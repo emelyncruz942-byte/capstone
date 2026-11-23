@@ -1,10 +1,12 @@
 @extends('layouts.app')
 
 @section('title', 'Confirm Email')
+@section('body-class', 'auth-page auth-single-page')
 
 @section('content')
-<main class="w-full max-w-sm z-20" aria-labelledby="confirmation-title">
-    <div class="portal-frame relative p-8 text-center">
+<main class="auth-single-shell w-full max-w-sm z-20" aria-labelledby="confirmation-title">
+    <div class="text-center mb-8"><a href="{{ route('login') }}" class="public-brand" aria-label="MathVerse home"><img src="{{ asset('logo-180.png') }}" width="40" height="40" alt="" aria-hidden="true"><span>Math<span class="public-brand-accent">Verse</span></span></a></div>
+    <div class="portal-frame auth-card relative p-8 text-center">
         <i class="fas fa-envelope-circle-check text-4xl text-cyan-400 mb-5" aria-hidden="true"></i>
         <h1 id="confirmation-title" class="font-orbitron text-xl font-black uppercase text-white">
             Confirming <span class="text-cyan-400">Email</span>

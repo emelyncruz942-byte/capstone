@@ -1,21 +1,53 @@
 const CHART_DEFAULTS = {
     color: {
-        cyan:   '#00f2ff',
-        purple: '#bc13fe',
-        pink:   '#ff00de',
-        green:  '#22c55e',
-        orange: '#f97316',
-        red:    '#ef4444',
-        grid:   'rgba(255,255,255,0.05)',
-        text:   'rgba(255,255,255,0.5)',
+        cyan:   '#2563eb',
+        purple: '#7c3aed',
+        pink:   '#be185d',
+        green:  '#0f766e',
+        orange: '#b45309',
+        red:    '#dc2626',
+        grid:   '#e2e8f0',
+        text:   '#64748b',
+        heading: '#0f172a',
+        surface: '#ffffff',
     }
 };
 
 function applyChartDefaults() {
+    if (typeof Chart === 'undefined') return;
     Chart.defaults.color       = CHART_DEFAULTS.color.text;
     Chart.defaults.borderColor = CHART_DEFAULTS.color.grid;
-    Chart.defaults.font.family = 'Rajdhani, sans-serif';
-    Chart.defaults.font.size   = 11;
+    Chart.defaults.font.family = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    Chart.defaults.font.size   = 13;
+    const reduceMotion = typeof globalThis.matchMedia === 'function'
+        && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    Chart.defaults.animation = reduceMotion ? false : { duration: 320 };
+}
+
+function chartTooltip(color = CHART_DEFAULTS.color.grid) {
+    return {
+        backgroundColor: CHART_DEFAULTS.color.surface,
+        borderColor: color,
+        borderWidth: 1,
+        titleColor: CHART_DEFAULTS.color.heading,
+        bodyColor: '#475569',
+        titleFont: { size: 14, weight: '600' },
+        bodyFont: { size: 13 },
+        cornerRadius: 10,
+        padding: 12,
+        displayColors: false,
+    };
+}
+
+function describeChart(canvas, title, labels, data) {
+    if (typeof canvas.setAttribute !== 'function') return;
+    // Canvas pixels are otherwise silent to assistive technology. Keep the
+    // overview concise even when the complete reporting history is plotted.
+    const values = labels.length <= 12
+        ? labels.map((label, index) => `${label}: ${data[index] ?? 0}`).join('; ')
+        : `${labels.length} reporting periods, from ${labels[0]} to ${labels[labels.length - 1]}. Latest value: ${data[data.length - 1] ?? 0}`;
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', `${title}. ${values}`);
 }
 
 // ── Chart builders ────────────────────────────────────────
@@ -23,6 +55,7 @@ function applyChartDefaults() {
 function buildLineChart(canvasId, labels, data, label, color) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
+    describeChart(ctx, label, labels, data);
     return new Chart(ctx, {
         type: 'line',
         data: {
@@ -31,11 +64,12 @@ function buildLineChart(canvasId, labels, data, label, color) {
                 label,
                 data,
                 borderColor:          color,
-                backgroundColor:      color + '20',
-                borderWidth:          2,
+                backgroundColor:      color + '12',
+                borderWidth:          2.5,
                 pointBackgroundColor: color,
                 pointRadius:          labels.length > 45 ? 0 : 3,
-                pointHoverRadius:     5,
+                pointHoverRadius:     6,
+                pointHitRadius:       16,
                 fill:                 true,
                 tension:              0.4,
             }]
@@ -45,18 +79,12 @@ function buildLineChart(canvasId, labels, data, label, color) {
             maintainAspectRatio: true,
             plugins: {
                 legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(5,5,5,0.9)',
-                    borderColor:     color,
-                    borderWidth:     1,
-                    titleColor:      color,
-                    bodyColor:       '#fff',
-                }
+                tooltip: chartTooltip(color)
             },
             scales: {
                 x: {
                     grid:  { color: CHART_DEFAULTS.color.grid },
-                    ticks: { color: CHART_DEFAULTS.color.text, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+                    ticks: { color: CHART_DEFAULTS.color.text, maxRotation: 30, autoSkip: true, maxTicksLimit: 8 }
                 },
                 y: {
                     beginAtZero: true,
@@ -71,6 +99,7 @@ function buildLineChart(canvasId, labels, data, label, color) {
 function buildBarChart(canvasId, labels, data, label, color) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
+    describeChart(ctx, label, labels, data);
     return new Chart(ctx, {
         type: 'bar',
         data: {
@@ -78,10 +107,11 @@ function buildBarChart(canvasId, labels, data, label, color) {
             datasets: [{
                 label,
                 data,
-                backgroundColor: color + '80',
+                backgroundColor: color + 'cc',
                 borderColor:     color,
                 borderWidth:     1,
-                borderRadius:    4,
+                borderRadius:    6,
+                maxBarThickness: 56,
             }]
         },
         options: {
@@ -90,11 +120,7 @@ function buildBarChart(canvasId, labels, data, label, color) {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(5,5,5,0.9)',
-                    borderColor:     color,
-                    borderWidth:     1,
-                    titleColor:      color,
-                    bodyColor:       '#fff',
+                    ...chartTooltip(color),
                     callbacks: {
                         label: ctx => ` ${ctx.parsed.y}%`
                     }
@@ -106,7 +132,8 @@ function buildBarChart(canvasId, labels, data, label, color) {
                     ticks: {
                         color:       CHART_DEFAULTS.color.text,
                         maxRotation: 45,
-                        font:        { size: 10 }
+                        font:        { size: 12 },
+                        autoSkip:    true,
                     }
                 },
                 y: {
@@ -127,40 +154,38 @@ function buildBarChart(canvasId, labels, data, label, color) {
 function buildDoughnutChart(canvasId, labels, data, colors) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
+    describeChart(ctx, 'Distribution', labels, data);
     return new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels,
             datasets: [{
                 data,
-                backgroundColor: colors.map(c => c + '99'),
-                borderColor:     colors,
-                borderWidth:     2,
-                hoverOffset:     8,
+                backgroundColor: colors,
+                borderColor:     CHART_DEFAULTS.color.surface,
+                borderWidth:     3,
+                hoverOffset:     5,
             }]
         },
         options: {
             responsive:          true,
             maintainAspectRatio: true,
-            cutout:              '65%',
+            cutout:              '70%',
             plugins: {
                 legend: {
                     display:  true,
                     position: 'bottom',
                     labels: {
-                        color:     '#fff',
-                        padding:   16,
-                        font:      { size: 11 },
-                        boxWidth:  12,
-                        boxHeight: 12,
+                        color:     '#475569',
+                        padding:   18,
+                        font:      { size: 13 },
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth:  10,
+                        boxHeight: 10,
                     }
                 },
-                tooltip: {
-                    backgroundColor: 'rgba(5,5,5,0.9)',
-                    borderWidth:     1,
-                    titleColor:      '#fff',
-                    bodyColor:       '#fff',
-                }
+                tooltip: chartTooltip()
             }
         }
     });

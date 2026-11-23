@@ -361,7 +361,7 @@ class StudentClassController extends Controller
             $lastInitial = mb_substr(trim((string) ($profile['last_name'] ?? '')), 0, 1);
             $defaultName = $lastInitial !== '' ? "{$firstName} {$lastInitial}." : $firstName;
             $visibleName = trim((string) ($profile['leaderboard_alias'] ?? '')) ?: $defaultName;
-            if (!($profile['show_on_leaderboard'] ?? true) && $member['student_id'] !== session('supabase_user')['id']) {
+            if (!($profile['show_on_leaderboard'] ?? false) && $member['student_id'] !== session('supabase_user')['id']) {
                 $visibleName = 'Anonymous Student';
             }
             $eligibleCount = count($studentEligibility);

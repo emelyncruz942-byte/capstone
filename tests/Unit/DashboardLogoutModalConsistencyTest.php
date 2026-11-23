@@ -72,7 +72,8 @@ class DashboardLogoutModalConsistencyTest extends TestCase
         $source = file_get_contents($this->views.'/app-releases/latest.blade.php');
 
         $this->assertStringContainsString("'teacher.partials.logout-modal' : 'student.partials.logout-modal'", $source);
-        $this->assertStringContainsString("'fa-mobile-screen' : 'fa-robot'", $source);
+        $this->assertStringContainsString('fas fa-robot text-3xl', $source);
+        $this->assertStringNotContainsString('iOS', $source);
         $this->assertStringContainsString('role="img" aria-label=', $source);
         $this->assertStringNotContainsString('class="fab ', $source);
     }

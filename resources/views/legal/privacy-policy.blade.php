@@ -2,29 +2,26 @@
 
 @section('title', 'Privacy Policy')
 @section('description', 'Read how MathVerse handles account, classroom, quiz, and application data for students, teachers, and administrators.')
-@section('body-class', 'min-h-screen p-4 sm:p-6 lg:p-10')
+@section('body-class', 'public-page legal-page')
 
 @section('content')
-<main class="relative z-20 mx-auto w-full max-w-4xl" aria-labelledby="privacy-title">
-    <header class="mb-6 text-center">
-        <a href="{{ route('login') }}" class="inline-block font-orbitron text-3xl font-black tracking-tighter text-white">
-            MATH<span class="text-cyan-400">VERSE</span>
+<main class="public-content relative z-20 mx-auto w-full max-w-4xl" aria-labelledby="privacy-title">
+    <header class="public-brand-bar">
+        <a href="{{ route('login') }}" class="public-brand" aria-label="MathVerse home">
+            <img src="{{ asset('logo-180.png') }}" width="40" height="40" alt="" aria-hidden="true">
+            <span>Math<span class="public-brand-accent">Verse</span></span>
         </a>
-        <p class="mt-2 text-[9px] font-bold uppercase tracking-[0.35em] text-slate-500">Public Information</p>
+        <a href="{{ route('login') }}" class="public-header-link">Sign in</a>
     </header>
 
-    <article class="portal-frame relative p-6 sm:p-10">
-        <div class="corner top-0 left-0 border-r-0 border-b-0" aria-hidden="true"></div>
-        <div class="corner top-0 right-0 border-l-0 border-b-0" aria-hidden="true"></div>
-        <div class="corner bottom-0 left-0 border-r-0 border-t-0" aria-hidden="true"></div>
-        <div class="corner bottom-0 right-0 border-l-0 border-t-0" aria-hidden="true"></div>
+    <article class="public-article portal-frame relative p-6 sm:p-10">
 
         <div class="border-b border-cyan-500/20 pb-6">
             <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400">Your information</p>
             <h1 id="privacy-title" class="mt-2 font-orbitron text-2xl font-black uppercase text-white sm:text-3xl">
                 Privacy <span class="text-cyan-400">Policy</span>
             </h1>
-            <p class="mt-3 text-xs text-slate-500">Last updated: <time datetime="2026-10-01">October 1, 2026</time></p>
+            <p class="mt-3 text-xs text-slate-500">Last updated: <time datetime="2026-11-23">November 23, 2026</time></p>
         </div>
 
         <div class="mt-8 space-y-8 text-sm leading-7 text-slate-300">
@@ -78,6 +75,7 @@
 
             <section aria-labelledby="privacy-choices">
                 <h2 id="privacy-choices" class="font-orbitron text-sm font-bold uppercase text-white">6. Your choices and requests</h2>
+                <p class="mt-3">Student profiles are anonymous to other students on rankings and peer views by default. Students can turn Anonymous profile off in their profile settings. While it is enabled, peer views hide the student's real name, photograph, and identifying initials. Authorized teachers and administrators can still see student identities and profile photographs to manage their classes and learning records.</p>
                 <p class="mt-3">
                     Users can review and update supported profile details in MathVerse and can disable browser notifications through their browser. To request access, correction, deletion, or help with an account or learning record, contact the teacher, school, or MathVerse administrator that provided the account. A request may require identity verification and may be limited where a record must be kept for security, classroom, or legal reasons.
                 </p>

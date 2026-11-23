@@ -1,52 +1,4 @@
 {
-  "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff": {
-    "file": "assets/orbitron-latin-400-normal-DBk4Dmer.woff",
-    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff"
-  },
-  "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff2": {
-    "file": "assets/orbitron-latin-400-normal-U6xZUhur.woff2",
-    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-400-normal.woff2"
-  },
-  "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff": {
-    "file": "assets/orbitron-latin-700-normal-DmYOh-W9.woff",
-    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff"
-  },
-  "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff2": {
-    "file": "assets/orbitron-latin-700-normal-4jsRXGGJ.woff2",
-    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-700-normal.woff2"
-  },
-  "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff": {
-    "file": "assets/orbitron-latin-900-normal-BbJatbhp.woff",
-    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff"
-  },
-  "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff2": {
-    "file": "assets/orbitron-latin-900-normal-DrIi7unX.woff2",
-    "src": "node_modules/@fontsource/orbitron/files/orbitron-latin-900-normal.woff2"
-  },
-  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff": {
-    "file": "assets/rajdhani-latin-500-normal-DfvNI-Td.woff",
-    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff"
-  },
-  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2": {
-    "file": "assets/rajdhani-latin-500-normal-ByNUCHrt.woff2",
-    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-500-normal.woff2"
-  },
-  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff": {
-    "file": "assets/rajdhani-latin-700-normal-e0Uj8ZlN.woff",
-    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff"
-  },
-  "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2": {
-    "file": "assets/rajdhani-latin-700-normal-BPDUZo87.woff2",
-    "src": "node_modules/@fontsource/rajdhani/files/rajdhani-latin-700-normal.woff2"
-  },
-  "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff": {
-    "file": "assets/share-tech-mono-latin-400-normal-15MgdvEM.woff",
-    "src": "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff"
-  },
-  "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2": {
-    "file": "assets/share-tech-mono-latin-400-normal-CCqdbj5z.woff2",
-    "src": "node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2"
-  },
   "node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.woff2": {
     "file": "assets/fa-regular-400-TCCU0xbi.woff2",
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-regular-400.woff2"
@@ -56,7 +8,7 @@
     "src": "node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-B7iFyu3-.css",
+    "file": "assets/app-xH6kfuc6.css",
     "name": "app",
     "names": [
       "app.css"
@@ -64,24 +16,12 @@
     "src": "resources/css/app.css",
     "isEntry": true,
     "assets": [
-      "assets/orbitron-latin-400-normal-U6xZUhur.woff2",
-      "assets/orbitron-latin-400-normal-DBk4Dmer.woff",
-      "assets/orbitron-latin-700-normal-4jsRXGGJ.woff2",
-      "assets/orbitron-latin-700-normal-DmYOh-W9.woff",
-      "assets/orbitron-latin-900-normal-DrIi7unX.woff2",
-      "assets/orbitron-latin-900-normal-BbJatbhp.woff",
-      "assets/rajdhani-latin-500-normal-ByNUCHrt.woff2",
-      "assets/rajdhani-latin-500-normal-DfvNI-Td.woff",
-      "assets/rajdhani-latin-700-normal-BPDUZo87.woff2",
-      "assets/rajdhani-latin-700-normal-e0Uj8ZlN.woff",
-      "assets/share-tech-mono-latin-400-normal-CCqdbj5z.woff2",
-      "assets/share-tech-mono-latin-400-normal-15MgdvEM.woff",
       "assets/fa-solid-900-tLH6XCuf.woff2",
       "assets/fa-regular-400-TCCU0xbi.woff2"
     ]
   },
   "resources/js/app-release-upload.js": {
-    "file": "assets/app-release-upload-XveDfHWk.js",
+    "file": "assets/app-release-upload-BApRfXE4.js",
     "name": "app-release-upload",
     "src": "resources/js/app-release-upload.js",
     "isEntry": true
