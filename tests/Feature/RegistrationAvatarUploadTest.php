@@ -33,7 +33,10 @@ class RegistrationAvatarUploadTest extends TestCase
         Http::assertSentCount(3);
         Http::assertSent(fn ($request): bool => $request->method() === 'POST'
             && str_contains($request->url(), '/storage/v1/object/avatars/'.self::USER_ID.'_')
-            && str_ends_with($request->url(), '.png') && $request->hasHeader('Content-Type', 'image/png'));
+            && str_ends_with($request->url(), '.jpg') && $request->hasHeader('Content-Type', 'image/jpeg')
+            && strlen($request->body()) <= \App\Support\SquareAvatarImage::MAX_COMPRESSED_BYTES
+            && (getimagesizefromstring($request->body())[0] ?? null) === 512
+            && (getimagesizefromstring($request->body())[1] ?? null) === 512);
         Http::assertSent(fn ($request): bool => $request->method() === 'PATCH'
             && str_contains($request->url(), '/rest/v1/profiles?id=eq.'.self::USER_ID)
             && str_starts_with($request['avatar_url'] ?? '', 'https://project.supabase.co/storage/v1/object/public/avatars/'.self::USER_ID.'_'));
@@ -68,8 +71,6 @@ class RegistrationAvatarUploadTest extends TestCase
     {
         return ['email' => 'student@example.test', 'password' => 'Password1!', 'password_confirmation' => 'Password1!',
             'role' => 'student', 'first_name' => 'Test', 'last_name' => 'Student', 'grade_level' => 4,
-            'avatar' => UploadedFile::fake()->createWithContent('avatar.png', base64_decode(
-                'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a7z8AAAAASUVORK5CYII='
-            ))];
+            'avatar' => UploadedFile::fake()->image('avatar.png', 800, 600)];
     }
 }

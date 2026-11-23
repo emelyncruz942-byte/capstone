@@ -40,6 +40,32 @@ class StudentController extends Controller
             ];
         }
 
+        // Look up photos only for rows already admitted by the leaderboard.
+        // Privacy is checked again here before any photo reaches the browser.
+        $photoRows = array_filter($leaderboard, fn (array $row): bool => $row['id'] === $user['id'] || $row['display_name'] !== 'Anonymous Student');
+        $photoIds = array_values(array_filter(array_column($photoRows, 'id'),
+            fn (string $id): bool => preg_match('/^[0-9a-f-]{36}$/i', $id) === 1));
+        $photoProfiles = [];
+        if ($photoIds !== []) {
+            try {
+                $photoProfiles = array_column($this->supabase->adminSelect('profiles', 'id,avatar_url,show_on_leaderboard', [
+                    'id' => ['operator' => 'in', 'value' => '('.implode(',', $photoIds).')'],
+                ]), null, 'id');
+            } catch (\Throwable) {
+                // A missing photo must never prevent access to the dashboard.
+            }
+        }
+        foreach ($leaderboard as &$student) {
+            $isMe = $student['id'] === $user['id'];
+            $photoProfile = $photoProfiles[$student['id']] ?? null;
+            $anonymous = !$isMe && ($student['display_name'] === 'Anonymous Student'
+                || ($photoProfile !== null && !($photoProfile['show_on_leaderboard'] ?? false)));
+            $student['is_anonymous'] = $anonymous;
+            if ($anonymous) $student['display_name'] = 'Anonymous Student';
+            $student['avatar_url'] = $anonymous ? null : ($photoProfile['avatar_url'] ?? ($isMe ? ($profile['avatar_url'] ?? null) : null));
+        }
+        unset($student);
+
         $memberships = $this->supabase->adminSelectHistory(
             'class_members',
             'class_id,joined_at',
@@ -341,12 +367,19 @@ class StudentController extends Controller
             'last_name' => 'required|string|max:100',
             'grade_level' => 'required|integer|between:1,6',
             'leaderboard_alias' => 'nullable|string|min:2|max:30',
+            'anonymous_profile' => 'nullable|boolean',
             'show_on_leaderboard' => 'nullable|boolean',
         ]);
 
         $user = session('supabase_user');
         $userId = $user['id'];
         $newGrade = (int) $validated['grade_level'];
+        // The new form expresses privacy positively. Keep old open tabs
+        // compatible; an unrelated edit must not resend a stale session flag.
+        $hasPrivacyChoice = $request->has('anonymous_profile') || $request->has('show_on_leaderboard');
+        $showOnLeaderboard = $request->has('anonymous_profile')
+            ? !$request->boolean('anonymous_profile')
+            : $request->boolean('show_on_leaderboard', (bool) ($user['show_on_leaderboard'] ?? false));
 
         try {
             if ($newGrade !== (int) ($user['grade_level'] ?? 0)) {
@@ -364,13 +397,16 @@ class StudentController extends Controller
                 }
             }
 
-            $profileUpdated = $this->supabase->updateProfile($userId, [
+            $profileChanges = [
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
                 'grade_level' => $newGrade,
                 'leaderboard_alias' => trim((string) ($validated['leaderboard_alias'] ?? '')) ?: null,
-                'show_on_leaderboard' => $request->boolean('show_on_leaderboard'),
-            ]);
+            ];
+            if ($hasPrivacyChoice) {
+                $profileChanges['show_on_leaderboard'] = $showOnLeaderboard;
+            }
+            $profileUpdated = $this->supabase->updateProfile($userId, $profileChanges);
         } catch (\Throwable $exception) {
             Log::warning('A student profile could not be updated.', [
                 'user_id' => $userId,
@@ -412,7 +448,8 @@ class StudentController extends Controller
         $updated['last_name'] = $validated['last_name'];
         $updated['grade_level'] = $newGrade;
         $updated['leaderboard_alias'] = trim((string) ($validated['leaderboard_alias'] ?? '')) ?: null;
-        $updated['show_on_leaderboard'] = $request->boolean('show_on_leaderboard');
+        $updated['show_on_leaderboard'] = (bool) ($profileUpdated[0]['show_on_leaderboard']
+            ?? ($hasPrivacyChoice ? $showOnLeaderboard : ($user['show_on_leaderboard'] ?? false)));
         if ($avatarUrl) {
             $updated['avatar_url'] = $avatarUrl;
         }

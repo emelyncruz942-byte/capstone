@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('body-class', 'flex min-h-screen text-white bg-black')
+@section('body-class', 'dashboard-page flex min-h-screen text-white bg-black')
 
 @section('content')
 

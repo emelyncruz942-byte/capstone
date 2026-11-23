@@ -225,7 +225,7 @@
                 @forelse($leaderboard as $row)
                     <tr class="border-b border-white/5">
                         <td class="py-4 font-mono text-yellow-400">#{{ $row['rank'] }}</td>
-                        <td class="py-4 font-bold">{{ $row['name'] }}</td>
+                        <td class="py-4 font-bold"><div class="user-identity">@include('partials.user-avatar', ['avatarUser' => $row, 'avatarSize' => 36, 'avatarDecorative' => true])<span class="user-identity-name">{{ $row['name'] }}</span></div></td>
                         <td class="py-4 text-slate-400">{{ $row['quizzes'] }} / {{ $row['eligible'] }}</td>
                         <td class="py-4 text-purple-400 font-bold">{{ $row['completion_rate'] }}%</td>
                         <td class="py-4 {{ $row['missed'] > 0 ? 'text-red-400' : 'text-slate-500' }}">{{ $row['missed'] }}</td>
@@ -264,7 +264,7 @@
                         $studentName = trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
                     @endphp
                     <tr class="border-b border-white/5 {{ $member['grade_mismatch'] ? 'bg-red-500/5' : '' }}">
-                        <td class="py-4 font-bold">{{ $student['last_name'] ?? 'Unknown' }}, {{ $student['first_name'] ?? 'Unknown' }}</td>
+                        <td class="py-4 font-bold"><div class="user-identity">@include('partials.user-avatar', ['avatarUser' => $student, 'avatarSize' => 36, 'avatarDecorative' => true])<span class="user-identity-name">{{ $student['last_name'] ?? 'Unknown' }}, {{ $student['first_name'] ?? 'Unknown' }}</span></div></td>
                         <td class="py-4 text-slate-400">{{ $student['email'] ?? 'N/A' }}</td>
                         <td class="py-4 {{ $member['grade_mismatch'] ? 'text-red-400 font-bold' : 'text-cyan-400' }}">
                             Grade {{ $student['grade_level'] ?? 'N/A' }}

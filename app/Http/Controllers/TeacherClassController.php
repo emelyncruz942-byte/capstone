@@ -65,7 +65,7 @@ class TeacherClassController extends Controller
         $customization = $this->customization($id);
         $members = $this->supabase->adminSelectHistory(
             'class_members',
-            'student_id,joined_at,profiles(id,username,last_name,email,first_name,grade_level,level)',
+            'student_id,joined_at,profiles(id,username,last_name,email,first_name,grade_level,level,avatar_url)',
             ['class_id' => $id, 'order' => 'joined_at.asc']
         );
         $mismatchedMembers = 0;
@@ -429,7 +429,7 @@ class TeacherClassController extends Controller
 
         $participants = $this->supabase->adminSelect(
             'quiz_participants',
-            'student_id,profiles(first_name,last_name,level)',
+            'student_id,profiles(first_name,last_name,level,avatar_url)',
             ['session_id' => $sessionId]
         );
 
@@ -460,7 +460,7 @@ class TeacherClassController extends Controller
 
         $eligibility = $this->supabase->adminSelect(
             'quiz_session_students',
-            'student_id,eligibility_status,allowed_attempts,excuse_reason,retake_due_at,profiles!quiz_session_students_student_id_fkey(first_name,last_name,email)',
+            'student_id,eligibility_status,allowed_attempts,excuse_reason,retake_due_at,profiles!quiz_session_students_student_id_fkey(first_name,last_name,email,avatar_url)',
             ['session_id' => $sessionId]
         );
 
@@ -1173,6 +1173,7 @@ class TeacherClassController extends Controller
             $rows[] = [
                 'student_id' => $studentId,
                 'name' => trim(($profile['first_name'] ?? '').' '.($profile['last_name'] ?? '')) ?: 'Unknown Student',
+                'avatar_url' => $profile['avatar_url'] ?? null,
                 'average' => $eligibleCount > 0 ? round(array_sum($accuracies) / $eligibleCount, 1) : 0,
                 'quizzes' => $completedCount,
                 'eligible' => $eligibleCount,

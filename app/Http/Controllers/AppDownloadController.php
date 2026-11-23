@@ -31,6 +31,7 @@ class AppDownloadController extends Controller
                 '*',
                 [
                     'status' => 'ready',
+                    'platform' => 'android',
                     'is_active' => true,
                     'order' => 'activated_at.desc',
                     'limit' => 2,
@@ -43,7 +44,7 @@ class AppDownloadController extends Controller
             $result = ['data' => [], 'error' => 'unavailable'];
         }
 
-        $releases = ($result['error'] ?? null) === null ? $result['data'] : [];
+        $releases = ($result['error'] ?? null) === null ? array_values(array_filter($result['data'], fn (array $release): bool => ($release['platform'] ?? 'android') === 'android')) : [];
         $releasesReady = ($result['error'] ?? null) === null;
 
         return view('app-releases.latest', compact('user', 'releases', 'releasesReady'));
@@ -60,6 +61,7 @@ class AppDownloadController extends Controller
                 'id' => $releaseId,
                 'status' => 'ready',
                 'is_active' => true,
+                'platform' => 'android',
             ]);
         } catch (\Throwable $exception) {
             Log::warning('A Unity app download could not be prepared.', [
@@ -70,7 +72,7 @@ class AppDownloadController extends Controller
         }
 
         $release = $result['data'][0] ?? null;
-        if (($result['error'] ?? null) !== null || ! is_array($release)) {
+        if (($result['error'] ?? null) !== null || ! is_array($release) || ($release['platform'] ?? 'android') !== 'android') {
             return redirect()->route('app-downloads.index')
                 ->with('error', 'The current game download is temporarily unavailable.');
         }

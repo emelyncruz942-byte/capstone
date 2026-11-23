@@ -1,0 +1,41 @@
+/* Shared improvements: the same layout, typography and control geometry in
+   both themes. Palette differences belong only in theme-colors.css. */
+html[data-theme] body.app-body { color: var(--mv-ink); font-size: 17px; line-height: 1.55; }
+html[data-theme] .app-body :is(.text-xs, .text-sm) { font-size: 15px; line-height: 1.55; }
+html[data-theme] .app-body :is([class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="text-[12px]"], [class~="text-[13px]"], [class~="!text-[8px]"], [class~="!text-[9px]"], [class~="!text-[10px]"], [class~="!text-[11px]"], [class~="!text-[12px]"], [class~="!text-[13px]"]) { font-size: 14px !important; line-height: 1.5; }
+html[data-theme] .app-body :is(.input-label, .form-label) { color: var(--mv-muted); font-size: 14px; line-height: 1.5; letter-spacing: .06em; }
+html[data-theme] .app-body :is(button, [role="button"], .btn-mobile-ultra, .btn-rect-primary, .btn-rect-secondary, .btn-rect-danger, .modal-cancel) { min-height: 44px; min-width: 44px; font-size: 16px !important; line-height: 1.45; letter-spacing: .04em; }
+html[data-theme] .app-body :is(.btn-mobile-ultra, .btn-rect-primary, .btn-rect-secondary, .btn-rect-danger) { white-space: normal; overflow-wrap: anywhere; }
+html[data-theme] .app-body :is(button, [role="button"], .btn-mobile-ultra, .btn-rect-primary, .btn-rect-secondary, .btn-rect-danger) > span[class*="text-"] { font-size: 16px !important; }
+html[data-theme] .app-body .nav-link { min-height: 44px; font-size: 16px; line-height: 1.45; letter-spacing: .04em; }
+html[data-theme] .app-body .modal-cancel { color: var(--mv-muted); }
+html[data-theme] .app-body .modal-cancel:hover { color: var(--neon-cyan); }
+html[data-theme] .app-body .role-card { color: var(--mv-muted); font-size: 14px; }
+html[data-theme] .app-body .peer:focus-visible + .role-card { outline: 3px solid var(--neon-cyan); outline-offset: 3px; }
+html[data-theme] .app-body :is(.input-field, .input-mobile-ultra, .arcade-answer-input, .number-guess-input) { min-height: 46px; font-size: 16px !important; }
+html[data-theme] .app-body :is(input, textarea)::placeholder { color: var(--mv-muted) !important; -webkit-text-fill-color: var(--mv-muted) !important; opacity: 1 !important; }
+html[data-theme] .app-body :is(select:required:invalid, .temporal-input-empty) { color: var(--mv-muted) !important; -webkit-text-fill-color: var(--mv-muted) !important; }
+html[data-theme] .app-body .input-icon { color: var(--mv-muted); }
+html[data-theme] .app-body input[type="file"]::file-selector-button { min-height: 44px; font-size: 16px !important; line-height: 1.5; cursor: pointer; }
+html[data-theme] .app-body :is(table, .analytics-table) { font-size: 15px; }
+html[data-theme] .app-body :is(th, .analytics-table th) { color: var(--mv-muted); font-size: 14px; line-height: 1.5; letter-spacing: .04em; }
+html[data-theme] .app-body :is(td, .analytics-table td) { font-size: 15px; line-height: 1.5; }
+html[data-theme] .app-body :is(.analytics-kicker, .analytics-value + small, .analytics-topic-row p, .analytics-compact-row p, .analytics-table td small, .analytics-empty, .analytics-day small, .audit-filter-grid label > span, .health-overall span, .health-small-stat span, .health-failure p, .health-empty, .health-detail-list dt, .number-guess-stat span, .number-guess-rank small, .arcade-badge small, .arcade-badge-state, .arcade-card-description, .arcade-card-eyebrow, .arcade-grade-chip small, .arcade-mini-stats small) { color: var(--mv-muted); font-size: 14px; line-height: 1.5; letter-spacing: .04em; }
+html[data-theme] .app-body :is(.solo-stats-link, .solo-back-link, .solo-class-chip, .analytics-topic-row, .analytics-compact-row, .health-failure, .health-code-list, .health-detail-list > div, .practice-hud-pill, .number-guess-stage kbd, .arcade-badge strong, .audit-signal, .health-badge) { font-size: 14px; line-height: 1.5; }
+html[data-theme] .app-body .practice-choice-label { font-size: 16px; }
+html[data-theme] .app-body .modal-overlay p { font-size: 15px !important; line-height: 1.55; }
+html[data-theme] .app-body [role="dialog"] > .portal-frame { max-height: calc(100vh - 3rem); max-height: calc(100dvh - 3rem); overflow-y: auto; overscroll-behavior: contain; }
+html[data-theme] .app-body header.portal-frame [style*="color:"] { color: var(--mv-ink) !important; }
+html[data-theme] .app-body .dashboard-sidebar { padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem)); }
+html[data-theme] .app-body .app-shell-main { padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem)); }
+html[data-theme] .app-body .theme-toggle { position: fixed; left: max(.75rem, env(safe-area-inset-left)); bottom: max(.75rem, env(safe-area-inset-bottom)); z-index: 80; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: 9rem; padding: .65rem .75rem; border: 1px solid var(--mv-line); border-radius: 4px; color: var(--mv-ink); background: var(--mv-panel); font: 700 16px/1.45 'Rajdhani', sans-serif; cursor: pointer; }
+html[data-theme] .app-body .theme-toggle i { width: 1em; color: var(--neon-cyan); }
+html[data-theme] .app-body :is(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid var(--neon-cyan); outline-offset: 3px; }
+html[data-theme="dark"] .app-body :is([class~="text-slate-400"], [class~="text-slate-500"], [class~="text-slate-600"], [class~="text-gray-400"], [class~="text-gray-500"], [class~="text-gray-600"]) { color: var(--mv-muted) !important; }
+@media (forced-colors: active) {
+    html[data-theme] .app-body :is(.theme-toggle, .portal-frame, .btn-rect-primary, .btn-rect-secondary) { border-color: CanvasText; }
+    html[data-theme] .app-body :focus-visible { outline-color: Highlight; }
+}
+@media (max-width: 767px) {
+    html[data-theme] .app-body:not(.dashboard-page) footer { padding-bottom: 4rem; }
+}

@@ -1,21 +1,70 @@
-const CHART_DEFAULTS = {
-    color: {
-        cyan:   '#00f2ff',
-        purple: '#bc13fe',
-        pink:   '#ff00de',
-        green:  '#22c55e',
-        orange: '#f97316',
-        red:    '#ef4444',
-        grid:   'rgba(255,255,255,0.05)',
-        text:   'rgba(255,255,255,0.5)',
+const CHART_PALETTES = {
+    light: {
+        cyan:   '#2563eb',
+        purple: '#7c3aed',
+        pink:   '#be185d',
+        green:  '#0f766e',
+        orange: '#b45309',
+        red:    '#dc2626',
+        grid:   '#e2e8f0',
+        text:   '#526078',
+        heading: '#0f172a',
+        surface: '#ffffff',
+        body: '#475569',
+    },
+    dark: {
+        cyan: '#22d3ee', purple: '#a78bfa', pink: '#f472b6',
+        green: '#4ade80', orange: '#fbbf24', red: '#fb7185',
+        grid: '#2c3c54', text: '#c4d2e7', heading: '#f1f5f9',
+        surface: '#111c2e', body: '#c4d2e7',
     }
 };
+const currentChartTheme = () => document.documentElement?.dataset?.theme === 'light' ? 'light' : 'dark';
+const CHART_DEFAULTS = { color: CHART_PALETTES[currentChartTheme()] };
+const themedCharts = new Map();
+
+function rememberChart(chart, kind, colors) {
+    const keys = colors.map(color => Object.keys(CHART_DEFAULTS.color).find(key => CHART_DEFAULTS.color[key] === color) || color);
+    themedCharts.set(chart, { kind, colors: keys });
+    return chart;
+}
 
 function applyChartDefaults() {
+    CHART_DEFAULTS.color = CHART_PALETTES[currentChartTheme()];
+    if (typeof Chart === 'undefined') return;
     Chart.defaults.color       = CHART_DEFAULTS.color.text;
     Chart.defaults.borderColor = CHART_DEFAULTS.color.grid;
     Chart.defaults.font.family = 'Rajdhani, sans-serif';
-    Chart.defaults.font.size   = 11;
+    Chart.defaults.font.size   = 14;
+    const reduceMotion = typeof globalThis.matchMedia === 'function'
+        && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    Chart.defaults.animation = reduceMotion ? false : { duration: 320 };
+}
+
+function chartTooltip(color = CHART_DEFAULTS.color.grid) {
+    return {
+        backgroundColor: CHART_DEFAULTS.color.surface,
+        borderColor: color,
+        borderWidth: 1,
+        titleColor: CHART_DEFAULTS.color.heading,
+        bodyColor: CHART_DEFAULTS.color.body,
+        titleFont: { size: 14, weight: '600' },
+        bodyFont: { size: 14 },
+        cornerRadius: 10,
+        padding: 12,
+        displayColors: false,
+    };
+}
+
+function describeChart(canvas, title, labels, data) {
+    if (typeof canvas.setAttribute !== 'function') return;
+    // Canvas pixels are otherwise silent to assistive technology. Keep the
+    // overview concise even when the complete reporting history is plotted.
+    const values = labels.length <= 12
+        ? labels.map((label, index) => `${label}: ${data[index] ?? 0}`).join('; ')
+        : `${labels.length} reporting periods, from ${labels[0]} to ${labels[labels.length - 1]}. Latest value: ${data[data.length - 1] ?? 0}`;
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', `${title}. ${values}`);
 }
 
 // ── Chart builders ────────────────────────────────────────
@@ -23,7 +72,8 @@ function applyChartDefaults() {
 function buildLineChart(canvasId, labels, data, label, color) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
-    return new Chart(ctx, {
+    describeChart(ctx, label, labels, data);
+    const chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels,
@@ -36,6 +86,7 @@ function buildLineChart(canvasId, labels, data, label, color) {
                 pointBackgroundColor: color,
                 pointRadius:          labels.length > 45 ? 0 : 3,
                 pointHoverRadius:     5,
+                pointHitRadius:       16,
                 fill:                 true,
                 tension:              0.4,
             }]
@@ -45,18 +96,12 @@ function buildLineChart(canvasId, labels, data, label, color) {
             maintainAspectRatio: true,
             plugins: {
                 legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(5,5,5,0.9)',
-                    borderColor:     color,
-                    borderWidth:     1,
-                    titleColor:      color,
-                    bodyColor:       '#fff',
-                }
+                tooltip: chartTooltip(color)
             },
             scales: {
                 x: {
                     grid:  { color: CHART_DEFAULTS.color.grid },
-                    ticks: { color: CHART_DEFAULTS.color.text, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+                    ticks: { color: CHART_DEFAULTS.color.text, maxRotation: 30, autoSkip: true, maxTicksLimit: 8 }
                 },
                 y: {
                     beginAtZero: true,
@@ -66,12 +111,14 @@ function buildLineChart(canvasId, labels, data, label, color) {
             }
         }
     });
+    return rememberChart(chart, 'line', [color]);
 }
 
 function buildBarChart(canvasId, labels, data, label, color) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
-    return new Chart(ctx, {
+    describeChart(ctx, label, labels, data);
+    const chart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels,
@@ -90,11 +137,7 @@ function buildBarChart(canvasId, labels, data, label, color) {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(5,5,5,0.9)',
-                    borderColor:     color,
-                    borderWidth:     1,
-                    titleColor:      color,
-                    bodyColor:       '#fff',
+                    ...chartTooltip(color),
                     callbacks: {
                         label: ctx => ` ${ctx.parsed.y}%`
                     }
@@ -106,7 +149,8 @@ function buildBarChart(canvasId, labels, data, label, color) {
                     ticks: {
                         color:       CHART_DEFAULTS.color.text,
                         maxRotation: 45,
-                        font:        { size: 10 }
+                        font:        { size: 14 },
+                        autoSkip:    true,
                     }
                 },
                 y: {
@@ -122,18 +166,20 @@ function buildBarChart(canvasId, labels, data, label, color) {
             }
         }
     });
+    return rememberChart(chart, 'bar', [color]);
 }
 
 function buildDoughnutChart(canvasId, labels, data, colors) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
-    return new Chart(ctx, {
+    describeChart(ctx, 'Distribution', labels, data);
+    const chart = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels,
             datasets: [{
                 data,
-                backgroundColor: colors.map(c => c + '99'),
+                backgroundColor: colors.map(color => color + '99'),
                 borderColor:     colors,
                 borderWidth:     2,
                 hoverOffset:     8,
@@ -148,22 +194,50 @@ function buildDoughnutChart(canvasId, labels, data, colors) {
                     display:  true,
                     position: 'bottom',
                     labels: {
-                        color:     '#fff',
+                        color:     CHART_DEFAULTS.color.body,
                         padding:   16,
-                        font:      { size: 11 },
+                        font:      { size: 14 },
                         boxWidth:  12,
                         boxHeight: 12,
                     }
                 },
-                tooltip: {
-                    backgroundColor: 'rgba(5,5,5,0.9)',
-                    borderWidth:     1,
-                    titleColor:      '#fff',
-                    bodyColor:       '#fff',
-                }
+                tooltip: chartTooltip()
             }
         }
     });
+    return rememberChart(chart, 'doughnut', colors);
+}
+
+function refreshChartTheme() {
+    applyChartDefaults();
+    const palette = CHART_DEFAULTS.color;
+    for (const [chart, details] of themedCharts) {
+        if (!chart.canvas || chart.canvas.isConnected === false || chart.ctx === null) {
+            themedCharts.delete(chart);
+            continue;
+        }
+        const colors = details.colors.map(key => palette[key] || key);
+        const dataset = chart.data.datasets[0];
+        if (details.kind === 'doughnut') {
+            dataset.backgroundColor = colors.map(color => color + '99');
+            dataset.borderColor = colors;
+        } else {
+            dataset.borderColor = colors[0];
+            dataset.backgroundColor = colors[0] + (details.kind === 'line' ? '20' : '80');
+            if (details.kind === 'line') dataset.pointBackgroundColor = colors[0];
+        }
+        // Preserve data, callbacks, selection, and cached history. Only repaint
+        // the existing chart's presentation; theme changes never fetch records.
+        const tooltip = chart.options.plugins.tooltip;
+        Object.assign(tooltip, chartTooltip(details.kind === 'doughnut' ? palette.grid : colors[0]));
+        const labels = chart.options.plugins.legend?.labels;
+        if (labels) { labels.color = palette.body; labels.font = { ...labels.font, size: 14 }; }
+        for (const axis of Object.values(chart.options.scales || {})) {
+            if (axis.grid) axis.grid.color = palette.grid;
+            if (axis.ticks) axis.ticks.color = palette.text;
+        }
+        chart.update('none');
+    }
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -172,7 +246,7 @@ function destroyCharts(ids) {
     if (typeof Chart === 'undefined') return;
     ids.forEach(id => {
         const existing = Chart.getChart(id);
-        if (existing) existing.destroy();
+        if (existing) { themedCharts.delete(existing); existing.destroy(); }
     });
 }
 
@@ -399,3 +473,4 @@ document.addEventListener('mathverse:before-navigate', () => {
     ]);
 });
 document.addEventListener('mathverse:data-changed', clearStatsCache);
+document.addEventListener('mathverse:themechange', refreshChartTheme);

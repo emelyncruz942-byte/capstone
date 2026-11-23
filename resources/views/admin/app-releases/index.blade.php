@@ -24,7 +24,7 @@
                 Game <span class="text-cyan-400">Releases</span>
             </h2>
             <p class="mt-3 max-w-2xl text-sm text-slate-400">
-                Upload Android APK or iOS IPA builds. A completed upload becomes current for its platform; you can return to any earlier ready version.
+                Upload Android APK builds. A completed upload becomes current; you can return to an earlier ready version.
             </p>
         </div>
     </div>
@@ -54,9 +54,9 @@
             </label>
 
             <label class="block">
-                <span class="form-label">Android APK or iOS IPA</span>
+                <span class="form-label">Android APK</span>
                 <input class="input-field file:mr-4 file:rounded file:border-0 file:bg-cyan-400 file:px-4 file:py-2 file:text-xs file:font-black file:text-black"
-                       type="file" name="release_file" accept=".apk,.ipa" required @disabled(!($uploadsReady ?? false))>
+                       type="file" name="release_file" accept=".apk" required @disabled(!($uploadsReady ?? false))>
             </label>
 
             <label class="block">
@@ -92,11 +92,11 @@
             @else
                 <div class="space-y-4">
                     @foreach($releases as $release)
+                        @continue(($release['platform'] ?? 'android') !== 'android')
                         @php
                             $status = (string) ($release['status'] ?? 'uploading');
                             $isActive = (bool) ($release['is_active'] ?? false);
                             $deletionPending = !empty($release['deletion_requested_at']);
-                            $platform = strtolower((string) ($release['platform'] ?? 'android'));
                             $sizeBytes = (int) ($release['size_bytes'] ?? $release['expected_size_bytes'] ?? 0);
                             $sizeLabel = $sizeBytes > 0 ? number_format($sizeBytes / 1048576, 1) . ' MB' : 'Pending';
                         @endphp
@@ -104,8 +104,7 @@
                             <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                 <div class="min-w-0">
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <i class="fas {{ $platform === 'ios' ? 'fa-mobile-screen' : 'fa-robot' }} text-cyan-400"
-                                           aria-label="{{ $platform === 'ios' ? 'iOS build' : 'Android build' }}"></i>
+                                        <i class="fas fa-robot text-cyan-400" aria-label="Android build"></i>
                                         <h4 class="font-orbitron font-black">Version {{ $release['version'] ?? '—' }}</h4>
                                         @if($isActive)
                                             <span class="rounded-full border border-green-400/40 bg-green-400/10 px-2.5 py-1 text-[8px] font-black uppercase text-green-300">Current</span>
@@ -116,7 +115,7 @@
                                         @endif
                                     </div>
                                     <p class="mt-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                        {{ $platform === 'ios' ? 'iOS · IPA' : 'Android · APK' }} &nbsp;•&nbsp; {{ $sizeLabel }}
+                                        Android · APK &nbsp;•&nbsp; {{ $sizeLabel }}
                                     </p>
                                     @if(!empty($release['release_notes']))
                                         <p class="mt-3 whitespace-pre-line text-sm leading-5 text-slate-300">{{ $release['release_notes'] }}</p>
@@ -205,7 +204,7 @@
         <h3 id="release-delete-title" class="font-orbitron font-bold uppercase">Delete game version?</h3>
         <p id="release-delete-version" class="mt-3 text-sm text-slate-300"></p>
         <p class="mt-2 text-xs leading-5 text-slate-500">
-            Its private APK or IPA file and version record will be permanently removed. The current version is always protected.
+            Its private APK file and version record will be permanently removed. The current version is always protected.
         </p>
         <form id="releaseDeleteForm" method="POST" class="mt-7">
             @csrf

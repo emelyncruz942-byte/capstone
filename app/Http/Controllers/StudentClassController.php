@@ -317,7 +317,7 @@ class StudentClassController extends Controller
 
         $members = $this->supabase->adminSelect(
             'class_members',
-            'student_id,profiles(first_name,last_name,leaderboard_alias,show_on_leaderboard)',
+            'student_id,profiles(first_name,last_name,leaderboard_alias,show_on_leaderboard,avatar_url)',
             ['class_id' => $classId]
         );
         $results = $this->supabase->adminSelect(
@@ -361,7 +361,8 @@ class StudentClassController extends Controller
             $lastInitial = mb_substr(trim((string) ($profile['last_name'] ?? '')), 0, 1);
             $defaultName = $lastInitial !== '' ? "{$firstName} {$lastInitial}." : $firstName;
             $visibleName = trim((string) ($profile['leaderboard_alias'] ?? '')) ?: $defaultName;
-            if (!($profile['show_on_leaderboard'] ?? true) && $member['student_id'] !== session('supabase_user')['id']) {
+            $anonymous = !($profile['show_on_leaderboard'] ?? false) && $member['student_id'] !== session('supabase_user')['id'];
+            if ($anonymous) {
                 $visibleName = 'Anonymous Student';
             }
             $eligibleCount = count($studentEligibility);
@@ -372,6 +373,8 @@ class StudentClassController extends Controller
             $rows[] = [
                 'student_id' => $member['student_id'],
                 'name' => $visibleName,
+                'is_anonymous' => $anonymous,
+                'avatar_url' => $anonymous ? null : ($profile['avatar_url'] ?? null),
                 'average' => $eligibleCount > 0 ? round(array_sum($accuracies) / $eligibleCount, 1) : 0,
                 'quizzes' => $completedCount,
                 'eligible' => $eligibleCount,

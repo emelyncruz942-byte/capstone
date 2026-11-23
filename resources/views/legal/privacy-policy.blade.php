@@ -24,7 +24,7 @@
             <h1 id="privacy-title" class="mt-2 font-orbitron text-2xl font-black uppercase text-white sm:text-3xl">
                 Privacy <span class="text-cyan-400">Policy</span>
             </h1>
-            <p class="mt-3 text-xs text-slate-500">Last updated: <time datetime="2026-10-01">October 1, 2026</time></p>
+            <p class="mt-3 text-xs text-slate-500">Last updated: <time datetime="2026-11-24">November 24, 2026</time></p>
         </div>
 
         <div class="mt-8 space-y-8 text-sm leading-7 text-slate-300">
@@ -78,6 +78,7 @@
 
             <section aria-labelledby="privacy-choices">
                 <h2 id="privacy-choices" class="font-orbitron text-sm font-bold uppercase text-white">6. Your choices and requests</h2>
+                <p class="mt-3">Student profiles are anonymous to other students on rankings and peer views by default. Students can turn Anonymous profile off in their profile settings. While it is enabled, peer views hide the student's real name, photograph, and identifying initials. Authorized teachers and administrators can still see student identities and profile photographs to manage their classes and learning records.</p>
                 <p class="mt-3">
                     Users can review and update supported profile details in MathVerse and can disable browser notifications through their browser. To request access, correction, deletion, or help with an account or learning record, contact the teacher, school, or MathVerse administrator that provided the account. A request may require identity verification and may be limited where a record must be kept for security, classroom, or legal reasons.
                 </p>

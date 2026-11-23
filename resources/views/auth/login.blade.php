@@ -60,7 +60,7 @@
                             <input type="password" id="lPass" name="password" required
                                    class="input-mobile-ultra pr-12" placeholder="Enter password"
                                    autocomplete="current-password" data-login-credential="password">
-                            <button type="button" data-action="tglPass" data-action-args='["lPass","lIcon"]'
+                            <button type="button" data-action="tglPass" data-action-args='["lPass","lIcon"]' aria-label="Show or hide password"
                                     class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-8 flex items-center justify-center text-slate-500">
                                 <i id="lIcon" class="fas fa-eye-slash"></i>
                             </button>
@@ -98,14 +98,14 @@
                     @csrf
                     <div class="grid grid-cols-2 gap-2 mb-2">
                         <label class="cursor-pointer">
-                            <input type="radio" name="role" value="student" class="hidden peer" checked data-change-action="toggleGradeLevel">
+                            <input type="radio" name="role" value="student" class="sr-only peer" checked data-change-action="toggleGradeLevel">
                             <div class="role-card peer-checked:border-cyan-500 peer-checked:bg-cyan-500/10">
                                 <i class="fas fa-user-graduate mb-1 text-sm block"></i>
                                 <span class="text-[9px] font-bold uppercase">Student</span>
                             </div>
                         </label>
                         <label class="cursor-pointer">
-                            <input type="radio" name="role" value="pending_teacher" class="hidden peer" data-change-action="toggleGradeLevel">
+                            <input type="radio" name="role" value="pending_teacher" class="sr-only peer" data-change-action="toggleGradeLevel">
                             <div class="role-card peer-checked:border-purple-500 peer-checked:bg-purple-500/10">
                                 <i class="fas fa-chalkboard-teacher mb-1 text-sm block"></i>
                                 <span class="text-[9px] font-bold uppercase">Teacher</span>
@@ -116,14 +116,7 @@
                     <div class="form-group">
                         <label class="input-label">Profile Picture</label>
                         <div class="flex items-center gap-4">
-                            {{-- Preview circle --}}
-                            <div class="w-16 h-16 rounded-full border-2 border-white/10 bg-white/5 flex items-center justify-center overflow-hidden shrink-0" id="avatar-preview-wrap" data-avatar-preview-wrap>
-                                <i class="fas fa-user text-2xl text-slate-600" id="avatar-placeholder" data-avatar-placeholder aria-hidden="true"></i>
-                                <img id="avatar-preview" data-avatar-preview hidden
-                                     alt="Selected profile picture" width="64" height="64"
-                                     loading="lazy" decoding="async"
-                                     class="w-full h-full object-cover">
-                            </div>
+                            @include('partials.user-avatar', ['avatarUser' => ['first_name' => old('first_name', ''), 'last_name' => old('last_name', '')], 'avatarSize' => 64, 'avatarPreview' => true, 'avatarRegistration' => true])
                             <div class="flex-1">
                                 <label for="avatar-input"
                                     class="cursor-pointer block w-full text-center border border-white/10 bg-white/5 hover:bg-white/10 transition-all rounded px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white">
@@ -131,35 +124,35 @@
                                 </label>
                                 <input type="file" id="avatar-input" name="avatar"
                                     accept="image/jpeg,image/png,image/webp" class="hidden">
-                                <p class="text-[9px] text-slate-600 mt-1 text-center">JPG, PNG • 2 MB or less</p>
+                                <p class="text-[9px] text-slate-600 mt-1 text-center">JPG, PNG, WebP • 2 MB or less</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
                         <div class="form-group">
-                            <label class="input-label">First Name</label>
+                            <label for="rFirstName" class="input-label">First Name</label>
                             <div class="relative">
                                 <i class="fas fa-user input-icon"></i>
-                                <input type="text" name="first_name" placeholder="First Name" required
+                                <input type="text" id="rFirstName" name="first_name" placeholder="First Name" required autocomplete="given-name"
                                        class="input-mobile-ultra">
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="input-label">Last Name</label>
+                            <label for="rLastName" class="input-label">Last Name</label>
                             <div class="relative">
                                 <i class="fas fa-id-card input-icon"></i>
-                                <input type="text" name="last_name" placeholder="Last Name" required
+                                <input type="text" id="rLastName" name="last_name" placeholder="Last Name" required autocomplete="family-name"
                                        class="input-mobile-ultra">
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group" id="grade-level-field">
-                        <label class="input-label">Grade Level</label>
+                        <label for="rGrade" class="input-label">Grade Level</label>
                         <div class="relative">
                             <i class="fas fa-graduation-cap input-icon"></i>
-                            <select name="grade_level" class="input-mobile-ultra bg-slate-900 text-white">
+                            <select id="rGrade" name="grade_level" class="input-mobile-ultra bg-slate-900 text-white">
                                 @for($g = 1; $g <= 6; $g++)
                                     <option value="{{ $g }}">Grade {{ $g }}</option>
                                 @endfor
@@ -168,16 +161,16 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="input-label">Email Address</label>
+                        <label for="rEmail" class="input-label">Email Address</label>
                         <div class="relative">
                             <i class="fas fa-at input-icon"></i>
-                            <input type="email" name="email" placeholder="Enter email" required
+                            <input type="email" id="rEmail" name="email" placeholder="Enter email" required autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email"
                                    class="input-mobile-ultra">
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label class="input-label">Password</label>
+                        <label for="rPass" class="input-label">Password</label>
                         <div class="relative">
                             <i class="fas fa-key input-icon"></i>
                             <input type="password" id="rPass" name="password" minlength="8" maxlength="128"
@@ -185,7 +178,7 @@
                                    title="Use 8 or more characters with uppercase, lowercase, a number, and a symbol."
                                    autocomplete="new-password" placeholder="Create password" required
                                    class="input-mobile-ultra pr-12">
-                            <button type="button" data-action="tglPass" data-action-args='["rPass","rIco"]'
+                            <button type="button" data-action="tglPass" data-action-args='["rPass","rIco"]' aria-label="Show or hide password"
                                     class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-8 flex items-center justify-center text-slate-500">
                                 <i id="rIco" class="fas fa-eye-slash"></i>
                             </button>
@@ -194,14 +187,14 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="input-label">Confirm Password</label>
+                        <label for="rcPass" class="input-label">Confirm Password</label>
                         <div class="relative">
                             <i class="fas fa-shield-alt input-icon"></i>
                             <input type="password" id="rcPass" name="password_confirmation" minlength="8" maxlength="128"
                                    pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}"
                                    title="Use 8 or more characters with uppercase, lowercase, a number, and a symbol."
                                    autocomplete="new-password" placeholder="Re-type password" required class="input-mobile-ultra pr-12">
-                            <button type="button" data-action="tglPass" data-action-args='["rcPass","rcIco"]'
+                            <button type="button" data-action="tglPass" data-action-args='["rcPass","rcIco"]' aria-label="Show or hide password confirmation"
                                     class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-8 flex items-center justify-center text-slate-500">
                                 <i id="rcIco" class="fas fa-eye-slash"></i>
                             </button>
@@ -231,20 +224,20 @@
 </div>
 
 {{-- Forgot Password Modal --}}
-<div id="forgotModal" class="fixed inset-0 bg-black/40 z-[3000] flex items-center justify-center p-6 hidden">
+<div id="forgotModal" class="fixed inset-0 bg-black/40 z-[3000] flex items-center justify-center p-6 hidden" role="dialog" aria-modal="true" aria-labelledby="recovery-title">
     <div class="portal-frame w-full max-w-xs p-8 shadow-[0_0_100px_rgba(0,0,0,1)]">
         <div class="flex justify-between items-center mb-6 border-b border-cyan-500/30 pb-4">
-            <h2 class="text-2xl font-orbitron font-black text-white tracking-tighter uppercase">
+            <h2 id="recovery-title" class="text-2xl font-orbitron font-black text-white tracking-tighter uppercase">
                 Account <span class="text-cyan-400">Recovery</span>
             </h2>
         </div>
         <form method="POST" action="/forgot-password">
             @csrf
             <div class="form-group mb-6">
-                <label class="input-label">Registered Email</label>
+                <label for="recoveryEmail" class="input-label">Registered Email</label>
                 <div class="relative">
                     <i class="fas fa-envelope input-icon"></i>
-                    <input type="email" name="email" placeholder="Enter your email" class="input-mobile-ultra" required>
+                    <input type="email" id="recoveryEmail" name="email" placeholder="Enter your email" class="input-mobile-ultra" required autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email">
                 </div>
             </div>
             <button type="submit" class="btn-mobile-ultra !py-4 mb-4">Send Reset Link</button>

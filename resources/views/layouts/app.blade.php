@@ -8,13 +8,14 @@
     $flashToastIsError = $errors->any() || session()->has('error');
 @endphp
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#05070d">
-    <meta name="color-scheme" content="dark">
+    <meta name="color-scheme" content="dark light">
+    <script nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/theme.js') }}?v={{ filemtime(public_path('js/theme.js')) }}"></script>
     <meta name="apple-mobile-web-app-capable" content="yes">
     @include('partials.seo')
 
@@ -25,16 +26,21 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}">
 
     @stack('head')
+    <link rel="stylesheet" href="{{ asset('css/avatars.css') }}?v={{ filemtime(public_path('css/avatars.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/avatar-cropper.css') }}?v={{ filemtime(public_path('css/avatar-cropper.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/theme-colors.css') }}?v={{ filemtime(public_path('css/theme-colors.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/interface-readability.css') }}?v={{ filemtime(public_path('css/interface-readability.css')) }}">
 </head>
 <body class="app-body @yield('body-class', 'flex items-center justify-center p-4 min-h-screen')">
 
     <div id="mathverse-navigation-progress" aria-hidden="true"></div>
 
     {{-- Background effects used on every page --}}
-    <div class="stars-container"></div>
-    <div class="digital-rain"></div>
-    <div class="cyber-grid"></div>
-    <div id="particle-container"></div>
+    <div class="stars-container" aria-hidden="true"></div>
+    <div class="digital-rain" aria-hidden="true"></div>
+    <div class="cyber-grid" aria-hidden="true"></div>
+    <div id="particle-container" aria-hidden="true"></div>
+    @include('partials.theme-toggle')
 
     @yield('content')
 
@@ -84,7 +90,9 @@
         <i class="fas fa-arrow-up" aria-hidden="true"></i>
     </button>
 
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/avatar-cropper.js') }}?v={{ filemtime(public_path('js/avatar-cropper.js')) }}"></script>
     <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/shared.js') }}?v={{ filemtime(public_path('js/shared.js')) }}"></script>
+    <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/avatars.js') }}?v={{ filemtime(public_path('js/avatars.js')) }}"></script>
     <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/auth-submission.js') }}?v={{ filemtime(public_path('js/auth-submission.js')) }}"></script>
     <script defer nonce="{{ request()->attributes->get('csp_nonce') }}" src="{{ asset('js/back-to-top.js') }}?v={{ filemtime(public_path('js/back-to-top.js')) }}"></script>
 

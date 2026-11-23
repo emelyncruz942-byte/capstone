@@ -46,7 +46,7 @@ class AppReleaseFlowTest extends TestCase
         $database->shouldReceive('adminSelectResult')->once()->with(
             'unity_app_releases',
             '*',
-            ['status' => 'ready', 'is_active' => true, 'order' => 'activated_at.desc', 'limit' => 2],
+            ['status' => 'ready', 'platform' => 'android', 'is_active' => true, 'order' => 'activated_at.desc', 'limit' => 2],
         )->andReturn(['data' => [$this->release(), $this->release([
             'id' => self::HISTORICAL,
             'platform' => 'ios',
@@ -59,13 +59,13 @@ class AppReleaseFlowTest extends TestCase
         $this->withSession(['supabase_user' => $this->user($role)])
             ->get('/game-download')
             ->assertOk()
-            ->assertViewHas('releases', fn (array $releases): bool => count($releases) === 2)
+            ->assertViewHas('releases', fn (array $releases): bool => count($releases) === 1)
             ->assertSee('Download for Android')
-            ->assertSee('Download for iOS')
+            ->assertDontSee('Download for iOS')
             ->assertSee('id="logoutModal"', false)
             ->assertSee('Are you sure you want to log out?')
             ->assertSee('role="img" aria-label="Android build"', false)
-            ->assertSee('role="img" aria-label="iOS build"', false)
+            ->assertDontSee('role="img" aria-label="iOS build"', false)
             ->assertDontSee('class="fab ', false)
             ->assertSee('btn-rect-primary mt-6 flex items-center justify-center px-6 text-center', false);
     }
@@ -76,8 +76,10 @@ class AppReleaseFlowTest extends TestCase
         $database->shouldReceive('adminSelectResult')->once()->with(
             'unity_app_releases',
             '*,storage_provider,provider_upload_id,object_etag,multipart_part_size',
-            ['order' => 'created_at.desc', 'limit' => 100],
-        )->andReturn(['data' => [$this->release()], 'error' => null]);
+            ['platform' => 'android', 'order' => 'created_at.desc', 'limit' => 100],
+        )->andReturn(['data' => [$this->release(), $this->release([
+            'id' => self::HISTORICAL, 'platform' => 'ios', 'artifact_kind' => 'ipa', 'version' => '9.9.9',
+        ])], 'error' => null]);
         $r2 = $this->mock(CloudflareR2Service::class);
         $r2->shouldReceive('configured')->once()->andReturn(false);
 
@@ -85,6 +87,10 @@ class AppReleaseFlowTest extends TestCase
             ->get('/admin/game-releases')
             ->assertOk()
             ->assertSee('Cloudflare R2 is not configured')
+            ->assertSee('accept=".apk"', false)
+            ->assertDontSee('9.9.9')
+            ->assertDontSee('IPA')
+            ->assertDontSee('iOS')
             ->assertSee('id="logoutModal"', false)
             ->assertSee('Ending Root Session')
             ->assertSee('disabled', false);
@@ -96,7 +102,7 @@ class AppReleaseFlowTest extends TestCase
         $database->shouldReceive('adminSelectResult')->once()->with(
             'unity_app_releases',
             '*,storage_provider,provider_upload_id,object_etag,multipart_part_size',
-            ['order' => 'created_at.desc', 'limit' => 100],
+            ['platform' => 'android', 'order' => 'created_at.desc', 'limit' => 100],
         )->andReturn([
             'data' => [],
             'error' => 'column unity_app_releases.storage_provider does not exist',
@@ -117,7 +123,7 @@ class AppReleaseFlowTest extends TestCase
         $database->shouldReceive('adminSelectResult')->once()->with(
             'unity_app_releases',
             '*,storage_provider,provider_upload_id,object_etag,multipart_part_size',
-            ['order' => 'created_at.desc', 'limit' => 100],
+            ['platform' => 'android', 'order' => 'created_at.desc', 'limit' => 100],
         )->andReturn(['data' => [
             $this->release([
                 'status' => 'failed',
@@ -318,7 +324,8 @@ class AppReleaseFlowTest extends TestCase
                 'version' => '2.2.0', 'file_name' => $fileName, 'file_size' => 75000000,
             ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors('file_name');
+            ->assertJsonValidationErrors('file_name')
+            ->assertJsonPath('errors.file_name.0', 'Only Android APK game builds are supported.');
     }
 
     #[DataProvider('supportedBuilds')]
@@ -685,7 +692,7 @@ class AppReleaseFlowTest extends TestCase
         $release = $this->release();
         $database = $this->mock(SupabaseService::class);
         $database->shouldReceive('adminSelectResult')->once()->with(
-            'unity_app_releases', '*', ['id' => self::RELEASE, 'status' => 'ready', 'is_active' => true],
+            'unity_app_releases', '*', ['id' => self::RELEASE, 'status' => 'ready', 'is_active' => true, 'platform' => 'android'],
         )->andReturn(['data' => [$release], 'error' => null]);
         $database->shouldNotReceive('createStorageSignedDownload');
         $r2 = $this->mock(CloudflareR2Service::class);
@@ -719,6 +726,39 @@ class AppReleaseFlowTest extends TestCase
             ->assertRedirect('https://project.supabase.co/storage/v1/object/sign/unity-releases/game.apk?token=signed');
     }
 
+    #[DataProvider('downloadRoles')]
+    public function test_non_android_releases_cannot_be_downloaded_through_a_saved_link(string $role): void
+    {
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminSelectResult')->once()->andReturn([
+            'data' => [$this->release(['platform' => 'ios', 'artifact_kind' => 'ipa'])], 'error' => null,
+        ]);
+        $database->shouldNotReceive('createStorageSignedDownload');
+        $r2 = $this->mock(CloudflareR2Service::class);
+        $r2->shouldNotReceive('createSignedDownload');
+
+        $this->withSession(['supabase_user' => $this->user($role)])
+            ->get('/game-download/'.self::RELEASE)
+            ->assertRedirect('/game-download')
+            ->assertSessionHas('error');
+    }
+
+    public function test_admin_cannot_download_a_non_android_release_through_a_saved_link(): void
+    {
+        $database = $this->mock(SupabaseService::class);
+        $database->shouldReceive('adminSelectResult')->once()->andReturn([
+            'data' => [$this->release(['platform' => 'ios', 'artifact_kind' => 'ipa'])], 'error' => null,
+        ]);
+        $database->shouldNotReceive('createStorageSignedDownload');
+        $r2 = $this->mock(CloudflareR2Service::class);
+        $r2->shouldNotReceive('createSignedDownload');
+
+        $this->withSession(['supabase_user' => $this->user('admin')])
+            ->get('/admin/game-releases/'.self::RELEASE.'/download')
+            ->assertRedirect('/admin/game-releases')
+            ->assertSessionHas('error');
+    }
+
     public function test_missing_provider_migration_has_an_exact_setup_message(): void
     {
         $database = $this->mock(SupabaseService::class);
@@ -749,7 +789,7 @@ class AppReleaseFlowTest extends TestCase
     /** @return array<string, array{string}> */
     public static function unsupportedBuilds(): array
     {
-        return ['bundle' => ['MathVerse.aab'], 'archive' => ['MathVerse.zip'], 'executable' => ['MathVerse.exe']];
+        return ['unsupported mobile format' => ['MathVerse.ipa'], 'bundle' => ['MathVerse.aab'], 'archive' => ['MathVerse.zip'], 'executable' => ['MathVerse.exe']];
     }
 
     /** @return array<string, array{string,string,string,string}> */
@@ -757,7 +797,6 @@ class AppReleaseFlowTest extends TestCase
     {
         return [
             'Android APK' => ['MathVerse-2.2.0.apk', 'android', 'apk', 'application/vnd.android.package-archive'],
-            'iOS IPA' => ['MathVerse-2.2.0.ipa', 'ios', 'ipa', 'application/x-itunes-ipa'],
         ];
     }
 

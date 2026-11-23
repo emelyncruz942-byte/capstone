@@ -1,0 +1,69 @@
+/* The photo widgets share one layout in both modes; only these colors change. */
+:root {
+ --avatar-ink:#e9eff8; --avatar-muted:#b4c1d4; --avatar-line:#35445a; --avatar-surface:#101a2b; --avatar-soft:#152337;
+ --avatar-focus:#67e8f9; --avatar-hover:#1c324b; --avatar-primary:#67e8f9; --avatar-primary-hover:#a5f3fc; --avatar-primary-ink:#09202b;
+ --avatar-error-line:#b45064; --avatar-error-bg:#421d2b; --avatar-error-ink:#fecdd3;
+ --avatar-tone-0-bg:#293956; --avatar-tone-0-ink:#dce8ff; --avatar-tone-1-bg:#173f3b; --avatar-tone-1-ink:#baf0df;
+ --avatar-tone-2-bg:#3c2c52; --avatar-tone-2-ink:#ecd8ff; --avatar-tone-3-bg:#483821; --avatar-tone-3-ink:#ffe4bb;
+ --avatar-tone-4-bg:#243c55; --avatar-tone-4-ink:#c7e5ff; --avatar-tone-5-bg:#4a293e; --avatar-tone-5-ink:#ffdaeb;
+}
+html[data-theme="light"] {
+ --avatar-ink:#172b40; --avatar-muted:#465b71; --avatar-line:#b7cedc; --avatar-surface:#ffffff; --avatar-soft:#eaf2f8;
+ --avatar-focus:#0e7490; --avatar-hover:#e0f2fe; --avatar-primary:#0e7490; --avatar-primary-hover:#155e75; --avatar-primary-ink:#ffffff;
+ --avatar-error-line:#f4b4be; --avatar-error-bg:#fff1f2; --avatar-error-ink:#9f1239;
+ --avatar-tone-0-bg:#e8edff; --avatar-tone-0-ink:#3e4a9c; --avatar-tone-1-bg:#e4f3ef; --avatar-tone-1-ink:#17634f;
+ --avatar-tone-2-bg:#f3eafb; --avatar-tone-2-ink:#764394; --avatar-tone-3-bg:#fff0dd; --avatar-tone-3-ink:#89500d;
+ --avatar-tone-4-bg:#e4f0ff; --avatar-tone-4-ink:#235f9b; --avatar-tone-5-bg:#fbe7ee; --avatar-tone-5-ink:#97425e;
+}
+.user-avatar {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--avatar-line);
+    border-radius: .625rem;
+    overflow: hidden;
+    vertical-align: middle;
+    background: var(--avatar-tone-0-bg);
+    color: var(--avatar-tone-0-ink);
+    font-family: inherit;
+    font-size: .875rem;
+    font-weight: 700;
+    letter-spacing: -.025em;
+    line-height: 1;
+    text-transform: none;
+    isolation: isolate;
+}
+.user-avatar--32 { width: 2rem; height: 2rem; font-size: .75rem; }
+.user-avatar--36 { width: 2.25rem; height: 2.25rem; font-size: .8125rem; }
+.user-avatar--40 { width: 2.5rem; height: 2.5rem; }
+.user-avatar--44 { width: 2.75rem; height: 2.75rem; font-size: .9375rem; }
+.user-avatar--48 { width: 3rem; height: 3rem; font-size: 1rem; }
+.user-avatar--64 { width: 4rem; height: 4rem; font-size: 1.375rem; }
+.user-avatar--tone-0 { background: var(--avatar-tone-0-bg); color: var(--avatar-tone-0-ink); }
+.user-avatar--tone-1 { background: var(--avatar-tone-1-bg); color: var(--avatar-tone-1-ink); }
+.user-avatar--tone-2 { background: var(--avatar-tone-2-bg); color: var(--avatar-tone-2-ink); }
+.user-avatar--tone-3 { background: var(--avatar-tone-3-bg); color: var(--avatar-tone-3-ink); }
+.user-avatar--tone-4 { background: var(--avatar-tone-4-bg); color: var(--avatar-tone-4-ink); }
+.user-avatar--tone-5 { background: var(--avatar-tone-5-bg); color: var(--avatar-tone-5-ink); }
+.user-avatar > img,
+.user-avatar > [data-avatar-preview] {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    border-radius: inherit;
+    z-index: 1;
+}
+.user-avatar [hidden] { display: none !important; }
+.user-identity { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.user-identity > .user-identity-name { min-width: 0; overflow-wrap: anywhere; }
+@media (forced-colors: active) {
+    .user-avatar { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+}
