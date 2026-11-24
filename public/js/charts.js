@@ -12,10 +12,11 @@ const CHART_PALETTES = {
 // even on the light site surface.
 const CHART_DEFAULTS = { color: CHART_PALETTES.dark };
 const themedCharts = new Map();
+let chartRenderVersion = 0;
+const CHART_EVENTS = ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'];
 
-function rememberChart(chart, kind, colors) {
-    const keys = colors.map(color => Object.keys(CHART_DEFAULTS.color).find(key => CHART_DEFAULTS.color[key] === color) || color);
-    themedCharts.set(chart, { kind, colors: keys });
+function rememberChart(chart) {
+    themedCharts.set(chart, true);
     return chart;
 }
 
@@ -69,16 +70,6 @@ function chartInteraction() {
     return { mode: 'nearest', intersect: false };
 }
 
-function canRepaintChart(chart) {
-    const canvas = chart?.canvas;
-    if (!canvas || canvas.isConnected === false || chart.ctx === null) return false;
-    // Updating Chart.js while a dashboard section is display:none gives the
-    // canvas a zero-sized layout and can leave it blank when shown again.
-    // The chart will be rebuilt from the in-memory report cache when its
-    // section becomes visible, so defer its palette repaint instead.
-    return typeof canvas.getClientRects !== 'function' || canvas.getClientRects().length > 0;
-}
-
 function isLiveChart(chart) {
     return Boolean(chart?.canvas && chart.canvas.isConnected !== false && chart.ctx !== null);
 }
@@ -87,6 +78,53 @@ function pruneCharts() {
     for (const [chart] of themedCharts) {
         if (!isLiveChart(chart)) themedCharts.delete(chart);
     }
+}
+
+function toggleDoughnutLegendItem(_event, legendItem, legend) {
+    const chart = legend?.chart;
+    const index = legendItem?.index;
+    if (!chart || !Number.isInteger(index)) return;
+
+    // Chart.js normally supplies this behavior for doughnuts. Making it
+    // explicit prevents a global/default legend setting from disabling the
+    // useful "click to exclude" interaction on report charts.
+    if (typeof chart.toggleDataVisibility === 'function') {
+        chart.toggleDataVisibility(index);
+    } else {
+        const arc = chart.getDatasetMeta?.(0)?.data?.[index];
+        if (arc) arc.hidden = !arc.hidden;
+    }
+    chart.update();
+}
+
+function isStatsPanelVisible(role) {
+    const dashboard = document.getElementById('dashboard-content');
+    const content = document.getElementById('stats-content');
+    return dashboard?.dataset?.dashboardRole === role
+        && content != null
+        && !content.classList.contains('hidden');
+}
+
+function isDashboardRole(role) {
+    return document.getElementById('dashboard-content')?.dataset?.dashboardRole === role;
+}
+
+function scheduleStatsRender(role, chartIds, render) {
+    const version = ++chartRenderVersion;
+    const draw = () => {
+        if (version !== chartRenderVersion || !isStatsPanelVisible(role)) return;
+        destroyCharts(chartIds);
+        render();
+    };
+
+    // Two paints let the now-visible section obtain its real dimensions before
+    // Chart.js measures it. Do not resize already-created hidden canvases:
+    // that is what caused intermittent blank charts after section/theme work.
+    if (typeof globalThis.requestAnimationFrame === 'function') {
+        globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(draw));
+        return;
+    }
+    globalThis.setTimeout(draw, 0);
 }
 
 function describeChart(canvas, title, labels, data) {
@@ -127,6 +165,7 @@ function buildLineChart(canvasId, labels, data, label, color) {
         options: {
             responsive:          true,
             maintainAspectRatio: true,
+            events:              CHART_EVENTS,
             interaction:         chartInteraction(),
             plugins: {
                 legend: { display: false },
@@ -145,7 +184,7 @@ function buildLineChart(canvasId, labels, data, label, color) {
             }
         }
     });
-    return rememberChart(chart, 'line', [color]);
+    return rememberChart(chart);
 }
 
 function buildBarChart(canvasId, labels, data, label, color) {
@@ -168,6 +207,7 @@ function buildBarChart(canvasId, labels, data, label, color) {
         options: {
             responsive:          true,
             maintainAspectRatio: true,
+            events:              CHART_EVENTS,
             interaction:         chartInteraction(),
             plugins: {
                 legend: { display: false },
@@ -201,7 +241,7 @@ function buildBarChart(canvasId, labels, data, label, color) {
             }
         }
     });
-    return rememberChart(chart, 'bar', [color]);
+    return rememberChart(chart);
 }
 
 function buildDoughnutChart(canvasId, labels, data, colors) {
@@ -223,12 +263,14 @@ function buildDoughnutChart(canvasId, labels, data, colors) {
         options: {
             responsive:          true,
             maintainAspectRatio: true,
+            events:              CHART_EVENTS,
             interaction:         chartInteraction(),
             cutout:              '65%',
             plugins: {
                 legend: {
                     display:  true,
                     position: 'bottom',
+                    onClick:  toggleDoughnutLegendItem,
                     labels: {
                         color:     CHART_DEFAULTS.color.body,
                         padding:   16,
@@ -241,22 +283,7 @@ function buildDoughnutChart(canvasId, labels, data, colors) {
             }
         }
     });
-    return rememberChart(chart, 'doughnut', colors);
-}
-
-function refreshVisibleCharts() {
-    for (const [chart] of themedCharts) {
-        if (!isLiveChart(chart)) {
-            themedCharts.delete(chart);
-            continue;
-        }
-        if (!canRepaintChart(chart)) continue;
-        // The palette never changes with the site theme. Only remeasure an
-        // already-visible canvas after dashboard navigation; data, callbacks,
-        // and tooltip behavior remain intact.
-        chart.resize?.();
-        chart.update('none');
-    }
+    return rememberChart(chart);
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -279,6 +306,11 @@ function showStatsError(message) {
     text.className = 'text-red-500 text-xs uppercase tracking-widest font-orbitron';
     text.textContent = String(message ?? 'Analytics could not be loaded.');
     el.replaceChildren(icon, text);
+}
+
+function setStatText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = value;
 }
 
 // ── Cache ─────────────────────────────────────────────────
@@ -333,6 +365,7 @@ async function cachedStats(kind, url, { foreground = true } = {}) {
 // ── Teacher stats ─────────────────────────────────────────
 
 async function loadTeacherStats(options = {}) {
+    if (!isDashboardRole('teacher')) return;
     const loading = document.getElementById('stats-loading');
     const content = document.getElementById('stats-content');
     if (typeof Chart === 'undefined') {
@@ -350,19 +383,20 @@ async function loadTeacherStats(options = {}) {
 
     try {
         const data = await cachedStats('teacher', '/teacher/stats', options);
+        if (!isDashboardRole('teacher')) return;
 
         // Populate summary cards
-        document.getElementById('stat-total-attempts').innerText = data.totalAttempts ?? '0';
-        document.getElementById('stat-avg-accuracy').innerText   = (data.avgAccuracy ?? 0) + '%';
-        document.getElementById('stat-total-quizzes').innerText  = data.totalQuizzes ?? '0';
+        setStatText('stat-total-attempts', data.totalAttempts ?? '0');
+        setStatText('stat-avg-accuracy', (data.avgAccuracy ?? 0) + '%');
+        setStatText('stat-total-quizzes', data.totalQuizzes ?? '0');
 
         // Swap spinner for content
         loading?.classList.add('hidden');
         content?.classList.remove('hidden');
 
-        // Draw charts after content is painted
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            destroyCharts(['chart-attempts', 'chart-distribution', 'chart-class-accuracy']);
+        // Draw only after the section is visible and has real dimensions.
+        // A newer navigation/render supersedes an old scheduled response.
+        scheduleStatsRender('teacher', ['chart-attempts', 'chart-distribution', 'chart-class-accuracy'], () => {
 
             buildLineChart(
                 'chart-attempts',
@@ -398,7 +432,7 @@ async function loadTeacherStats(options = {}) {
                     '<p class="text-slate-500 text-xs text-center mt-4 uppercase tracking-widest">No active class attempts yet.</p>'
                 );
             }
-        }));
+        });
 
     } catch (err) {
         console.error('Teacher stats error:', err);
@@ -411,6 +445,7 @@ async function loadTeacherStats(options = {}) {
 // ── Admin stats ───────────────────────────────────────────
 
 async function loadAdminStats(options = {}) {
+    if (!isDashboardRole('admin')) return;
     const loading = document.getElementById('stats-loading');
     const content = document.getElementById('stats-content');
     if (typeof Chart === 'undefined') {
@@ -427,16 +462,16 @@ async function loadAdminStats(options = {}) {
 
     try {
         const data = await cachedStats('admin', '/admin/stats', options);
+        if (!isDashboardRole('admin')) return;
 
-        document.getElementById('stat-total-attempts').innerText = data.totalAttempts ?? '0';
-        document.getElementById('stat-avg-accuracy').innerText   = (data.avgAccuracy ?? 0) + '%';
-        document.getElementById('stat-total-users').innerText    = data.totalUsers ?? '0';
+        setStatText('stat-total-attempts', data.totalAttempts ?? '0');
+        setStatText('stat-avg-accuracy', (data.avgAccuracy ?? 0) + '%');
+        setStatText('stat-total-users', data.totalUsers ?? '0');
 
         loading?.classList.add('hidden');
         content?.classList.remove('hidden');
 
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            destroyCharts(['chart-attempts', 'chart-registrations', 'chart-roles', 'chart-distribution']);
+        scheduleStatsRender('admin', ['chart-attempts', 'chart-registrations', 'chart-roles', 'chart-distribution'], () => {
 
             buildLineChart(
                 'chart-attempts',
@@ -480,7 +515,7 @@ async function loadAdminStats(options = {}) {
                     CHART_DEFAULTS.color.green,
                 ]
             );
-        }));
+        });
 
     } catch (err) {
         console.error('Admin stats error:', err);
@@ -491,6 +526,7 @@ async function loadAdminStats(options = {}) {
 }
 
 document.addEventListener('mathverse:before-navigate', () => {
+    chartRenderVersion++;
     destroyCharts([
         'chart-attempts',
         'chart-distribution',
@@ -501,13 +537,10 @@ document.addEventListener('mathverse:before-navigate', () => {
 });
 document.addEventListener('mathverse:data-changed', clearStatsCache);
 document.addEventListener('mathverse:themechange', () => {
-    // Site colors do not recolor report charts; only remove stale instances.
+    // Site colors do not recolor report charts. In particular, do not resize
+    // or update canvases here: Chart.js can measure a hidden dashboard panel
+    // as 0×0 and leave the next visible render blank.
     applyChartDefaults();
     pruneCharts();
 });
 document.addEventListener('mathverse:charts-ready', applyChartDefaults);
-document.addEventListener('mathverse:section-change', () => {
-    // A previously hidden analytics section becomes measurable on the next
-    // frame. Remeasure it then without recoloring the chart.
-    requestAnimationFrame(refreshVisibleCharts);
-});

@@ -861,9 +861,8 @@ html[data-theme="light"] .app-body .btn-rect-secondary[class*="hover:!bg-red"]:h
 html[data-theme="light"] .analytics-meter span { background: linear-gradient(90deg, #fb7185, #facc15); }
 html[data-theme="light"] .analytics-day-bar { background: linear-gradient(180deg, #22d3ee, #7c3aed); }
 
-/* Native file-picker buttons do not consistently inherit Tailwind's
- * file:text-white utility. Dark mode intentionally keeps its original dark
- * label; only the light-mode release picker needs this white foreground. */
+/* The base (dark) picker uses black text on cyan. Only the light-mode
+ * override needs a different foreground for contrast. */
 html[data-theme="light"] .app-body .app-release-file-input::file-selector-button {
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;

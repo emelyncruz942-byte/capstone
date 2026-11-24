@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../../public/js/charts.js', import.meta.url), 'utf8');
 const themeColors = readFileSync(new URL('../../public/css/theme-colors.css', import.meta.url), 'utf8');
+const baseStyles = readFileSync(new URL('../../public/css/style.css', import.meta.url), 'utf8');
 
 function fixture({ reduceMotion = false, theme = 'dark', chartAvailable = true } = {}) {
     const listeners = new Map();
@@ -20,7 +21,10 @@ function fixture({ reduceMotion = false, theme = 'dark', chartAvailable = true }
         this.data = configuration.data;
         this.options = configuration.options;
         this.updates = [];
+        this.toggled = [];
+        this.ctx = {};
         this.update = mode => this.updates.push(mode);
+        this.toggleDataVisibility = index => this.toggled.push(index);
         this.destroy = () => { this.canvas = null; };
         Chart.created.push(this);
     }
@@ -101,9 +105,16 @@ test('line, bar and doughnut charts retain their complete reporting data and res
         assert.equal(tooltip.enabled, true);
         assert.equal(chart.config.options.interaction.mode, 'nearest');
         assert.equal(chart.config.options.interaction.intersect, false);
+        assert.equal(JSON.stringify(chart.config.options.events), JSON.stringify([
+            'mousemove', 'mouseout', 'click', 'touchstart', 'touchmove',
+        ]));
     }
     const legend = charts[2].config.options.plugins.legend.labels;
     assert.ok(contrast(legend.color, palette.surface) >= 4.5);
+    assert.equal(typeof charts[2].config.options.plugins.legend.onClick, 'function');
+    charts[2].config.options.plugins.legend.onClick(null, { index: 1 }, { chart: charts[2] });
+    assert.equal(JSON.stringify(charts[2].toggled), '[1]');
+    assert.equal(charts[2].updates.length, 1);
     assert.equal(canvas.attributes.get('role'), 'img');
     assert.match(canvas.attributes.get('aria-label'), /Grade 4: 25; Grade 5: 67; Grade 6: 90/);
     assert.equal(charts[1].config.options.plugins.tooltip.callbacks.label({ parsed: { y: 67 } }), ' 67%');
@@ -210,23 +221,15 @@ test('detached canvases and charts destroyed by another component are pruned wit
     }
 });
 
-test('a hidden dashboard chart waits to repaint until its section is visible', () => {
+test('theme and section changes never resize an already-rendered chart', () => {
     const f = fixture({ theme: 'dark' });
     const chart = f.context.buildBarChart('chart', ['Grade 4'], [64], 'Accuracy', f.palette.purple);
     const callback = chart.options.plugins.tooltip.callbacks.label;
-    f.canvas.getClientRects = () => [];
     f.changeTheme('light');
     assert.deepEqual(chart.updates, []);
     assert.equal(chart.options.plugins.tooltip.callbacks.label, callback);
     assert.equal(chart.data.datasets[0].data[0], 64);
-
-    f.canvas.getClientRects = () => [{}];
-    f.context.requestAnimationFrame = callback => callback();
-    // Dispatch the registered visibility hook rather than rebuilding another
-    // chart; it must repaint the same data and tooltip callback.
-    f.listeners.get('mathverse:section-change')();
-    assert.deepEqual(chart.updates, ['none']);
-    assert.equal(chart.options.plugins.tooltip.callbacks.label, callback);
+    assert.equal(f.listeners.has('mathverse:section-change'), false);
     assert.equal(chart.options.plugins.tooltip.enabled, true);
     assert.equal(chart.data.datasets[0].borderColor, '#a78bfa');
     assert.equal(chart.data.datasets[0].data[0], 64);
@@ -235,4 +238,9 @@ test('a hidden dashboard chart waits to repaint until its section is visible', (
 test('Learning Hub data bars retain their dark-mode gradients in light mode', () => {
     assert.match(themeColors, /html\[data-theme="light"\] \.analytics-meter span \{ background: linear-gradient\(90deg, #fb7185, #facc15\); \}/);
     assert.match(themeColors, /html\[data-theme="light"\] \.analytics-day-bar \{ background: linear-gradient\(180deg, #22d3ee, #7c3aed\); \}/);
+});
+
+test('game-release picker keeps black text in dark mode and white text in light mode', () => {
+    assert.match(baseStyles, /\.app-release-file-input::file-selector-button,\s+\.app-release-file-input::-webkit-file-upload-button \{\s+color: #000000 !important;/);
+    assert.match(themeColors, /html\[data-theme="light"\] \.app-body \.app-release-file-input::file-selector-button \{\s+color: #ffffff !important;/);
 });

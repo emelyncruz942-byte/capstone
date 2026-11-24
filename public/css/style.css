@@ -39,6 +39,15 @@ canvas {
     max-width: 100%;
 }
 
+/* The Android release picker keeps the original dark-dashboard treatment by
+ * default. Light mode overrides only its foreground in theme-colors.css. */
+.app-release-file-input::file-selector-button,
+.app-release-file-input::-webkit-file-upload-button {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    background-color: #22d3ee !important;
+}
+
 body {
     font-family: 'Rajdhani', sans-serif;
     background-color: var(--deep-space);
