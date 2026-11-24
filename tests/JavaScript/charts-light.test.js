@@ -10,11 +10,23 @@ const baseStyles = readFileSync(new URL('../../public/css/style.css', import.met
 function fixture({ reduceMotion = false, theme = 'dark', chartAvailable = true } = {}) {
     const listeners = new Map();
     const documentElement = { dataset: { theme } };
+    const classList = (...initial) => {
+        const values = new Set(initial);
+        return {
+            add(...names) { names.forEach(name => values.add(name)); },
+            remove(...names) { names.forEach(name => values.delete(name)); },
+            contains(name) { return values.has(name); },
+        };
+    };
     const canvas = {
         attributes: new Map(),
         setAttribute(name, value) { this.attributes.set(name, value); },
         getClientRects() { return [{}]; },
     };
+    const dashboard = { dataset: { dashboardRole: 'teacher' } };
+    const statsSection = { classList: classList() };
+    const statsContent = { classList: classList() };
+    const animationFrames = [];
     function Chart(element, configuration) {
         this.canvas = element;
         this.config = configuration;
@@ -34,7 +46,13 @@ function fixture({ reduceMotion = false, theme = 'dark', chartAvailable = true }
     const contextValues = {
         document: {
             documentElement,
-            getElementById: id => id === 'chart' ? canvas : null,
+            getElementById(id) {
+                if (id === 'chart') return canvas;
+                if (id === 'dashboard-content') return dashboard;
+                if (id === 'sec-stats') return statsSection;
+                if (id === 'stats-content') return statsContent;
+                return null;
+            },
             addEventListener(name, listener) {
                 const previous = listeners.get(name);
                 listeners.set(name, previous ? event => { previous(event); listener(event); } : listener);
@@ -45,11 +63,15 @@ function fixture({ reduceMotion = false, theme = 'dark', chartAvailable = true }
         fetch() { throw new Error('Theme switching must never fetch reporting data'); },
         setTimeout: () => 1,
         clearTimeout() {},
+        requestAnimationFrame(callback) { animationFrames.push(callback); return animationFrames.length; },
     };
     if (chartAvailable) contextValues.Chart = Chart;
     const context = vm.createContext(contextValues);
     vm.runInContext(source, context);
-    return { context, canvas, Chart, listeners, palette: vm.runInContext('CHART_DEFAULTS.color', context),
+    return { context, canvas, Chart, listeners, dashboard, statsSection, statsContent, palette: vm.runInContext('CHART_DEFAULTS.color', context),
+        flushAnimationFrames() {
+            while (animationFrames.length) animationFrames.shift()();
+        },
         changeTheme(value) { documentElement.dataset.theme = value; listeners.get('mathverse:themechange')({ detail: { theme: value } }); } };
 }
 
@@ -103,18 +125,10 @@ test('line, bar and doughnut charts retain their complete reporting data and res
         assert.ok(contrast(tooltip.bodyColor, tooltip.backgroundColor) >= 4.5);
         assert.ok(contrast(tooltip.titleColor, tooltip.backgroundColor) >= 4.5);
         assert.equal(tooltip.enabled, true);
-        assert.equal(chart.config.options.interaction.mode, 'nearest');
-        assert.equal(chart.config.options.interaction.intersect, false);
-        assert.equal(JSON.stringify(chart.config.options.events), JSON.stringify([
-            'mousemove', 'mouseout', 'click', 'touchstart', 'touchmove',
-        ]));
     }
     const legend = charts[2].config.options.plugins.legend.labels;
     assert.ok(contrast(legend.color, palette.surface) >= 4.5);
-    assert.equal(typeof charts[2].config.options.plugins.legend.onClick, 'function');
-    charts[2].config.options.plugins.legend.onClick(null, { index: 1 }, { chart: charts[2] });
-    assert.equal(JSON.stringify(charts[2].toggled), '[1]');
-    assert.equal(charts[2].updates.length, 1);
+    assert.equal(charts[2].config.options.plugins.legend.onClick, undefined);
     assert.equal(canvas.attributes.get('role'), 'img');
     assert.match(canvas.attributes.get('aria-label'), /Grade 4: 25; Grade 5: 67; Grade 6: 90/);
     assert.equal(charts[1].config.options.plugins.tooltip.callbacks.label({ parsed: { y: 67 } }), ' 67%');
@@ -221,7 +235,7 @@ test('detached canvases and charts destroyed by another component are pruned wit
     }
 });
 
-test('theme and section changes never resize an already-rendered chart', () => {
+test('theme changes never resize an already-rendered chart', () => {
     const f = fixture({ theme: 'dark' });
     const chart = f.context.buildBarChart('chart', ['Grade 4'], [64], 'Accuracy', f.palette.purple);
     const callback = chart.options.plugins.tooltip.callbacks.label;
@@ -229,10 +243,30 @@ test('theme and section changes never resize an already-rendered chart', () => {
     assert.deepEqual(chart.updates, []);
     assert.equal(chart.options.plugins.tooltip.callbacks.label, callback);
     assert.equal(chart.data.datasets[0].data[0], 64);
-    assert.equal(f.listeners.has('mathverse:section-change'), false);
+    assert.equal(f.listeners.has('mathverse:section-change'), true);
     assert.equal(chart.options.plugins.tooltip.enabled, true);
     assert.equal(chart.data.datasets[0].borderColor, '#a78bfa');
     assert.equal(chart.data.datasets[0].data[0], 64);
+});
+
+test('a delayed analytics render is cancelled once its parent section is hidden', () => {
+    const f = fixture();
+    let renders = 0;
+    f.context.scheduleStatsRender('teacher', ['chart'], () => { renders += 1; });
+    f.statsSection.classList.add('hidden');
+    f.flushAnimationFrames();
+    assert.equal(renders, 0);
+});
+
+test('leaving analytics destroys its chart and cancels queued work', () => {
+    const f = fixture();
+    const chart = f.context.buildLineChart('chart', ['Day 1'], [4], 'Attempts', f.palette.cyan);
+    let renders = 0;
+    f.context.scheduleStatsRender('teacher', ['chart'], () => { renders += 1; });
+    f.listeners.get('mathverse:section-change')({ detail: { section: 'overview' } });
+    f.flushAnimationFrames();
+    assert.equal(chart.canvas, null);
+    assert.equal(renders, 0);
 });
 
 test('Learning Hub data bars retain their dark-mode gradients in light mode', () => {

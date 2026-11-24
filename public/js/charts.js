@@ -13,7 +13,13 @@ const CHART_PALETTES = {
 const CHART_DEFAULTS = { color: CHART_PALETTES.dark };
 const themedCharts = new Map();
 let chartRenderVersion = 0;
-const CHART_EVENTS = ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'];
+const REPORT_CHART_IDS = [
+    'chart-attempts',
+    'chart-distribution',
+    'chart-class-accuracy',
+    'chart-registrations',
+    'chart-roles',
+];
 
 function rememberChart(chart) {
     themedCharts.set(chart, true);
@@ -64,12 +70,6 @@ function chartTooltip(color = CHART_DEFAULTS.color.grid) {
     };
 }
 
-function chartInteraction() {
-    // Keep the values reachable on touch pads and smaller screens as well as
-    // with a mouse. The underlying report data remains untouched.
-    return { mode: 'nearest', intersect: false };
-}
-
 function isLiveChart(chart) {
     return Boolean(chart?.canvas && chart.canvas.isConnected !== false && chart.ctx !== null);
 }
@@ -80,27 +80,17 @@ function pruneCharts() {
     }
 }
 
-function toggleDoughnutLegendItem(_event, legendItem, legend) {
-    const chart = legend?.chart;
-    const index = legendItem?.index;
-    if (!chart || !Number.isInteger(index)) return;
-
-    // Chart.js normally supplies this behavior for doughnuts. Making it
-    // explicit prevents a global/default legend setting from disabling the
-    // useful "click to exclude" interaction on report charts.
-    if (typeof chart.toggleDataVisibility === 'function') {
-        chart.toggleDataVisibility(index);
-    } else {
-        const arc = chart.getDatasetMeta?.(0)?.data?.[index];
-        if (arc) arc.hidden = !arc.hidden;
-    }
-    chart.update();
+function isStatsSectionActive(role) {
+    const dashboard = document.getElementById('dashboard-content');
+    const section = document.getElementById('sec-stats');
+    return dashboard?.dataset?.dashboardRole === role
+        && section != null
+        && !section.classList.contains('hidden');
 }
 
 function isStatsPanelVisible(role) {
-    const dashboard = document.getElementById('dashboard-content');
     const content = document.getElementById('stats-content');
-    return dashboard?.dataset?.dashboardRole === role
+    return isStatsSectionActive(role)
         && content != null
         && !content.classList.contains('hidden');
 }
@@ -165,8 +155,6 @@ function buildLineChart(canvasId, labels, data, label, color) {
         options: {
             responsive:          true,
             maintainAspectRatio: true,
-            events:              CHART_EVENTS,
-            interaction:         chartInteraction(),
             plugins: {
                 legend: { display: false },
                 tooltip: chartTooltip(color)
@@ -207,8 +195,6 @@ function buildBarChart(canvasId, labels, data, label, color) {
         options: {
             responsive:          true,
             maintainAspectRatio: true,
-            events:              CHART_EVENTS,
-            interaction:         chartInteraction(),
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -263,14 +249,11 @@ function buildDoughnutChart(canvasId, labels, data, colors) {
         options: {
             responsive:          true,
             maintainAspectRatio: true,
-            events:              CHART_EVENTS,
-            interaction:         chartInteraction(),
             cutout:              '65%',
             plugins: {
                 legend: {
                     display:  true,
                     position: 'bottom',
-                    onClick:  toggleDoughnutLegendItem,
                     labels: {
                         color:     CHART_DEFAULTS.color.body,
                         padding:   16,
@@ -383,7 +366,9 @@ async function loadTeacherStats(options = {}) {
 
     try {
         const data = await cachedStats('teacher', '/teacher/stats', options);
-        if (!isDashboardRole('teacher')) return;
+        // A request can finish after the user has moved away from Analytics.
+        // Do not reveal or measure a chart inside that hidden parent panel.
+        if (!isStatsSectionActive('teacher')) return;
 
         // Populate summary cards
         setStatText('stat-total-attempts', data.totalAttempts ?? '0');
@@ -462,7 +447,9 @@ async function loadAdminStats(options = {}) {
 
     try {
         const data = await cachedStats('admin', '/admin/stats', options);
-        if (!isDashboardRole('admin')) return;
+        // A request can finish after the user has moved away from Analytics.
+        // Do not reveal or measure a chart inside that hidden parent panel.
+        if (!isStatsSectionActive('admin')) return;
 
         setStatText('stat-total-attempts', data.totalAttempts ?? '0');
         setStatText('stat-avg-accuracy', (data.avgAccuracy ?? 0) + '%');
@@ -527,13 +514,14 @@ async function loadAdminStats(options = {}) {
 
 document.addEventListener('mathverse:before-navigate', () => {
     chartRenderVersion++;
-    destroyCharts([
-        'chart-attempts',
-        'chart-distribution',
-        'chart-class-accuracy',
-        'chart-registrations',
-        'chart-roles',
-    ]);
+    destroyCharts(REPORT_CHART_IDS);
+});
+document.addEventListener('mathverse:section-change', event => {
+    // Local dashboard section navigation does not emit before-navigate.
+    // Canceling here prevents Chart.js from keeping a hidden 0×0 canvas.
+    if (event.detail?.section === 'stats') return;
+    chartRenderVersion++;
+    destroyCharts(REPORT_CHART_IDS);
 });
 document.addEventListener('mathverse:data-changed', clearStatsCache);
 document.addEventListener('mathverse:themechange', () => {
