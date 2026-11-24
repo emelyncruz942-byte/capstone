@@ -1,17 +1,4 @@
 const CHART_PALETTES = {
-    light: {
-        cyan:   '#2563eb',
-        purple: '#7c3aed',
-        pink:   '#be185d',
-        green:  '#0f766e',
-        orange: '#b45309',
-        red:    '#dc2626',
-        grid:   '#e2e8f0',
-        text:   '#526078',
-        heading: '#0f172a',
-        surface: '#ffffff',
-        body: '#475569',
-    },
     dark: {
         cyan: '#22d3ee', purple: '#a78bfa', pink: '#f472b6',
         green: '#4ade80', orange: '#fbbf24', red: '#fb7185',
@@ -19,8 +6,11 @@ const CHART_PALETTES = {
         surface: '#111c2e', body: '#c4d2e7',
     }
 };
-const currentChartTheme = () => document.documentElement?.dataset?.theme === 'light' ? 'light' : 'dark';
-const CHART_DEFAULTS = { color: CHART_PALETTES[currentChartTheme()] };
+// Analytics keeps one proven high-contrast palette in both application modes.
+// Changing an existing Chart.js instance during a dashboard theme transition
+// can leave it unmeasurable, so charts intentionally retain the dark palette
+// even on the light site surface.
+const CHART_DEFAULTS = { color: CHART_PALETTES.dark };
 const themedCharts = new Map();
 
 function rememberChart(chart, kind, colors) {
@@ -30,7 +20,7 @@ function rememberChart(chart, kind, colors) {
 }
 
 function applyChartDefaults() {
-    CHART_DEFAULTS.color = CHART_PALETTES[currentChartTheme()];
+    CHART_DEFAULTS.color = CHART_PALETTES.dark;
     if (typeof Chart === 'undefined') return;
     Chart.defaults.color       = CHART_DEFAULTS.color.text;
     Chart.defaults.borderColor = CHART_DEFAULTS.color.grid;
@@ -89,15 +79,14 @@ function canRepaintChart(chart) {
     return typeof canvas.getClientRects !== 'function' || canvas.getClientRects().length > 0;
 }
 
-function applyTooltipPalette(tooltip, color) {
-    if (!tooltip) return;
-    const palette = chartTooltip(color);
-    // Set only visual tooltip fields. In particular, do not replace
-    // callbacks: bar charts use them to display the percentage values.
-    for (const [property, value] of Object.entries(palette)) {
-        if (property !== 'enabled') tooltip[property] = value;
+function isLiveChart(chart) {
+    return Boolean(chart?.canvas && chart.canvas.isConnected !== false && chart.ctx !== null);
+}
+
+function pruneCharts() {
+    for (const [chart] of themedCharts) {
+        if (!isLiveChart(chart)) themedCharts.delete(chart);
     }
-    tooltip.enabled = true;
 }
 
 function describeChart(canvas, title, labels, data) {
@@ -255,35 +244,17 @@ function buildDoughnutChart(canvasId, labels, data, colors) {
     return rememberChart(chart, 'doughnut', colors);
 }
 
-function refreshChartTheme() {
-    applyChartDefaults();
-    const palette = CHART_DEFAULTS.color;
-    for (const [chart, details] of themedCharts) {
-        if (!chart.canvas || chart.canvas.isConnected === false || chart.ctx === null) {
+function refreshVisibleCharts() {
+    for (const [chart] of themedCharts) {
+        if (!isLiveChart(chart)) {
             themedCharts.delete(chart);
             continue;
         }
         if (!canRepaintChart(chart)) continue;
-        const colors = details.colors.map(key => palette[key] || key);
-        const dataset = chart.data.datasets[0];
-        if (details.kind === 'doughnut') {
-            dataset.backgroundColor = colors.map(color => color + '99');
-            dataset.borderColor = colors;
-        } else {
-            dataset.borderColor = colors[0];
-            dataset.backgroundColor = colors[0] + (details.kind === 'line' ? '20' : '80');
-            if (details.kind === 'line') dataset.pointBackgroundColor = colors[0];
-        }
-        // Preserve data, callbacks, selection, and cached history. Only repaint
-        // the existing chart's presentation; theme changes never fetch records.
-        const tooltip = chart.options.plugins.tooltip;
-        applyTooltipPalette(tooltip, details.kind === 'doughnut' ? palette.grid : colors[0]);
-        const labels = chart.options.plugins.legend?.labels;
-        if (labels) { labels.color = palette.body; labels.font = { ...labels.font, size: 14 }; }
-        for (const axis of Object.values(chart.options.scales || {})) {
-            if (axis.grid) axis.grid.color = palette.grid;
-            if (axis.ticks) axis.ticks.color = palette.text;
-        }
+        // The palette never changes with the site theme. Only remeasure an
+        // already-visible canvas after dashboard navigation; data, callbacks,
+        // and tooltip behavior remain intact.
+        chart.resize?.();
         chart.update('none');
     }
 }
@@ -371,6 +342,7 @@ async function loadTeacherStats(options = {}) {
             return;
         }
     }
+    applyChartDefaults();
 
     // Show spinner, hide content
     loading?.classList.remove('hidden');
@@ -448,6 +420,7 @@ async function loadAdminStats(options = {}) {
             return;
         }
     }
+    applyChartDefaults();
 
     loading?.classList.remove('hidden');
     content?.classList.add('hidden');
@@ -527,10 +500,14 @@ document.addEventListener('mathverse:before-navigate', () => {
     ]);
 });
 document.addEventListener('mathverse:data-changed', clearStatsCache);
-document.addEventListener('mathverse:themechange', refreshChartTheme);
+document.addEventListener('mathverse:themechange', () => {
+    // Site colors do not recolor report charts; only remove stale instances.
+    applyChartDefaults();
+    pruneCharts();
+});
 document.addEventListener('mathverse:charts-ready', applyChartDefaults);
 document.addEventListener('mathverse:section-change', () => {
     // A previously hidden analytics section becomes measurable on the next
-    // frame. Repaint then instead of ever laying it out at zero size.
-    requestAnimationFrame(refreshChartTheme);
+    // frame. Remeasure it then without recoloring the chart.
+    requestAnimationFrame(refreshVisibleCharts);
 });

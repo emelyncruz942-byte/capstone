@@ -4,6 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const source = readFileSync(new URL('../../public/js/charts.js', import.meta.url), 'utf8');
+const themeColors = readFileSync(new URL('../../public/css/theme-colors.css', import.meta.url), 'utf8');
 
 function fixture({ reduceMotion = false, theme = 'dark', chartAvailable = true } = {}) {
     const listeners = new Map();
@@ -58,9 +59,10 @@ function contrast(first, second) {
     return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
 }
 
-for (const theme of ['light', 'dark']) test(`chart labels and data colors remain readable in ${theme} mode`, () => {
+for (const theme of ['light', 'dark']) test(`charts keep the dark palette in ${theme} site mode`, () => {
     const { context, palette, Chart } = fixture({ theme });
     context.applyChartDefaults();
+    assert.equal(palette.surface, '#111c2e');
     assert.ok(contrast(Chart.defaults.color, palette.surface) >= 4.5);
     assert.ok(contrast(palette.heading, palette.surface) >= 4.5);
     for (const name of ['cyan', 'purple', 'pink', 'green', 'orange', 'red']) {
@@ -93,7 +95,7 @@ test('line, bar and doughnut charts retain their complete reporting data and res
         assert.equal(chart.config.data.datasets[0].data, values);
         assert.equal(chart.config.options.responsive, true);
         const tooltip = chart.config.options.plugins.tooltip;
-        assert.equal(tooltip.backgroundColor, '#ffffff');
+        assert.equal(tooltip.backgroundColor, '#111c2e');
         assert.ok(contrast(tooltip.bodyColor, tooltip.backgroundColor) >= 4.5);
         assert.ok(contrast(tooltip.titleColor, tooltip.backgroundColor) >= 4.5);
         assert.equal(tooltip.enabled, true);
@@ -101,7 +103,7 @@ test('line, bar and doughnut charts retain their complete reporting data and res
         assert.equal(chart.config.options.interaction.intersect, false);
     }
     const legend = charts[2].config.options.plugins.legend.labels;
-    assert.ok(contrast(legend.color, '#ffffff') >= 4.5);
+    assert.ok(contrast(legend.color, palette.surface) >= 4.5);
     assert.equal(canvas.attributes.get('role'), 'img');
     assert.match(canvas.attributes.get('aria-label'), /Grade 4: 25; Grade 5: 67; Grade 6: 90/);
     assert.equal(charts[1].config.options.plugins.tooltip.callbacks.label({ parsed: { y: 67 } }), ' 67%');
@@ -135,7 +137,7 @@ test('analytics waits for the Chart module instead of rendering a blank panel du
     assert.equal(f.Chart.defaults.color, f.palette.text);
 });
 
-test('live theme changes repaint every existing chart without changing data or callbacks', () => {
+test('site theme changes leave existing charts on their stable dark palette', () => {
     const f = fixture({ theme: 'dark' });
     f.context.applyChartDefaults();
     const labels = ['October', 'November'], values = [12, 38];
@@ -160,20 +162,21 @@ test('live theme changes repaint every existing chart without changing data or c
     });
     const originalGeometry = [line, bar, doughnut].map(geometry);
     f.changeTheme('light');
-    const light = vm.runInContext('CHART_DEFAULTS.color', f.context);
+    const stablePalette = vm.runInContext('CHART_DEFAULTS.color', f.context);
     for (const chart of [line, bar, doughnut]) {
         assert.equal(chart.data.labels, labels);
         assert.equal(chart.data.datasets[0].data, values);
-        assert.equal(chart.options.plugins.tooltip.backgroundColor, light.surface);
-        assert.deepEqual(chart.updates, ['none']);
+        assert.equal(chart.options.plugins.tooltip.backgroundColor, stablePalette.surface);
+        assert.deepEqual(chart.updates, []);
     }
-    assert.equal(line.data.datasets[0].borderColor, light.cyan);
-    assert.equal(bar.data.datasets[0].borderColor, light.purple);
-    assert.equal(doughnut.data.datasets[0].backgroundColor[0], light.cyan + '99');
-    assert.equal(doughnut.data.datasets[0].backgroundColor[1], light.green + '99');
-    assert.equal(doughnut.options.plugins.legend.labels.color, light.body);
-    assert.equal(line.options.scales.x.ticks.color, light.text);
-    assert.equal(line.options.scales.y.grid.color, light.grid);
+    assert.equal(stablePalette.surface, '#111c2e');
+    assert.equal(line.data.datasets[0].borderColor, stablePalette.cyan);
+    assert.equal(bar.data.datasets[0].borderColor, stablePalette.purple);
+    assert.equal(doughnut.data.datasets[0].backgroundColor[0], stablePalette.cyan + '99');
+    assert.equal(doughnut.data.datasets[0].backgroundColor[1], stablePalette.green + '99');
+    assert.equal(doughnut.options.plugins.legend.labels.color, stablePalette.body);
+    assert.equal(line.options.scales.x.ticks.color, stablePalette.text);
+    assert.equal(line.options.scales.y.grid.color, stablePalette.grid);
     assert.equal(bar.options.plugins.tooltip.callbacks.label, callback);
     assert.equal(callback({ parsed: { y: 38 } }), ' 38%');
     assert.equal(f.Chart.created.length, 3);
@@ -181,7 +184,7 @@ test('live theme changes repaint every existing chart without changing data or c
     f.changeTheme('dark');
     assert.equal(line.data.datasets[0].borderColor, f.palette.cyan);
     assert.equal(line.options.plugins.tooltip.backgroundColor, f.palette.surface);
-    assert.equal(line.updates.length, 2);
+    assert.equal(line.updates.length, 0);
     assert.equal(line.data.datasets[0].data, values);
     assert.deepEqual([line, bar, doughnut].map(geometry), originalGeometry);
 });
@@ -225,6 +228,11 @@ test('a hidden dashboard chart waits to repaint until its section is visible', (
     assert.deepEqual(chart.updates, ['none']);
     assert.equal(chart.options.plugins.tooltip.callbacks.label, callback);
     assert.equal(chart.options.plugins.tooltip.enabled, true);
-    assert.equal(chart.data.datasets[0].borderColor, '#7c3aed');
+    assert.equal(chart.data.datasets[0].borderColor, '#a78bfa');
     assert.equal(chart.data.datasets[0].data[0], 64);
+});
+
+test('Learning Hub data bars retain their dark-mode gradients in light mode', () => {
+    assert.match(themeColors, /html\[data-theme="light"\] \.analytics-meter span \{ background: linear-gradient\(90deg, #fb7185, #facc15\); \}/);
+    assert.match(themeColors, /html\[data-theme="light"\] \.analytics-day-bar \{ background: linear-gradient\(180deg, #22d3ee, #7c3aed\); \}/);
 });

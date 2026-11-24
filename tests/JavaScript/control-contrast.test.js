@@ -31,7 +31,9 @@ test('light mode keeps action hovers visible for common and colored confirmation
 });
 
 test('the Android release file chooser uses a high-contrast white file label', () => {
-    assert.match(releaseUpload, /file:font-black file:text-white/);
-    assert.doesNotMatch(releaseUpload, /file:text-black/);
+    assert.match(releaseUpload, /app-release-file-input/);
+    assert.match(releaseUpload, /file:font-black file:text-black/);
     assert.match(palette, /input\[type="file"\]::file-selector-button \{ background-color: #0e7490; color: #ffffff;/);
+    assert.match(palette, /html\[data-theme="light"\] \.app-body \.app-release-file-input::file-selector-button \{\s+color: #ffffff !important;\s+-webkit-text-fill-color: #ffffff !important;/);
+    assert.match(palette, /html\[data-theme="light"\] \.app-body \.app-release-file-input::-webkit-file-upload-button \{\s+color: #ffffff !important;\s+-webkit-text-fill-color: #ffffff !important;/);
 });

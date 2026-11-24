@@ -854,3 +854,24 @@ html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-red"]:hover { ba
 html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-slate"]:hover { background-color: #334155 !important; color: #ffffff !important; }
 html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-yellow"]:hover { background-color: #713f12 !important; color: #ffffff !important; }
 html[data-theme="light"] .app-body .btn-rect-secondary[class*="hover:!bg-red"]:hover { background-color: #fee2e2 !important; color: #991b1b !important; }
+
+/* Report visuals deliberately retain the original dark-mode data colors in
+ * both themes. This avoids a second light-only chart palette, while keeping
+ * the data marks easy to recognise on a light dashboard. */
+html[data-theme="light"] .analytics-meter span { background: linear-gradient(90deg, #fb7185, #facc15); }
+html[data-theme="light"] .analytics-day-bar { background: linear-gradient(180deg, #22d3ee, #7c3aed); }
+
+/* Native file-picker buttons do not consistently inherit Tailwind's
+ * file:text-white utility. Dark mode intentionally keeps its original dark
+ * label; only the light-mode release picker needs this white foreground. */
+html[data-theme="light"] .app-body .app-release-file-input::file-selector-button {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background-color: #0e7490 !important;
+}
+
+html[data-theme="light"] .app-body .app-release-file-input::-webkit-file-upload-button {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background-color: #0e7490 !important;
+}
