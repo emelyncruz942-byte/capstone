@@ -23,6 +23,8 @@ class AuthSecurityFlowTest extends TestCase
             ->assertSee('data-login-form', false)
             ->assertSee('autocomplete="username"', false)
             ->assertSee('autocomplete="current-password"', false)
+            ->assertSee('data-theme-lock="dark"', false)
+            ->assertDontSee('data-theme-toggle', false)
             ->assertSee('js/auth.js');
     }
 

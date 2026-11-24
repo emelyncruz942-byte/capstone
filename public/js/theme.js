@@ -1,6 +1,7 @@
 (() => {
     const storageKey = 'mathverse.theme';
     const root = document.documentElement;
+    const lockedTheme = root.dataset.themeLock === 'dark' ? 'dark' : null;
     let current = 'dark';
     function synchronizeButtons() {
         document.querySelectorAll('[data-theme-toggle]').forEach(button => {
@@ -16,20 +17,22 @@
         });
     }
     function apply(value, persist = false) {
-        current = value === 'light' ? 'light' : 'dark';
+        current = lockedTheme || (value === 'light' ? 'light' : 'dark');
         root.dataset.theme = current;
         root.style.colorScheme = current;
         document.querySelector('meta[name="theme-color"]')?.setAttribute('content', current === 'light' ? '#edf5fb' : '#05070d');
         document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', current);
-        if (persist) {
+        if (persist && !lockedTheme) {
             try { window.localStorage.setItem(storageKey, current); } catch { /* Private browsing can deny preference storage. */ }
         }
         synchronizeButtons();
         document.dispatchEvent(new CustomEvent('mathverse:themechange', { detail: { theme: current } }));
         return current;
     }
-    let saved = 'dark';
-    try { saved = window.localStorage.getItem(storageKey) || 'dark'; } catch { /* The original dark design remains the fallback. */ }
+    let saved = lockedTheme || 'dark';
+    if (!lockedTheme) {
+        try { saved = window.localStorage.getItem(storageKey) || 'dark'; } catch { /* The original dark design remains the fallback. */ }
+    }
     // This file runs in the head, before CSS, so a saved theme does not flash.
     apply(saved);
     window.MathVerseTheme = Object.freeze({ get: () => current, set: value => apply(value, true), toggle: () => apply(current === 'dark' ? 'light' : 'dark', true) });

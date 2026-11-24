@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\NotificationDeliveryService;
 use App\Services\SupabaseService;
 use App\Support\ClassCustomization;
+use App\Support\ClassRoster;
 use App\Support\SupabaseAccessToken;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -68,6 +69,7 @@ class TeacherClassController extends Controller
             'student_id,joined_at,profiles(id,username,last_name,email,first_name,grade_level,level,avatar_url)',
             ['class_id' => $id, 'order' => 'joined_at.asc']
         );
+        $members = ClassRoster::sortByLastName($members);
         $mismatchedMembers = 0;
         foreach ($members as &$member) {
             $member['grade_mismatch'] = (int) ($member['profiles']['grade_level'] ?? 0)

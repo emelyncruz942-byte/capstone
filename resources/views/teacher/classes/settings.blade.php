@@ -4,6 +4,10 @@
 @section('sidebar-subtitle', 'Instructional Hub')
 @section('mobile-title', 'Class Settings')
 
+@push('head')
+    <link rel="stylesheet" href="{{ asset('css/classroom-customization.css') }}?v={{ filemtime(public_path('css/classroom-customization.css')) }}">
+@endpush
+
 @section('sidebar-nav')
     @include('teacher.partials.sidebar-nav', ['activePage' => 'classes'])
 @endsection
@@ -67,8 +71,8 @@
                     <label class="cursor-pointer">
                         <input type="radio" name="theme_color" value="{{ $color }}" class="peer sr-only"
                                {{ $customization['theme_color'] === $color ? 'checked' : '' }}>
-                        <span class="block h-12 rounded border-2 border-transparent peer-checked:border-white peer-checked:scale-105 transition-all"
-                              style="background: {{ $color }};"></span>
+                        <span class="block h-12 rounded border-2 border-transparent peer-checked:border-white peer-checked:scale-105 transition-all classroom-customization-color-option"
+                              style="--classroom-accent: {{ $color }}; background: {{ $color }};"></span>
                     </label>
                 @endforeach
             </div>
@@ -82,7 +86,7 @@
                     <label class="cursor-pointer">
                         <input type="radio" name="icon" value="{{ $icon }}" class="peer sr-only"
                                {{ $customization['icon'] === $icon ? 'checked' : '' }}>
-                        <span class="flex items-center gap-3 p-4 rounded border border-white/10 bg-white/5 peer-checked:border-cyan-400 peer-checked:bg-cyan-500/10 transition-all">
+                        <span class="flex items-center gap-3 p-4 rounded border border-white/10 bg-white/5 peer-checked:border-cyan-400 peer-checked:bg-cyan-500/10 transition-all classroom-customization-choice">
                             <i class="fas {{ $iconLabels[$icon][1] }} text-cyan-400"></i>
                             <span class="text-xs font-bold">{{ $iconLabels[$icon][0] }}</span>
                         </span>
@@ -99,7 +103,8 @@
                     <label class="cursor-pointer">
                         <input type="radio" name="banner_pattern" value="{{ $pattern }}" class="peer sr-only"
                                {{ $customization['banner_pattern'] === $pattern ? 'checked' : '' }}>
-                        <span class="block text-center p-3 rounded border border-white/10 bg-white/5 peer-checked:border-cyan-400 peer-checked:text-cyan-400 text-xs font-bold transition-all">
+                        <span class="block text-center p-3 rounded border border-white/10 bg-white/5 peer-checked:border-cyan-400 peer-checked:text-cyan-400 text-xs font-bold transition-all classroom-customization-choice classroom-customization-pattern-preview"
+                              data-banner-pattern="{{ $pattern }}" style="--classroom-accent: {{ $customization['theme_color'] }};">
                             {{ $patternLabels[$pattern] }}
                         </span>
                     </label>

@@ -55,7 +55,7 @@
 
             <label class="block">
                 <span class="form-label">Android APK</span>
-                <input class="input-field file:mr-4 file:rounded file:border-0 file:bg-cyan-400 file:px-4 file:py-2 file:text-xs file:font-black file:text-black"
+                <input class="input-field file:mr-4 file:rounded file:border-0 file:bg-cyan-400 file:px-4 file:py-2 file:text-xs file:font-black file:text-white"
                        type="file" name="release_file" accept=".apk" required @disabled(!($uploadsReady ?? false))>
             </label>
 

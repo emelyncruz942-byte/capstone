@@ -5,7 +5,14 @@ html[data-theme] .app-body :is(.text-xs, .text-sm) { font-size: 15px; line-heigh
 html[data-theme] .app-body :is([class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="text-[12px]"], [class~="text-[13px]"], [class~="!text-[8px]"], [class~="!text-[9px]"], [class~="!text-[10px]"], [class~="!text-[11px]"], [class~="!text-[12px]"], [class~="!text-[13px]"]) { font-size: 14px !important; line-height: 1.5; }
 html[data-theme] .app-body :is(.input-label, .form-label) { color: var(--mv-muted); font-size: 14px; line-height: 1.5; letter-spacing: .06em; }
 html[data-theme] .app-body :is(button, [role="button"], .btn-mobile-ultra, .btn-rect-primary, .btn-rect-secondary, .btn-rect-danger, .modal-cancel) { min-height: 44px; min-width: 44px; font-size: 16px !important; line-height: 1.45; letter-spacing: .04em; }
-html[data-theme] .app-body :is(.btn-mobile-ultra, .btn-rect-primary, .btn-rect-secondary, .btn-rect-danger) { white-space: normal; overflow-wrap: anywhere; }
+/*
+ * These controls are used as both links and buttons. Giving the shared
+ * control surface flex alignment keeps an icon plus its label centered in the
+ * available height, including compact controls such as History and Settings.
+ * This is theme-neutral so both modes keep identical control geometry.
+ */
+html[data-theme] .app-body :is(.btn-mobile-ultra, .btn-rect-primary, .btn-rect-secondary, .btn-rect-danger):not(.hidden) { display: inline-flex; align-items: center; justify-content: center; text-align: center; white-space: normal; overflow-wrap: anywhere; }
+html[data-theme] .app-body :is(.btn-mobile-ultra, .btn-rect-primary, .btn-rect-secondary, .btn-rect-danger)[class~="block"] { display: flex; width: 100%; }
 html[data-theme] .app-body :is(button, [role="button"], .btn-mobile-ultra, .btn-rect-primary, .btn-rect-secondary, .btn-rect-danger) > span[class*="text-"] { font-size: 16px !important; }
 html[data-theme] .app-body .nav-link { min-height: 44px; font-size: 16px; line-height: 1.45; letter-spacing: .04em; }
 html[data-theme] .app-body .modal-cancel { color: var(--mv-muted); }
@@ -28,7 +35,10 @@ html[data-theme] .app-body [role="dialog"] > .portal-frame { max-height: calc(10
 html[data-theme] .app-body header.portal-frame [style*="color:"] { color: var(--mv-ink) !important; }
 html[data-theme] .app-body .dashboard-sidebar { padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem)); }
 html[data-theme] .app-body .app-shell-main { padding-bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem)); }
-html[data-theme] .app-body .theme-toggle { position: fixed; left: max(.75rem, env(safe-area-inset-left)); bottom: max(.75rem, env(safe-area-inset-bottom)); z-index: 80; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: 9rem; padding: .65rem .75rem; border: 1px solid var(--mv-line); border-radius: 4px; color: var(--mv-ink); background: var(--mv-panel); font: 700 16px/1.45 'Rajdhani', sans-serif; cursor: pointer; }
+/* The dashboard header owns its layout. Keep its theme switch the same
+ * 44px touch target as the notification bell beside it, without a floating
+ * page control or a visual label. */
+html[data-theme] .app-body .theme-toggle { flex: 0 0 44px; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 1px solid var(--mv-line); border-radius: 4px; color: var(--mv-ink); background: var(--mv-panel); font: 700 16px/1.45 'Rajdhani', sans-serif; cursor: pointer; }
 html[data-theme] .app-body .theme-toggle i { width: 1em; color: var(--neon-cyan); }
 html[data-theme] .app-body :is(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid var(--neon-cyan); outline-offset: 3px; }
 html[data-theme="dark"] .app-body :is([class~="text-slate-400"], [class~="text-slate-500"], [class~="text-slate-600"], [class~="text-gray-400"], [class~="text-gray-500"], [class~="text-gray-600"]) { color: var(--mv-muted) !important; }

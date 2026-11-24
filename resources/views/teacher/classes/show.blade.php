@@ -4,6 +4,10 @@
 @section('sidebar-subtitle', 'Instructional Hub')
 @section('mobile-title', $class['class_name'])
 
+@push('head')
+    <link rel="stylesheet" href="{{ asset('css/classroom-customization.css') }}?v={{ filemtime(public_path('css/classroom-customization.css')) }}">
+@endpush
+
 @section('sidebar-nav')
     @include('teacher.partials.sidebar-nav', ['activePage' => 'classes'])
 @endsection
@@ -37,8 +41,9 @@
 </div>
 
 <header class="portal-frame overflow-hidden mb-8" style="border-color: {{ $themeColor }}66;">
-    <div class="relative p-6 md:p-10 min-h-[210px] flex items-end"
-         style="background-color: {{ $themeColor }}22; background-image: {{ $patternStyle }}">
+    <div class="relative p-6 md:p-10 min-h-[210px] flex items-end classroom-banner"
+         data-banner-pattern="{{ $customization['banner_pattern'] }}"
+         style="--classroom-accent: {{ $themeColor }}; background-color: {{ $themeColor }}22; background-image: {{ $patternStyle }}">
         <div class="absolute top-7 right-7 w-16 h-16 rounded-xl flex items-center justify-center text-3xl"
              style="color: {{ $themeColor }}; background: {{ $themeColor }}22; border: 1px solid {{ $themeColor }}66;">
             <i class="fas {{ $classIcon }}"></i>

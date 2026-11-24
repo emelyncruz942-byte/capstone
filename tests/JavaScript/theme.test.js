@@ -4,11 +4,11 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const source=readFileSync(new URL('../../public/js/theme.js',import.meta.url),'utf8');
-function fixture(saved=null, denied=false){
+function fixture(saved=null, denied=false, locked=false){
     const listeners=new Map(), windowListeners=new Map(), savedWrites=[], events=[];
     const label={textContent:''}, icon={className:''}, attributes={};
     const button={setAttribute:(name,value)=>attributes[name]=value,querySelector:selector=>selector==='[data-theme-label]'?label:icon};
-    const root={dataset:{},style:{}};
+    const root={dataset:locked?{themeLock:'dark'}:{},style:{}};
     const metadata={};
     const context=vm.createContext({
         document:{documentElement:root,
@@ -31,6 +31,16 @@ test('a saved light theme is applied immediately and native controls match it',(
     const f=fixture('light');assert.equal(f.root.dataset.theme,'light');assert.equal(f.root.style.colorScheme,'light');
     assert.equal(f.attributes['aria-label'],'Switch to dark mode');assert.equal(f.label.textContent,'Dark mode');
     assert.equal(f.metadata['meta[name="theme-color"]'],'#edf5fb');
+});
+test('the sign-in page remains dark without overwriting a saved preference',()=>{
+    const f=fixture('light',false,true);
+    assert.equal(f.root.dataset.theme,'dark');
+    assert.equal(f.root.style.colorScheme,'dark');
+    f.context.window.MathVerseTheme.set('light');
+    assert.equal(f.root.dataset.theme,'dark');
+    assert.deepEqual(f.savedWrites,[]);
+    f.windowListeners.get('storage')({key:'mathverse.theme',newValue:'light'});
+    assert.equal(f.root.dataset.theme,'dark');
 });
 test('the visible switch toggles both ways and stores only the theme preference',()=>{
     const f=fixture();f.click();assert.equal(f.root.dataset.theme,'light');assert.equal(f.attributes['aria-pressed'],'true');

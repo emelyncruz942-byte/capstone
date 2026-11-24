@@ -41,8 +41,25 @@ function applyChartDefaults() {
     Chart.defaults.animation = reduceMotion ? false : { duration: 320 };
 }
 
+function waitForChartLibrary() {
+    if (typeof Chart !== 'undefined') return Promise.resolve(true);
+
+    return new Promise(resolve => {
+        const onReady = () => {
+            globalThis.clearTimeout(timeout);
+            resolve(typeof Chart !== 'undefined');
+        };
+        const timeout = globalThis.setTimeout(() => {
+            document.removeEventListener('mathverse:charts-ready', onReady);
+            resolve(false);
+        }, 10000);
+        document.addEventListener('mathverse:charts-ready', onReady, { once: true });
+    });
+}
+
 function chartTooltip(color = CHART_DEFAULTS.color.grid) {
     return {
+        enabled: true,
         backgroundColor: CHART_DEFAULTS.color.surface,
         borderColor: color,
         borderWidth: 1,
@@ -54,6 +71,33 @@ function chartTooltip(color = CHART_DEFAULTS.color.grid) {
         padding: 12,
         displayColors: false,
     };
+}
+
+function chartInteraction() {
+    // Keep the values reachable on touch pads and smaller screens as well as
+    // with a mouse. The underlying report data remains untouched.
+    return { mode: 'nearest', intersect: false };
+}
+
+function canRepaintChart(chart) {
+    const canvas = chart?.canvas;
+    if (!canvas || canvas.isConnected === false || chart.ctx === null) return false;
+    // Updating Chart.js while a dashboard section is display:none gives the
+    // canvas a zero-sized layout and can leave it blank when shown again.
+    // The chart will be rebuilt from the in-memory report cache when its
+    // section becomes visible, so defer its palette repaint instead.
+    return typeof canvas.getClientRects !== 'function' || canvas.getClientRects().length > 0;
+}
+
+function applyTooltipPalette(tooltip, color) {
+    if (!tooltip) return;
+    const palette = chartTooltip(color);
+    // Set only visual tooltip fields. In particular, do not replace
+    // callbacks: bar charts use them to display the percentage values.
+    for (const [property, value] of Object.entries(palette)) {
+        if (property !== 'enabled') tooltip[property] = value;
+    }
+    tooltip.enabled = true;
 }
 
 function describeChart(canvas, title, labels, data) {
@@ -94,6 +138,7 @@ function buildLineChart(canvasId, labels, data, label, color) {
         options: {
             responsive:          true,
             maintainAspectRatio: true,
+            interaction:         chartInteraction(),
             plugins: {
                 legend: { display: false },
                 tooltip: chartTooltip(color)
@@ -134,6 +179,7 @@ function buildBarChart(canvasId, labels, data, label, color) {
         options: {
             responsive:          true,
             maintainAspectRatio: true,
+            interaction:         chartInteraction(),
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -188,6 +234,7 @@ function buildDoughnutChart(canvasId, labels, data, colors) {
         options: {
             responsive:          true,
             maintainAspectRatio: true,
+            interaction:         chartInteraction(),
             cutout:              '65%',
             plugins: {
                 legend: {
@@ -216,6 +263,7 @@ function refreshChartTheme() {
             themedCharts.delete(chart);
             continue;
         }
+        if (!canRepaintChart(chart)) continue;
         const colors = details.colors.map(key => palette[key] || key);
         const dataset = chart.data.datasets[0];
         if (details.kind === 'doughnut') {
@@ -229,7 +277,7 @@ function refreshChartTheme() {
         // Preserve data, callbacks, selection, and cached history. Only repaint
         // the existing chart's presentation; theme changes never fetch records.
         const tooltip = chart.options.plugins.tooltip;
-        Object.assign(tooltip, chartTooltip(details.kind === 'doughnut' ? palette.grid : colors[0]));
+        applyTooltipPalette(tooltip, details.kind === 'doughnut' ? palette.grid : colors[0]);
         const labels = chart.options.plugins.legend?.labels;
         if (labels) { labels.color = palette.body; labels.font = { ...labels.font, size: 14 }; }
         for (const axis of Object.values(chart.options.scales || {})) {
@@ -317,8 +365,11 @@ async function loadTeacherStats(options = {}) {
     const loading = document.getElementById('stats-loading');
     const content = document.getElementById('stats-content');
     if (typeof Chart === 'undefined') {
-        showStatsError('Analytics resources are unavailable. Please refresh the page.');
-        return;
+        const ready = await waitForChartLibrary();
+        if (!ready) {
+            showStatsError('Analytics resources are unavailable. Please refresh the page.');
+            return;
+        }
     }
 
     // Show spinner, hide content
@@ -391,8 +442,11 @@ async function loadAdminStats(options = {}) {
     const loading = document.getElementById('stats-loading');
     const content = document.getElementById('stats-content');
     if (typeof Chart === 'undefined') {
-        showStatsError('Analytics resources are unavailable. Please refresh the page.');
-        return;
+        const ready = await waitForChartLibrary();
+        if (!ready) {
+            showStatsError('Analytics resources are unavailable. Please refresh the page.');
+            return;
+        }
     }
 
     loading?.classList.remove('hidden');
@@ -474,3 +528,9 @@ document.addEventListener('mathverse:before-navigate', () => {
 });
 document.addEventListener('mathverse:data-changed', clearStatsCache);
 document.addEventListener('mathverse:themechange', refreshChartTheme);
+document.addEventListener('mathverse:charts-ready', applyChartDefaults);
+document.addEventListener('mathverse:section-change', () => {
+    // A previously hidden analytics section becomes measurable on the next
+    // frame. Repaint then instead of ever laying it out at zero size.
+    requestAnimationFrame(refreshChartTheme);
+});

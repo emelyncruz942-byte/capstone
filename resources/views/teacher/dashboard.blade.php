@@ -4,6 +4,10 @@
 @section('sidebar-subtitle', 'Instructional Hub')
 @section('mobile-title', 'Teacher Hub')
 
+@push('head')
+    <link rel="stylesheet" href="{{ asset('css/classroom-customization.css') }}?v={{ filemtime(public_path('css/classroom-customization.css')) }}">
+@endpush
+
 @section('sidebar-nav')
     @include('teacher.partials.sidebar-nav')
 @endsection
@@ -160,8 +164,9 @@
                 $pattern = $patternStyles[$custom['banner_pattern']] ?? $patternStyles['grid'];
             @endphp
             <article class="portal-frame overflow-hidden flex flex-col min-h-[285px]" style="border-color: {{ $color }}66;">
-                <div class="relative p-6 min-h-[145px] flex items-end"
-                     style="background-color: {{ $color }}22; background-image: {{ $pattern }}">
+                <div class="relative p-6 min-h-[145px] flex items-end classroom-banner"
+                     data-banner-pattern="{{ $custom['banner_pattern'] }}"
+                     style="--classroom-accent: {{ $color }}; background-color: {{ $color }}22; background-image: {{ $pattern }}">
                     <div class="absolute top-5 right-5 w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
                          style="color: {{ $color }}; background: {{ $color }}22; border: 1px solid {{ $color }}55;">
                         <i class="fas {{ $icon }}"></i>

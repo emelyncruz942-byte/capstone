@@ -830,3 +830,27 @@ html[data-theme="light"] :is(.arcade-game-card, #math-arcade-game)[data-accent="
 html[data-theme="light"] :is(.arcade-game-card, #math-arcade-game)[data-accent="green"] { --arcade-accent: #047857; --arcade-accent-rgb: 4, 120, 87; }
 html[data-theme="light"] :is(.arcade-game-card, #math-arcade-game)[data-accent="orange"] { --arcade-accent: #9a3412; --arcade-accent-rgb: 154, 52, 18; }
 html[data-theme="light"] :is(.arcade-game-card, #math-arcade-game)[data-accent="pink"] { --arcade-accent: #be185d; --arcade-accent-rgb: 190, 24, 93; }
+
+/*
+ * Light surfaces need a deliberate hover contrast. The old white primary
+ * hover became nearly indistinguishable from its light-mode panel, which hid
+ * confirmation and save actions. These retain every control's existing
+ * shape and motion while changing only palette values.
+ */
+html[data-theme="light"] .app-body .btn-rect-primary:hover:not([class*="bg-"]) { background-color: #075985 !important; color: #ffffff !important; box-shadow: 0 0 20px rgba(14, 116, 144, 0.38); }
+html[data-theme="light"] .app-body .btn-mobile-ultra:hover { background-image: linear-gradient(135deg, #082f49, #0c4a6e, #0e7490); color: #ffffff !important; box-shadow: 0 0 20px rgba(14, 116, 144, 0.38); }
+html[data-theme="light"] .app-body .btn-rect-secondary:hover { background-color: #d9eff9; border-color: #0e7490; color: #0c4a6e !important; box-shadow: 0 0 16px rgba(14, 116, 144, 0.22); }
+html[data-theme="light"] .app-body .btn-rect-danger:hover { background-color: #991b1b; color: #ffffff !important; box-shadow: 0 0 16px rgba(185, 28, 28, 0.28); }
+html[data-theme="light"] .app-body .modal-cancel:hover { background-color: #d9eff9; color: #0c4a6e !important; }
+
+/* Important Tailwind backgrounds deliberately win over the base button
+ * color. Give those colored actions an equally visible hover state instead
+ * of allowing their light-mode hover to disappear behind the panel. */
+html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-cyan"]:hover { background-color: #155e75 !important; color: #ffffff !important; }
+html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-green"]:hover { background-color: #065f46 !important; color: #ffffff !important; }
+html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-orange"]:hover { background-color: #9a3412 !important; color: #ffffff !important; }
+html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-purple"]:hover { background-color: #581c87 !important; color: #ffffff !important; }
+html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-red"]:hover { background-color: #991b1b !important; color: #ffffff !important; }
+html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-slate"]:hover { background-color: #334155 !important; color: #ffffff !important; }
+html[data-theme="light"] .app-body .btn-rect-primary[class*="bg-yellow"]:hover { background-color: #713f12 !important; color: #ffffff !important; }
+html[data-theme="light"] .app-body .btn-rect-secondary[class*="hover:!bg-red"]:hover { background-color: #fee2e2 !important; color: #991b1b !important; }

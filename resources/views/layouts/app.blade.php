@@ -7,8 +7,9 @@
     $flashToastMessage = $errors->first() ?: (session('success') ?? session('error') ?? $queryToastMessage);
     $flashToastIsError = $errors->any() || session()->has('error');
 @endphp
+@php($themeIsLockedToDark = request()->routeIs('login'))
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" @if($themeIsLockedToDark) data-theme-lock="dark" @endif>
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -40,8 +41,6 @@
     <div class="digital-rain" aria-hidden="true"></div>
     <div class="cyber-grid" aria-hidden="true"></div>
     <div id="particle-container" aria-hidden="true"></div>
-    @include('partials.theme-toggle')
-
     @yield('content')
 
     {{-- Reusable image-validation alert for registration and profile forms --}}

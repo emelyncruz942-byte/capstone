@@ -33,12 +33,14 @@
             {{ trim($__env->yieldContent('mobile-title')) }}
         </h1>
         <div class="flex items-center gap-2 shrink-0">
+            @include('partials.theme-toggle')
             @include('partials.notifications')
             @include('partials.profile-menu')
         </div>
     </div>
 
     <div class="desktop-notification-bar hidden md:flex items-center justify-end gap-3 mb-4">
+        @include('partials.theme-toggle')
         @include('partials.notifications')
         @include('partials.profile-menu')
     </div>
