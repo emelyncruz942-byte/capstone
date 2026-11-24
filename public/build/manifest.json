@@ -91,11 +91,5 @@
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true
-  },
-  "resources/js/chart.js": {
-    "file": "assets/chart-Bymr-bbJ.js",
-    "name": "chart",
-    "src": "resources/js/chart.js",
-    "isEntry": true
   }
 }

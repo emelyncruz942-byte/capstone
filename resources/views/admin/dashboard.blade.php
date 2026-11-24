@@ -45,25 +45,25 @@
                 <h4 class="font-orbitron text-xs text-cyan-400 uppercase tracking-widest mb-4">
                     <i class="fas fa-chart-line mr-2"></i> Quiz Attempts (All history)
                 </h4>
-                <canvas id="chart-attempts" height="200"></canvas>
+                <div id="chart-attempts" class="report-chart-slot" aria-live="polite"></div>
             </div>
             <div class="portal-frame !p-6">
                 <h4 class="font-orbitron text-xs text-green-400 uppercase tracking-widest mb-4">
                     <i class="fas fa-user-plus mr-2"></i> New Registrations (All history)
                 </h4>
-                <canvas id="chart-registrations" height="200"></canvas>
+                <div id="chart-registrations" class="report-chart-slot" aria-live="polite"></div>
             </div>
             <div class="portal-frame !p-6">
                 <h4 class="font-orbitron text-xs text-orange-400 uppercase tracking-widest mb-4">
                     <i class="fas fa-users mr-2"></i> User Role Breakdown
                 </h4>
-                <canvas id="chart-roles" height="200"></canvas>
+                <div id="chart-roles" class="report-chart-slot" aria-live="polite"></div>
             </div>
             <div class="portal-frame !p-6">
                 <h4 class="font-orbitron text-xs text-pink-400 uppercase tracking-widest mb-4">
                     <i class="fas fa-chart-pie mr-2"></i> Score Distribution
                 </h4>
-                <canvas id="chart-distribution" height="200"></canvas>
+                <div id="chart-distribution" class="report-chart-slot" aria-live="polite"></div>
             </div>
         </div>
     </div>

@@ -4,277 +4,245 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const source = readFileSync(new URL('../../public/js/charts.js', import.meta.url), 'utf8');
-const themeColors = readFileSync(new URL('../../public/css/theme-colors.css', import.meta.url), 'utf8');
 const baseStyles = readFileSync(new URL('../../public/css/style.css', import.meta.url), 'utf8');
+const themeColors = readFileSync(new URL('../../public/css/theme-colors.css', import.meta.url), 'utf8');
+const dashboardLayout = readFileSync(new URL('../../resources/views/layouts/dashboard.blade.php', import.meta.url), 'utf8');
+const teacherDashboard = readFileSync(new URL('../../resources/views/teacher/dashboard.blade.php', import.meta.url), 'utf8');
+const adminDashboard = readFileSync(new URL('../../resources/views/admin/dashboard.blade.php', import.meta.url), 'utf8');
+const appLayout = readFileSync(new URL('../../resources/views/layouts/app.blade.php', import.meta.url), 'utf8');
 
-function fixture({ reduceMotion = false, theme = 'dark', chartAvailable = true } = {}) {
+class FakeClassList {
+    constructor(owner) {
+        this.owner = owner;
+        this.values = new Set();
+    }
+
+    replaceFrom(value) {
+        this.values = new Set(String(value || '').split(/\s+/).filter(Boolean));
+    }
+
+    add(...names) { names.forEach(name => this.values.add(name)); }
+    remove(...names) { names.forEach(name => this.values.delete(name)); }
+    contains(name) { return this.values.has(name); }
+}
+
+class FakeElement {
+    constructor(tagName) {
+        this.tagName = String(tagName).toLowerCase();
+        this.children = [];
+        this.attributes = new Map();
+        this.events = new Map();
+        this.dataset = {};
+        this.style = {};
+        this.classList = new FakeClassList(this);
+        this._className = '';
+        this.textContent = '';
+        this.innerText = '';
+    }
+
+    get className() { return this._className; }
+    set className(value) {
+        this._className = String(value || '');
+        this.classList.replaceFrom(this._className);
+    }
+
+    get lastChild() { return this.children[this.children.length - 1] ?? null; }
+    append(...nodes) { nodes.forEach(node => this.appendChild(node)); }
+    appendChild(node) {
+        if (node) {
+            node.parentNode = this;
+            this.children.push(node);
+        }
+        return node;
+    }
+    replaceChildren(...nodes) {
+        this.children = [];
+        this.textContent = '';
+        this.append(...nodes);
+    }
+    setAttribute(name, value) {
+        const text = String(value);
+        this.attributes.set(name, text);
+        if (name === 'class') this.className = text;
+    }
+    getAttribute(name) { return this.attributes.get(name) ?? null; }
+    removeAttribute(name) { this.attributes.delete(name); }
+    addEventListener(type, listener) {
+        const listeners = this.events.get(type) ?? [];
+        listeners.push(listener);
+        this.events.set(type, listeners);
+    }
+    dispatch(type) {
+        for (const listener of this.events.get(type) ?? []) listener({ type, target: this });
+    }
+}
+
+function descendants(root, predicate) {
+    const matches = [];
+    for (const child of root.children) {
+        if (predicate(child)) matches.push(child);
+        matches.push(...descendants(child, predicate));
+    }
+    return matches;
+}
+
+function fixture(role = 'teacher') {
     const listeners = new Map();
-    const documentElement = { dataset: { theme } };
-    const classList = (...initial) => {
-        const values = new Set(initial);
-        return {
-            add(...names) { names.forEach(name => values.add(name)); },
-            remove(...names) { names.forEach(name => values.delete(name)); },
-            contains(name) { return values.has(name); },
-        };
+    const elements = new Map();
+    const frames = [];
+    const addElement = (id, element = new FakeElement('div')) => {
+        elements.set(id, element);
+        return element;
     };
-    const canvas = {
-        attributes: new Map(),
-        setAttribute(name, value) { this.attributes.set(name, value); },
-        getClientRects() { return [{}]; },
-    };
-    const dashboard = { dataset: { dashboardRole: 'teacher' } };
-    const statsSection = { classList: classList() };
-    const statsContent = { classList: classList() };
-    const animationFrames = [];
-    function Chart(element, configuration) {
-        this.canvas = element;
-        this.config = configuration;
-        this.data = configuration.data;
-        this.options = configuration.options;
-        this.updates = [];
-        this.toggled = [];
-        this.ctx = {};
-        this.update = mode => this.updates.push(mode);
-        this.toggleDataVisibility = index => this.toggled.push(index);
-        this.destroy = () => { this.canvas = null; };
-        Chart.created.push(this);
+    const dashboard = addElement('dashboard-content');
+    dashboard.dataset.dashboardRole = role;
+    addElement('sec-stats');
+    addElement('stats-content');
+    addElement('stats-loading');
+    addElement('stat-total-attempts');
+    addElement('stat-avg-accuracy');
+    addElement('stat-total-quizzes');
+    addElement('stat-total-users');
+    for (const id of ['chart', 'chart-attempts', 'chart-distribution', 'chart-class-accuracy', 'chart-registrations', 'chart-roles']) {
+        addElement(id);
     }
-    Chart.defaults = { font: {} };
-    Chart.created = [];
-    Chart.getChart = () => Chart.created.find(chart => chart.canvas !== null);
-    const contextValues = {
-        document: {
-            documentElement,
-            getElementById(id) {
-                if (id === 'chart') return canvas;
-                if (id === 'dashboard-content') return dashboard;
-                if (id === 'sec-stats') return statsSection;
-                if (id === 'stats-content') return statsContent;
-                return null;
-            },
-            addEventListener(name, listener) {
-                const previous = listeners.get(name);
-                listeners.set(name, previous ? event => { previous(event); listener(event); } : listener);
-            },
-            removeEventListener() {},
+
+    const document = {
+        getElementById(id) { return elements.get(id) ?? null; },
+        createElement(tag) { return new FakeElement(tag); },
+        createElementNS(_namespace, tag) { return new FakeElement(tag); },
+        addEventListener(type, listener) {
+            const registered = listeners.get(type) ?? [];
+            registered.push(listener);
+            listeners.set(type, registered);
         },
-        matchMedia: () => ({ matches: reduceMotion }),
-        fetch() { throw new Error('Theme switching must never fetch reporting data'); },
-        setTimeout: () => 1,
+        removeEventListener(type, listener) {
+            listeners.set(type, (listeners.get(type) ?? []).filter(item => item !== listener));
+        },
+    };
+    const context = vm.createContext({
+        document,
+        console: { error() {} },
+        fetch() { throw new Error('Unexpected network request'); },
+        setTimeout() { return 1; },
         clearTimeout() {},
-        requestAnimationFrame(callback) { animationFrames.push(callback); return animationFrames.length; },
-    };
-    if (chartAvailable) contextValues.Chart = Chart;
-    const context = vm.createContext(contextValues);
+        requestAnimationFrame(callback) { frames.push(callback); return frames.length; },
+    });
     vm.runInContext(source, context);
-    return { context, canvas, Chart, listeners, dashboard, statsSection, statsContent, palette: vm.runInContext('CHART_DEFAULTS.color', context),
-        flushAnimationFrames() {
-            while (animationFrames.length) animationFrames.shift()();
-        },
-        changeTheme(value) { documentElement.dataset.theme = value; listeners.get('mathverse:themechange')({ detail: { theme: value } }); } };
-}
 
-function contrast(first, second) {
-    const luminance = hex => {
-        const channels = hex.replace('#', '').match(/../g).map(channel => parseInt(channel, 16) / 255);
-        const linear = channels.map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
-        return linear[0] * .2126 + linear[1] * .7152 + linear[2] * .0722;
+    return {
+        context,
+        element: id => elements.get(id),
+        emit(type, event = {}) { for (const listener of listeners.get(type) ?? []) listener(event); },
+        flushFrames() { while (frames.length) frames.shift()(); },
     };
-    const a = luminance(first), b = luminance(second);
-    return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
 }
 
-for (const theme of ['light', 'dark']) test(`charts keep the dark palette in ${theme} site mode`, () => {
-    const { context, palette, Chart } = fixture({ theme });
-    context.applyChartDefaults();
-    assert.equal(palette.surface, '#111c2e');
-    assert.ok(contrast(Chart.defaults.color, palette.surface) >= 4.5);
-    assert.ok(contrast(palette.heading, palette.surface) >= 4.5);
-    for (const name of ['cyan', 'purple', 'pink', 'green', 'orange', 'red']) {
-        assert.ok(contrast(palette[name], palette.surface) >= 3, `${name} must remain visible in ${theme}`);
-    }
-    assert.match(Chart.defaults.font.family, /Rajdhani/);
-    assert.ok(Chart.defaults.font.size >= 14);
+test('dashboard analytics uses an SVG/HTML renderer without the fragile Chart.js runtime', () => {
+    assert.doesNotMatch(source, /new Chart\s*\(/);
+    assert.doesNotMatch(source, /waitForChartLibrary/);
+    assert.doesNotMatch(source, /typeof Chart/);
+    assert.doesNotMatch(dashboardLayout, /@vite\('resources\/js\/chart\.js'\)/);
+    assert.doesNotMatch(teacherDashboard, /<canvas\b/);
+    assert.doesNotMatch(adminDashboard, /<canvas\b/);
+    assert.match(teacherDashboard, /class="report-chart-slot"/);
+    assert.match(adminDashboard, /class="report-chart-slot"/);
 });
 
-for (const reduceMotion of [false, true]) {
-    test(`charts respect reduced motion (${reduceMotion})`, () => {
-        const { context, Chart } = fixture({ reduceMotion });
-        context.applyChartDefaults();
-        if (reduceMotion) assert.equal(Chart.defaults.animation, false);
-        else assert.equal(Chart.defaults.animation.duration, 320);
-    });
-}
-
-test('line, bar and doughnut charts retain their complete reporting data and responsive rendering', () => {
-    const { context, palette, canvas } = fixture({ theme: 'light' });
-    const labels = ['Grade 4', 'Grade 5', 'Grade 6'];
-    const values = [25, 67, 90];
-    const charts = [
-        context.buildLineChart('chart', labels, values, 'Attempts', palette.cyan),
-        context.buildBarChart('chart', labels, values, 'Accuracy', palette.purple),
-        context.buildDoughnutChart('chart', labels, values, [palette.cyan, palette.green, palette.orange]),
-    ];
-    for (const chart of charts) {
-        assert.equal(chart.config.data.labels, labels);
-        assert.equal(chart.config.data.datasets[0].data, values);
-        assert.equal(chart.config.options.responsive, true);
-        const tooltip = chart.config.options.plugins.tooltip;
-        assert.equal(tooltip.backgroundColor, '#111c2e');
-        assert.ok(contrast(tooltip.bodyColor, tooltip.backgroundColor) >= 4.5);
-        assert.ok(contrast(tooltip.titleColor, tooltip.backgroundColor) >= 4.5);
-        assert.equal(tooltip.enabled, true);
-    }
-    const legend = charts[2].config.options.plugins.legend.labels;
-    assert.ok(contrast(legend.color, palette.surface) >= 4.5);
-    assert.equal(charts[2].config.options.plugins.legend.onClick, undefined);
-    assert.equal(canvas.attributes.get('role'), 'img');
-    assert.match(canvas.attributes.get('aria-label'), /Grade 4: 25; Grade 5: 67; Grade 6: 90/);
-    assert.equal(charts[1].config.options.plugins.tooltip.callbacks.label({ parsed: { y: 67 } }), ' 67%');
-});
-
-test('full history stays intact while the accessible overview and axis labels remain concise', () => {
-    const { context, canvas, palette } = fixture();
-    const labels = Array.from({ length: 70 }, (_, index) => `Day ${index + 1}`);
-    const values = Array.from({ length: 70 }, (_, index) => index);
-    const chart = context.buildLineChart('chart', labels, values, 'Attempts', palette.cyan);
-    assert.equal(chart.config.data.labels.length, 70);
-    assert.equal(chart.config.data.datasets[0].data.length, 70);
-    assert.match(canvas.attributes.get('aria-label'), /70 reporting periods, from Day 1 to Day 70. Latest value: 69/);
-    assert.ok(chart.config.options.scales.x.ticks.maxTicksLimit <= 8);
-    assert.equal(chart.config.data.datasets[0].pointHitRadius, 16);
-});
-
-test('optional charts are skipped when their canvas is absent', () => {
-    const { context, palette } = fixture();
-    assert.equal(context.buildLineChart('absent', [], [], 'Attempts', palette.cyan), null);
-    assert.equal(context.buildBarChart('absent', [], [], 'Accuracy', palette.purple), null);
-    assert.equal(context.buildDoughnutChart('absent', [], [], []), null);
-});
-
-test('analytics waits for the Chart module instead of rendering a blank panel during a slow first load', async () => {
-    const f = fixture({ chartAvailable: false });
-    const ready = f.context.waitForChartLibrary();
-    f.context.Chart = f.Chart;
-    f.listeners.get('mathverse:charts-ready')();
-    assert.equal(await ready, true);
-    assert.equal(f.Chart.defaults.color, f.palette.text);
-});
-
-test('site theme changes leave existing charts on their stable dark palette', () => {
-    const f = fixture({ theme: 'dark' });
-    f.context.applyChartDefaults();
-    const labels = ['October', 'November'], values = [12, 38];
-    const line = f.context.buildLineChart('chart', labels, values, 'Attempts', f.palette.cyan);
-    const bar = f.context.buildBarChart('chart', labels, values, 'Accuracy', f.palette.purple);
-    const doughnut = f.context.buildDoughnutChart('chart', labels, values, [f.palette.cyan, f.palette.green]);
-    const callback = bar.options.plugins.tooltip.callbacks.label;
-    const geometry = chart => JSON.stringify({
-        responsive: chart.options.responsive,
-        maintainAspectRatio: chart.options.maintainAspectRatio,
-        cutout: chart.options.cutout,
-        borderWidth: chart.data.datasets[0].borderWidth,
-        borderRadius: chart.data.datasets[0].borderRadius,
-        pointRadius: chart.data.datasets[0].pointRadius,
-        pointHoverRadius: chart.data.datasets[0].pointHoverRadius,
-        hoverOffset: chart.data.datasets[0].hoverOffset,
-        tension: chart.data.datasets[0].tension,
-        legendPadding: chart.options.plugins.legend?.labels?.padding,
-        legendBoxWidth: chart.options.plugins.legend?.labels?.boxWidth,
-        tooltipPadding: chart.options.plugins.tooltip.padding,
-        tooltipRadius: chart.options.plugins.tooltip.cornerRadius,
-    });
-    const originalGeometry = [line, bar, doughnut].map(geometry);
-    f.changeTheme('light');
-    const stablePalette = vm.runInContext('CHART_DEFAULTS.color', f.context);
-    for (const chart of [line, bar, doughnut]) {
-        assert.equal(chart.data.labels, labels);
-        assert.equal(chart.data.datasets[0].data, values);
-        assert.equal(chart.options.plugins.tooltip.backgroundColor, stablePalette.surface);
-        assert.deepEqual(chart.updates, []);
-    }
-    assert.equal(stablePalette.surface, '#111c2e');
-    assert.equal(line.data.datasets[0].borderColor, stablePalette.cyan);
-    assert.equal(bar.data.datasets[0].borderColor, stablePalette.purple);
-    assert.equal(doughnut.data.datasets[0].backgroundColor[0], stablePalette.cyan + '99');
-    assert.equal(doughnut.data.datasets[0].backgroundColor[1], stablePalette.green + '99');
-    assert.equal(doughnut.options.plugins.legend.labels.color, stablePalette.body);
-    assert.equal(line.options.scales.x.ticks.color, stablePalette.text);
-    assert.equal(line.options.scales.y.grid.color, stablePalette.grid);
-    assert.equal(bar.options.plugins.tooltip.callbacks.label, callback);
-    assert.equal(callback({ parsed: { y: 38 } }), ' 38%');
-    assert.equal(f.Chart.created.length, 3);
-    assert.deepEqual([line, bar, doughnut].map(geometry), originalGeometry);
-    f.changeTheme('dark');
-    assert.equal(line.data.datasets[0].borderColor, f.palette.cyan);
-    assert.equal(line.options.plugins.tooltip.backgroundColor, f.palette.surface);
-    assert.equal(line.updates.length, 0);
-    assert.equal(line.data.datasets[0].data, values);
-    assert.deepEqual([line, bar, doughnut].map(geometry), originalGeometry);
-});
-
-test('destroyed charts are forgotten and cannot be updated by later theme changes', () => {
+test('line reports retain all history and update their visible value on hover and focus', () => {
     const f = fixture();
-    const chart = f.context.buildLineChart('chart', ['Day 1'], [4], 'Attempts', f.palette.cyan);
-    f.context.destroyCharts(['chart']);
-    f.changeTheme('light');
-    assert.equal(chart.updates.length, 0);
-    assert.equal(vm.runInContext('themedCharts.size', f.context), 0);
+    const chart = f.context.buildLineChart('chart', ['October', 'November', 'December'], [2, 9, 5], 'Attempts', '#22d3ee');
+    const target = f.element('chart');
+    const detail = descendants(target, element => element.classList.contains('report-chart-detail'))[0];
+    const hits = descendants(target, element => element.classList.contains('report-chart-hit'));
+
+    assert.equal(chart.entries.length, 3);
+    assert.equal(hits.length, 3);
+    assert.match(detail.textContent, /December: 5/);
+    hits[1].dispatch('pointerenter');
+    assert.match(detail.textContent, /November: 9/);
+    hits[0].dispatch('focus');
+    assert.match(detail.textContent, /October: 2/);
+    assert.ok(descendants(target, element => element.tagName === 'svg').length === 1);
 });
 
-test('detached canvases and charts destroyed by another component are pruned without repainting', () => {
-    for (const reason of ['detached', 'destroyed']) {
-        const f = fixture();
-        const chart = f.context.buildLineChart('chart', ['Day 1'], [4], 'Attempts', f.palette.cyan);
-        if (reason === 'detached') chart.canvas.isConnected = false;
-        else chart.ctx = null;
-        f.changeTheme('light');
-        assert.equal(chart.updates.length, 0);
-        assert.equal(vm.runInContext('themedCharts.size', f.context), 0);
-    }
+test('bar reports show values on hover and preserve percentage precision', () => {
+    const f = fixture();
+    const chart = f.context.buildBarChart('chart', ['Grade 4', 'Grade 5'], [64.5, 87], 'Accuracy', '#a78bfa');
+    const target = f.element('chart');
+    const detail = descendants(target, element => element.classList.contains('report-chart-detail'))[0];
+    const hits = descendants(target, element => element.classList.contains('report-chart-hit'));
+
+    assert.equal(chart.entries[0].value, 64.5);
+    hits[0].dispatch('pointerenter');
+    assert.match(detail.textContent, /Grade 4: 64.5%/);
+    hits[1].dispatch('focus');
+    assert.match(detail.textContent, /Grade 5: 87%/);
 });
 
-test('theme changes never resize an already-rendered chart', () => {
-    const f = fixture({ theme: 'dark' });
-    const chart = f.context.buildBarChart('chart', ['Grade 4'], [64], 'Accuracy', f.palette.purple);
-    const callback = chart.options.plugins.tooltip.callbacks.label;
-    f.changeTheme('light');
-    assert.deepEqual(chart.updates, []);
-    assert.equal(chart.options.plugins.tooltip.callbacks.label, callback);
-    assert.equal(chart.data.datasets[0].data[0], 64);
-    assert.equal(f.listeners.has('mathverse:section-change'), true);
-    assert.equal(chart.options.plugins.tooltip.enabled, true);
-    assert.equal(chart.data.datasets[0].borderColor, '#a78bfa');
-    assert.equal(chart.data.datasets[0].data[0], 64);
+test('doughnut slices show their values and legend buttons truly filter categories', () => {
+    const f = fixture();
+    f.context.buildDoughnutChart('chart', ['Low', 'Middle', 'High'], [2, 5, 8], ['#fb7185', '#fbbf24', '#4ade80']);
+    let target = f.element('chart');
+    let detail = descendants(target, element => element.classList.contains('report-chart-detail'))[0];
+    const slices = descendants(target, element => element.classList.contains('report-doughnut-slice'));
+    let buttons = descendants(target, element => element.classList.contains('report-legend-button'));
+
+    assert.equal(slices.length, 3);
+    assert.equal(buttons.length, 3);
+    slices[1].dispatch('pointerenter');
+    assert.match(detail.textContent, /Middle: 5/);
+    assert.equal(buttons[0].getAttribute('aria-pressed'), 'true');
+
+    buttons[0].dispatch('click');
+    target = f.element('chart');
+    buttons = descendants(target, element => element.classList.contains('report-legend-button'));
+    detail = descendants(target, element => element.classList.contains('report-chart-detail'))[0];
+    assert.equal(buttons[0].getAttribute('aria-pressed'), 'false');
+    assert.match(detail.textContent, /Middle: 5|High: 8/);
+    assert.equal(vm.runInContext('reportCharts.get("chart").hidden.has(0)', f.context), true);
+
+    buttons[0].dispatch('click');
+    buttons = descendants(f.element('chart'), element => element.classList.contains('report-legend-button'));
+    assert.equal(buttons[0].getAttribute('aria-pressed'), 'true');
 });
 
-test('a delayed analytics render is cancelled once its parent section is hidden', () => {
+test('empty reports render a clear message instead of a blank canvas', () => {
+    const f = fixture();
+    assert.equal(f.context.buildLineChart('chart', [], [], 'Attempts', '#22d3ee'), null);
+    const empty = descendants(f.element('chart'), element => element.classList.contains('report-chart-empty'))[0];
+    assert.match(empty.textContent, /No recorded data/);
+});
+
+test('a delayed analytics render is cancelled when its parent section is hidden', () => {
     const f = fixture();
     let renders = 0;
     f.context.scheduleStatsRender('teacher', ['chart'], () => { renders += 1; });
-    f.statsSection.classList.add('hidden');
-    f.flushAnimationFrames();
+    f.element('sec-stats').classList.add('hidden');
+    f.flushFrames();
     assert.equal(renders, 0);
 });
 
-test('leaving analytics destroys its chart and cancels queued work', () => {
+test('leaving analytics clears rendered report markup and cancels queued work', () => {
     const f = fixture();
-    const chart = f.context.buildLineChart('chart', ['Day 1'], [4], 'Attempts', f.palette.cyan);
+    f.context.buildLineChart('chart-attempts', ['Day 1'], [4], 'Attempts', '#22d3ee');
     let renders = 0;
-    f.context.scheduleStatsRender('teacher', ['chart'], () => { renders += 1; });
-    f.listeners.get('mathverse:section-change')({ detail: { section: 'overview' } });
-    f.flushAnimationFrames();
-    assert.equal(chart.canvas, null);
+    f.context.scheduleStatsRender('teacher', ['chart-attempts'], () => { renders += 1; });
+    f.emit('mathverse:section-change', { detail: { section: 'overview' } });
+    f.flushFrames();
+    assert.equal(f.element('chart-attempts').children.length, 0);
     assert.equal(renders, 0);
 });
 
-test('Learning Hub data bars retain their dark-mode gradients in light mode', () => {
-    assert.match(themeColors, /html\[data-theme="light"\] \.analytics-meter span \{ background: linear-gradient\(90deg, #fb7185, #facc15\); \}/);
-    assert.match(themeColors, /html\[data-theme="light"\] \.analytics-day-bar \{ background: linear-gradient\(180deg, #22d3ee, #7c3aed\); \}/);
+test('reports retain a high-contrast dark data surface in either site theme', () => {
+    assert.match(baseStyles, /\.report-chart-slot \{[^}]*background: #111c2e/);
+    assert.match(baseStyles, /\.report-chart-detail \{[^}]*color: #f1f5f9/);
+    assert.match(baseStyles, /\.report-legend-button:hover, \.report-legend-button:focus-visible/);
+    assert.match(themeColors, /html\[data-theme="light"\] \.analytics-meter span/);
 });
 
-test('game-release picker keeps black text in dark mode and white text in light mode', () => {
-    assert.match(baseStyles, /\.app-release-file-input::file-selector-button,\s+\.app-release-file-input::-webkit-file-upload-button \{\s+color: #000000 !important;/);
-    assert.match(themeColors, /html\[data-theme="light"\] \.app-body \.app-release-file-input::file-selector-button \{\s+color: #ffffff !important;/);
+test('all site toasts center their icon, text, and close control vertically', () => {
+    assert.match(appLayout, /global-toast fixed[^\n]*flex items-center/);
+    assert.doesNotMatch(appLayout, /data-toast-icon[^\n]*mt-0\.5/);
+    assert.match(baseStyles, /\.global-toast \{[^}]*align-items: center/);
 });

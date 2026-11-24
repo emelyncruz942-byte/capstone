@@ -9,7 +9,6 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/app-release-upload.js',
-                'resources/js/chart.js',
             ],
             refresh: true,
         }),

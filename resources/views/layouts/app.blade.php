@@ -76,8 +76,8 @@
          aria-atomic="true"
          aria-hidden="{{ $flashToastMessage ? 'false' : 'true' }}"
          data-initial-visible="{{ $flashToastMessage ? 'true' : 'false' }}"
-         class="global-toast fixed z-[10000] flex items-start gap-3 rounded-lg px-4 py-3 text-sm font-bold leading-5 shadow-2xl transition-all duration-300 {{ $flashToastIsError ? 'bg-red-500 text-white' : 'bg-cyan-500 text-black' }} {{ $flashToastMessage ? 'opacity-100' : 'opacity-0 pointer-events-none' }}">
-        <i class="fas {{ $flashToastIsError ? 'fa-circle-exclamation' : 'fa-circle-check' }} mt-0.5 shrink-0" data-toast-icon aria-hidden="true"></i>
+         class="global-toast fixed z-[10000] flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-bold leading-5 shadow-2xl transition-all duration-300 {{ $flashToastIsError ? 'bg-red-500 text-white' : 'bg-cyan-500 text-black' }} {{ $flashToastMessage ? 'opacity-100' : 'opacity-0 pointer-events-none' }}">
+        <i class="fas {{ $flashToastIsError ? 'fa-circle-exclamation' : 'fa-circle-check' }} shrink-0" data-toast-icon aria-hidden="true"></i>
         <span id="toast-msg" class="min-w-0 flex-1 break-words">{{ $flashToastMessage ?: 'Success' }}</span>
         <button type="button" class="toast-close -m-1 ml-1 min-h-8 min-w-8 rounded p-1" aria-label="Dismiss notification" data-action="hideToast">
             <i class="fas fa-xmark" aria-hidden="true"></i>

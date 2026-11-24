@@ -237,6 +237,45 @@ body.sidebar-open {
 .analytics-table th { padding: 0 .75rem .8rem; border-bottom: 1px solid rgba(255,255,255,.1); color: #64748b; font-size: .54rem; letter-spacing: .12em; text-transform: uppercase; }
 .analytics-table td { padding: .8rem .75rem; border-bottom: 1px solid rgba(255,255,255,.05); color: #cbd5e1; }
 .analytics-table td small { display: block; margin-top: .2rem; color: #64748b; font-size: .58rem; }
+
+/* Dashboard report charts use SVG/HTML rather than a canvas. Their dark
+   surface deliberately stays the same in both site themes for data contrast. */
+.report-chart-slot { min-height: 19rem; padding: .75rem; border: 1px solid rgba(34,211,238,.22); border-radius: .75rem; background: #111c2e; color: #c4d2e7; }
+.report-chart-slot-wide { min-height: 20rem; }
+.report-chart-ready { display: flex; flex-direction: column; min-width: 0; }
+.report-chart-detail { min-height: 1.75rem; margin: 0 0 .35rem; color: #f1f5f9; font-family: 'Share Tech Mono', monospace; font-size: .8rem; line-height: 1.45; }
+.report-chart-empty { display: grid; min-height: 15rem; margin: 0; place-items: center; color: #c4d2e7; font-size: .85rem; text-align: center; }
+.report-chart-svg { display: block; width: 100%; height: 15.75rem; overflow: visible; }
+.report-chart-grid-line { stroke: #2c3c54; stroke-width: 1; }
+.report-chart-axis-label { fill: #c4d2e7; font-family: 'Rajdhani', sans-serif; font-size: 12px; }
+.report-chart-area { pointer-events: none; }
+.report-chart-line { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.report-chart-point { pointer-events: none; stroke: #111c2e; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.report-chart-bar { opacity: .82; stroke: #111c2e; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.report-chart-hit { cursor: pointer; outline: none; }
+.report-chart-hit:focus { stroke: #f8fafc; stroke-width: 2; }
+.report-doughnut-layout { display: grid; grid-template-columns: minmax(9rem, 1fr) minmax(10rem, 1fr); align-items: center; gap: .75rem; min-height: 15.75rem; }
+.report-doughnut-svg { display: block; width: min(100%, 15rem); max-height: 15rem; margin: 0 auto; overflow: visible; }
+.report-doughnut-slice { cursor: pointer; stroke: #111c2e; stroke-width: 2; transition: opacity .15s ease, transform .15s ease; transform-origin: center; }
+.report-doughnut-slice:hover, .report-doughnut-slice:focus { stroke: #f8fafc; stroke-width: 3; transform: scale(1.025); outline: none; }
+.report-doughnut-center { fill: #111c2e; }
+.report-doughnut-empty-ring { fill: #243247; }
+.report-doughnut-total { fill: #f1f5f9; font-family: 'Orbitron', sans-serif; font-size: 24px; font-weight: 700; }
+.report-doughnut-caption { fill: #c4d2e7; font-family: 'Rajdhani', sans-serif; font-size: 13px; }
+.report-chart-legend { display: grid; gap: .45rem; align-content: center; }
+.report-legend-button { display: flex; width: 100%; min-height: 2.5rem; align-items: center; gap: .55rem; padding: .45rem .55rem; border: 1px solid rgba(196,210,231,.24); border-radius: .5rem; color: #f1f5f9; background: rgba(255,255,255,.035); font: 600 .85rem/1.35 'Rajdhani', sans-serif; text-align: left; transition: border-color .15s ease, background .15s ease, opacity .15s ease; }
+.report-legend-button:hover, .report-legend-button:focus-visible { border-color: #22d3ee; background: rgba(34,211,238,.13); outline: none; }
+.report-legend-button.is-hidden { opacity: .45; text-decoration: line-through; }
+.report-legend-swatch { width: .8rem; height: .8rem; flex: 0 0 .8rem; border-radius: 999px; box-shadow: 0 0 0 1px rgba(255,255,255,.32); }
+.report-legend-label { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 540px) {
+    .report-chart-slot, .report-chart-slot-wide { min-height: 18rem; padding: .55rem; }
+    .report-chart-svg { height: 14.5rem; }
+    .report-doughnut-layout { grid-template-columns: 1fr; min-height: 18rem; }
+    .report-doughnut-svg { width: min(100%, 12.5rem); max-height: 12.5rem; }
+    .report-chart-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .report-legend-button { min-height: 2.75rem; font-size: .78rem; }
+}
 .solo-stats-link,
 .solo-back-link {
     display: inline-flex;
@@ -1191,6 +1230,7 @@ fieldset {
     bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 0.75rem));
     width: min(30rem, calc(100vw - 2rem));
     max-width: calc(100vw - 2rem);
+    align-items: center;
 }
 
 .toast-close {
