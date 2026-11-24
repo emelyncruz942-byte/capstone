@@ -152,7 +152,18 @@ function addPointInteraction(point, description, detail) {
     point.addEventListener('touchstart', show, { passive: true });
 }
 
-function buildLineChart(chartId, labels, data, label, color) {
+function lineMarkerIndices(entries, mode = 'auto') {
+    const meaningful = entries
+        .map((entry, index) => ({ entry, index }))
+        .filter(({ entry, index }) => entry.value !== 0 || index === 0 || index === entries.length - 1)
+        .map(({ index }) => index);
+
+    if (mode === 'events') return new Set(meaningful);
+    if (entries.length <= 45) return new Set(entries.map((_entry, index) => index));
+    return new Set(meaningful);
+}
+
+function buildLineChart(chartId, labels, data, label, color, markerMode = 'auto') {
     const target = document.getElementById(chartId);
     if (!target) return null;
 
@@ -196,12 +207,18 @@ function buildLineChart(chartId, labels, data, label, color) {
     svg.append(createSvgElement('path', { class: 'report-chart-area', d: areaPath, fill: `${color}28` }));
     svg.append(createSvgElement('path', { class: 'report-chart-line', d: linePath, stroke: color }));
 
+    const markers = lineMarkerIndices(entries, markerMode);
     entries.forEach((entry, index) => {
         const point = points[index];
         const description = `${entry.label}: ${formatReportValue(entry.value)}`;
-        svg.append(createSvgElement('circle', {
-            class: 'report-chart-point', cx: point.x, cy: point.y, r: 3.8, fill: color,
-        }));
+        // Full history still has a hover/focus target on every day. Dense
+        // registration histories no longer paint hundreds of zero-value dots
+        // along the baseline, which made the Admin graph look scattered.
+        if (markers.has(index)) {
+            svg.append(createSvgElement('circle', {
+                class: 'report-chart-point', cx: point.x, cy: point.y, r: 3.8, fill: color,
+            }));
+        }
         const hit = createSvgElement('circle', {
             class: 'report-chart-hit', cx: point.x, cy: point.y, r: 13, fill: 'rgba(0,0,0,0.001)',
         });
@@ -533,7 +550,7 @@ async function loadAdminStats(options = {}) {
 
         scheduleStatsRender('admin', ['chart-attempts', 'chart-registrations', 'chart-roles', 'chart-distribution'], () => {
             buildLineChart('chart-attempts', (data.attemptsPerDay ?? []).map(day => day.date), (data.attemptsPerDay ?? []).map(day => day.count), 'Quiz attempts per day', REPORT_COLORS.cyan);
-            buildLineChart('chart-registrations', (data.registrationsPerDay ?? []).map(day => day.date), (data.registrationsPerDay ?? []).map(day => day.count), 'New registrations per day', REPORT_COLORS.green);
+            buildLineChart('chart-registrations', (data.registrationsPerDay ?? []).map(day => day.date), (data.registrationsPerDay ?? []).map(day => day.count), 'New registrations per day', REPORT_COLORS.green, 'events');
             buildDoughnutChart('chart-roles', ['Students', 'Teachers', 'Pending'], [data.roleBreakdown?.students, data.roleBreakdown?.teachers, data.roleBreakdown?.pending], [REPORT_COLORS.cyan, REPORT_COLORS.purple, REPORT_COLORS.orange]);
             buildDoughnutChart('chart-distribution', ['0–25%', '26–50%', '51–75%', '76–100%'], data.distribution ?? [], [REPORT_COLORS.red, REPORT_COLORS.orange, REPORT_COLORS.cyan, REPORT_COLORS.green]);
         });

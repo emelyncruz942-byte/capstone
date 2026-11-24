@@ -166,6 +166,22 @@ test('line reports retain all history and update their visible value on hover an
     assert.ok(descendants(target, element => element.tagName === 'svg').length === 1);
 });
 
+test('dense registration histories keep every hover target but draw dots only for meaningful registration days', () => {
+    const f = fixture('admin');
+    const labels = Array.from({ length: 90 }, (_value, index) => `Day ${index + 1}`);
+    const counts = labels.map((_label, index) => index === 4 || index === 47 || index === 89 ? 1 : 0);
+    f.context.buildLineChart('chart-registrations', labels, counts, 'New registrations per day', '#4ade80', 'events');
+
+    const target = f.element('chart-registrations');
+    const points = descendants(target, element => element.classList.contains('report-chart-point'));
+    const hits = descendants(target, element => element.classList.contains('report-chart-hit'));
+    assert.equal(points.length, 4, 'Two event markers plus the first and last endpoints remain visible.');
+    assert.equal(hits.length, 90, 'Every day remains hoverable and keyboard reachable.');
+    hits[30].dispatch('focus');
+    const detail = descendants(target, element => element.classList.contains('report-chart-detail'))[0];
+    assert.match(detail.textContent, /Day 31: 0/);
+});
+
 test('bar reports show values on hover and preserve percentage precision', () => {
     const f = fixture();
     const chart = f.context.buildBarChart('chart', ['Grade 4', 'Grade 5'], [64.5, 87], 'Accuracy', '#a78bfa');
